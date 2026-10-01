@@ -8,6 +8,11 @@ const MODE_LABELS = {
   guess: "guessing",
   curious: "curious",
   math: "computed",
+<<<<<<< HEAD
+=======
+  skill: "skill",
+  fact: "fact recall",
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 };
 
 /* ---------------- helpers ---------------- */
@@ -62,8 +67,14 @@ function addBotReply(data) {
   const meta = document.createElement("div");
   meta.className = "meta-row";
   const tag = document.createElement("span");
+<<<<<<< HEAD
   tag.className = "mode-tag";
   tag.textContent = MODE_LABELS[data.mode] || data.mode;
+=======
+  tag.className = "mode-tag" + (data.mode === "skill" ? " skill" : "");
+  tag.textContent = data.mode === "skill" && data.skill
+    ? `skill: ${data.skill}` : (MODE_LABELS[data.mode] || data.mode);
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
   meta.appendChild(tag);
 
   if (data.teach_prompt) {
@@ -179,7 +190,13 @@ function switchTab(name) {
     t.classList.toggle("active", t.dataset.tab === name));
   $("panel-learn").classList.toggle("hidden", name !== "learn");
   $("panel-growth").classList.toggle("hidden", name !== "growth");
+<<<<<<< HEAD
   if (name === "growth") refreshStats();
+=======
+  $("panel-mind").classList.toggle("hidden", name !== "mind");
+  if (name === "growth") refreshStats();
+  if (name === "mind") refreshMind();
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 }
 
 async function refreshMemory() {
@@ -239,6 +256,111 @@ async function refreshStats() {
 function refreshSidebars() {
   refreshMemory();
   if (!$("panel-growth").classList.contains("hidden")) refreshStats();
+<<<<<<< HEAD
+=======
+  if (!$("panel-mind").classList.contains("hidden")) refreshMind();
+}
+
+/* ---------------- mind tab (self-learning loop) ---------------- */
+
+async function refreshMind() {
+  const data = await api("/api/stats");
+  const mind = data.mind || {};
+  const tr = mind.trainer || {};
+
+  $("mn-status").textContent = tr.busy ? "training…" : (tr.queue ? `queue ${tr.queue}` : "idle");
+  $("mn-steps").textContent = tr.done_steps || 0;
+  $("mn-loss").textContent = tr.last_loss || "–";
+  const evals = mind.self_eval || [];
+  $("mn-eval").textContent = evals.length ? `${Math.round(evals[evals.length - 1].v * 100)}%` : "–";
+  $("mn-cycles").textContent = data.counters.cycles || 0;
+  $("mn-constit").textContent = `v${data.constitution_version}`;
+  $("mn-constit-pill").textContent = `v${data.constitution_version}`;
+
+  // constitution
+  const pr = $("principles");
+  pr.innerHTML = "";
+  for (const p of mind.principles || []) {
+    const li = document.createElement("li");
+    li.textContent = p;
+    pr.appendChild(li);
+  }
+
+  // facts (with forget buttons)
+  $("mn-facts-pill").textContent = (mind.facts || []).length;
+  const fl = $("facts-list");
+  fl.innerHTML = "";
+  if (!(mind.facts || []).length) fl.innerHTML = '<li class="empty">No facts yet — say “my name is …” or “note: …”.</li>';
+  for (const f of mind.facts || []) {
+    const li = document.createElement("li");
+    const triple = document.createElement("span");
+    triple.className = "triple";
+    const b = document.createElement("b");
+    b.textContent = `${f.subject} ${f.predicate}`;
+    triple.append(b, document.createTextNode(` ${f.object}`));
+    const conf = document.createElement("span");
+    conf.className = "conf";
+    conf.textContent = `${Math.round(f.confidence * 100)}%`;
+    const x = document.createElement("button");
+    x.className = "forget";
+    x.textContent = "✕";
+    x.title = "forget this fact";
+    x.onclick = async () => {
+      await api("/api/forget", { q: `${f.subject} ${f.predicate} ${f.object}` });
+      toast("Fact forgotten.");
+      refreshMind();
+    };
+    li.append(triple, conf, x);
+    fl.appendChild(li);
+  }
+
+  // lessons
+  $("mn-lessons-pill").textContent = (mind.lessons || []).length;
+  const ll = $("lessons-list");
+  ll.innerHTML = "";
+  if (!(mind.lessons || []).length) ll.innerHTML = '<li class="empty">No self-critique lessons yet.</li>';
+  for (const l of mind.lessons || []) {
+    const li = document.createElement("li");
+    li.textContent = l;
+    ll.appendChild(li);
+  }
+
+  // skills
+  $("mn-skills-pill").textContent = (mind.skills || []).length;
+  const sl = $("skills-list");
+  sl.innerHTML = "";
+  for (const s of mind.skills || []) {
+    const li = document.createElement("li");
+    const nm = document.createElement("span");
+    nm.className = "sname";
+    nm.textContent = `${s.name} · ${s.path}`;
+    const ds = document.createElement("span");
+    ds.textContent = s.description;
+    li.append(nm, ds);
+    sl.appendChild(li);
+  }
+
+  // recent improvement events
+  const ev = $("improve-events");
+  ev.innerHTML = "";
+  const events = mind.events || [];
+  if (!events.length) ev.innerHTML = '<li class="empty">No improvement events yet.</li>';
+  for (const e of events.slice(0, 12)) {
+    const li = document.createElement("li");
+    const kind = document.createElement("span");
+    kind.className = "kind";
+    kind.textContent = e.kind;
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = fmtTime(e.t);
+    const text = e.payload && e.payload.text ? e.payload.text
+      : e.payload && e.payload.object ? `${e.payload.subject} ${e.payload.predicate} ${e.payload.object}`
+      : e.payload && e.payload.score !== undefined ? `score ${Math.round(e.payload.score * 100)}%`
+      : JSON.stringify(e.payload);
+    li.append(kind, time, document.createTextNode(text));
+    ev.appendChild(li);
+  }
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 }
 
 /* ---------------- loss chart ---------------- */
@@ -353,6 +475,23 @@ $("dream-btn").addEventListener("click", async () => {
   box.textContent = "💭 “" + data.text + "”";
 });
 
+<<<<<<< HEAD
+=======
+$("improve-btn").addEventListener("click", async () => {
+  const btn = $("improve-btn");
+  btn.disabled = true;
+  btn.textContent = "Improving…";
+  const data = await api("/api/improve", {});
+  btn.disabled = false;
+  btn.textContent = "🔁 Run improvement cycle";
+  if (data.ok) {
+    const n = (data.events || []).length;
+    toast(`Improvement cycle done — ${n} event${n === 1 ? "" : "s"}.`);
+  }
+  refreshMind();
+});
+
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 /* ---------------- boot ---------------- */
 
 addMessage("bot",

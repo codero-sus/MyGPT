@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from collections import Counter
 
 import numpy as np
@@ -44,6 +45,8 @@ class NeuralLM:
         # Adam state
         self._adam: dict[str, list[np.ndarray]] = {}
         self._adam_t = 0
+        # Guards weight updates against concurrent inference (background trainer).
+        self.lock = threading.RLock()
 
         self.rebuild_vocab()
 
@@ -130,18 +133,32 @@ class NeuralLM:
             windows = [windows[i] for i in sorted(keep)]
 
         first_loss, last_loss = None, None
-        for _ in range(epochs):
-            self.rng.shuffle(windows)
-            for b in range(0, len(windows), batch_size):
-                batch = windows[b:b + batch_size]
-                ctx = np.stack([w[0] for w in batch])
-                tgt = np.array([w[1] for w in batch], dtype=np.int64)
-                loss = self._step(ctx, tgt)
-                if first_loss is None:
-                    first_loss = loss
-                last_loss = loss
+        with self.lock:
+            for _ in range(epochs):
+                self.rng.shuffle(windows)
+                for b in range(0, len(windows), batch_size):
+                    batch = windows[b:b + batch_size]
+                    ctx = np.stack([w[0] for w in batch])
+                    tgt = np.array([w[1] for w in batch], dtype=np.int64)
+                    loss = self._step(ctx, tgt)
+                    if first_loss is None:
+                        first_loss = loss
+                    last_loss = loss
         return {"loss_first": float(first_loss), "loss_last": float(last_loss),
                 "windows": len(windows)}
+
+    def train_step(self, text: str, max_windows: int = 64) -> float:
+        """One Adam step on the windows of a single text (background training)."""
+        windows = list(self._windows([text]))
+        if not windows:
+            return 0.0
+        if len(windows) > max_windows:
+            keep = self.rng.choice(len(windows), max_windows, replace=False)
+            windows = [windows[i] for i in sorted(keep)]
+        ctx = np.stack([w[0] for w in windows])
+        tgt = np.array([w[1] for w in windows], dtype=np.int64)
+        with self.lock:
+            return self._step(ctx, tgt)
 
     def _step(self, ctx_ids: np.ndarray, targets: np.ndarray) -> float:
         B, C = ctx_ids.shape
@@ -193,10 +210,11 @@ class NeuralLM:
     # ------------------------------------------------------------------ infer
     def perplexity(self, texts: list[str]) -> float:
         losses = []
-        for ctx, tgt in self._windows(texts):
-            logits, _ = self._forward(ctx[None, :])
-            probs = self._softmax(logits)
-            losses.append(-np.log(probs[0, tgt] + 1e-12))
+        with self.lock:
+            for ctx, tgt in self._windows(texts):
+                logits, _ = self._forward(ctx[None, :])
+                probs = self._softmax(logits)
+                losses.append(-np.log(probs[0, tgt] + 1e-12))
         return float(np.exp(np.mean(losses))) if losses else float("nan")
 
     def generate(self, n_tokens: int = 30, temperature: float = 0.9,
@@ -206,7 +224,8 @@ class NeuralLM:
         ctx = np.full((1, self.ctx), bos, dtype=np.int64)
         out: list[str] = []
         for _ in range(n_tokens):
-            logits, _ = self._forward(ctx)
+            with self.lock:
+                logits, _ = self._forward(ctx)
             z = logits[0] / max(1e-3, temperature)
             order = np.argsort(z)[::-1][:top_k]
             ez = np.exp(z[order] - z[order].max())
@@ -226,12 +245,13 @@ class NeuralLM:
 
     # ------------------------------------------------------------ persistence
     def save(self, path: str) -> None:
-        np.savez_compressed(
-            path,
-            E=self.E, W1=self.W1, b1=self.b1, W_out=self.W_out, b_out=self.b_out,
-            vocab=np.array(self.idx2word, dtype=object),
-            counts=json.dumps(dict(self.word_counts.most_common())),
-        )
+        with self.lock:
+            np.savez_compressed(
+                path,
+                E=self.E, W1=self.W1, b1=self.b1, W_out=self.W_out, b_out=self.b_out,
+                vocab=np.array(self.idx2word, dtype=object),
+                counts=json.dumps(dict(self.word_counts.most_common())),
+            )
 
     def load(self, path: str) -> bool:
         if not os.path.exists(path):
