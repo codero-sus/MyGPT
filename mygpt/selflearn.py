@@ -72,6 +72,8 @@ class SelfImprovement:
             events.append({"kind": "fact", "text": f"{subj} {pred} {obj}"})
             brain.store.log_event("fact", {"subject": subj, "predicate": pred,
                                            "object": obj})
+        if extracted:
+            brain.goals.nudge("know-the-user", 0.04)
 
         lesson = self._critique(user, reply, intent)
         if lesson:
@@ -91,6 +93,7 @@ class SelfImprovement:
             brain.store.log_metric("loss", loss)
 
         brain.counters["turns"] = brain.counters.get("turns", 0) + 1
+        brain.goals.nudge("become-more-capable", 0.002)
         if extracted:
             brain.save()
 
@@ -120,6 +123,7 @@ class SelfImprovement:
                 if brain.store.add_principle(text):
                     events.append({"kind": "constitution", "text": lesson})
                     brain.store.log_event("constitution", {"text": text})
+                    brain.goals.nudge("keep-constitution", 0.03)
 
         score = self._self_eval()
         brain.store.log_metric("self_eval", score)

@@ -24,13 +24,17 @@ import time
 import uuid
 from pathlib import Path
 
+from .episodes import EpisodicMemory
+from .goals import Goals
 from .langmodel import NeuralLM
 from .memory import Memory
+from .reason import Article, Reasoner
 from .selflearn import SelfImprovement, classify_intent
 from .skills import SkillRegistry, ensure_starter_skills
 from .store import SelfLearnStore
 from .tokenizer import normalize
 from .trainer import BackgroundTrainer
+from . import importers
 
 STRONG_MATCH = 0.52      # confident recall
 WEAK_MATCH = 0.30        # a guess worth offering
@@ -52,17 +56,20 @@ class Brain:
         self.lm = NeuralLM()
         self.memory = Memory()
         self.store = SelfLearnStore(os.path.join(data_dir, "selflearn.json"))
+        self.episodes = EpisodicMemory(os.path.join(data_dir, "episodes.json"))
+        self.goals = Goals(os.path.join(data_dir, "goals.json"))
         self.skills_root = Path(skills_dir) if skills_dir else \
             Path(__file__).resolve().parent.parent / "skills"
         ensure_starter_skills(self.skills_root)
         self.skills = SkillRegistry(self.skills_root)
+        self.reasoner = Reasoner(self)
         self.corpus: list[str] = []
         self.pending: dict[str, dict] = {}     # msg_id -> last-reply record
         self.started = time.time()
         self.counters = {
             "messages": 0, "up": 0, "down": 0, "corrections": 0,
             "teachings": 0, "train_rounds": 0, "events_since_train": 0,
-            "turns": 0, "cycles": 0,
+            "turns": 0, "cycles": 0, "imports": 0,
         }
         self.loss_history: list[dict] = []
         self.events: list[dict] = []
@@ -120,6 +127,8 @@ class Brain:
             "events": self.events[-40:],
         })
         self.store.save()
+        self.episodes.save()
+        self.goals.save()
         self.lm.save(os.path.join(self.data_dir, "lm_weights.npz"))
 
     def _write(self, name: str, obj) -> None:
@@ -163,6 +172,7 @@ class Brain:
         self.loss_history.append(point)
         self._log(f"training round #{self.counters['train_rounds']}: "
                   f"loss {point['loss']} ({reason}, {took_ms} ms)")
+        self.goals.nudge("become-more-capable", 0.01)
         self.save()
         return {"ok": True, **point}
 
@@ -175,6 +185,7 @@ class Brain:
         msg_id = uuid.uuid4().hex[:10]
         record = {"id": msg_id, "user": text, "mode": None, "pair_id": None,
                   "confidence": 0.0, "intent": intent}
+        self.episodes.remember("user", text)
 
         # 1) arithmetic skill -------------------------------------------------
         expr = self._find_math(text)
@@ -238,7 +249,11 @@ class Brain:
         return self._after_turn(record)
 
     def _after_turn(self, record: dict, extract: bool = True) -> dict:
-        """Finalize the reply, then run the CORTEX light-pass self-improvement."""
+        """Finalize the reply: attach a chain of thought, remember the episode,
+        then run the CORTEX light-pass self-improvement."""
+        self.episodes.remember("mygpt", record["reply"])
+        record["chain"] = self._build_chain(record).as_dict()
+
         self.pending[record["id"]] = record
         if len(self.pending) > 200:
             for k in list(self.pending)[:len(self.pending) - 200]:
@@ -249,7 +264,33 @@ class Brain:
                                      record.get("intent", "chat"))
 
         return {k: record.get(k) for k in
-                ("id", "reply", "mode", "confidence", "teach_prompt", "skill")}
+                ("id", "reply", "mode", "confidence", "teach_prompt", "skill",
+                 "chain")}
+
+    def _build_chain(self, record: dict):
+        """System-1 trace for fast modes; full System-2 deliberation otherwise."""
+        from .reason import FAST_MODES, question_kind
+        mode = record["mode"]
+        # Compare questions need both sides — never short-circuit on one match.
+        needs_deliberation = question_kind(record["user"]) == "compare"
+        if mode in FAST_MODES and not needs_deliberation:
+            return self.reasoner.wrap_fast(record["user"], mode, record["reply"])
+        qn = normalize(record["user"])
+        articles = [Article(p["q"], p["a"])
+                    for p, s in self.memory.search(qn, k=3) if s >= 0.25]
+        memories = self.episodes.search(record["user"], k=4)
+        # skip bookkeeping facts (imports) so real memories ground the chain
+        facts = [f for f in self.store.facts_about(qn, k=4) if f.subject != "import"]
+        chain = self.reasoner.deliberate(record["user"],
+                                         record.get("intent", "chat"),
+                                         memories, facts, articles,
+                                         record["reply"])
+        if mode == "curious" and chain.answer:
+            record["reply"] = (chain.answer.rstrip() +
+                               " Teach me an answer in the Learn panel and it "
+                               "becomes permanent knowledge.")
+            chain.answer = record["reply"]
+        return chain
 
     def _fact_answer(self, qn: str) -> str | None:
         if not re.search(r"\b(my|me|i|mine)\b", qn) and "note" not in qn:
@@ -384,9 +425,16 @@ class Brain:
                           for f in self.store.all_facts(k=12))
         lessons = "\n".join(self.store.lessons(k=6))
         dialogue = "\n".join(self.corpus[-8:])
+        episodes = "\n".join(f"{e['role']}: {e['content'][:160]}"
+                             for e in self.episodes.recent_dialogue(k=6))
         return (f"I am MyGPT, a self-training chatbot.\n"
                 f"Principles:\n{principles}\nFacts: {facts}\n"
-                f"Lessons:\n{lessons}\nDialogue:\n{dialogue}")[:4000]
+                f"Lessons:\n{lessons}\nDialogue:\n{dialogue}\n"
+                f"Recent episodes:\n{episodes}")[:4000]
+
+    def import_history(self, filename: str, data: bytes) -> dict:
+        """Absorb an exported chat history (WhatsApp/ChatGPT/Claude/Telegram/…)."""
+        return importers.absorb(self, filename, data)
 
     # ----------------------------------------------------------------- extra
     def dream(self, n_tokens: int = 40) -> str:
@@ -410,6 +458,9 @@ class Brain:
             "principles": len(self.store.principles),
             "facts": counts["facts"],
             "lessons": counts["lessons"],
+            "episodes": len(self.episodes.episodes),
+            "imports": self.counters.get("imports", 0),
+            "goals": self.goals.snapshot(),
             "mind": {
                 "facts": [{"subject": f.subject, "predicate": f.predicate,
                             "object": f.obj, "confidence": f.confidence}
