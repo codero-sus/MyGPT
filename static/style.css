@@ -59,12 +59,6 @@ body {
   .sidebar { max-height: none; }
 }
 
-<<<<<<< HEAD
-=======
-/* skill mode tag gets its own color */
-.mode-tag.skill { color: var(--accent-2); }
-
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 /* ---------------- chat ---------------- */
 .chat-panel {
   display: flex; flex-direction: column; min-height: 0;
@@ -96,6 +90,7 @@ body {
 .meta-row { display: flex; align-items: center; gap: 8px; }
 .mode-tag { font-size: .66rem; color: var(--muted); text-transform: uppercase;
   letter-spacing: .5px; }
+.mode-tag.skill { color: var(--accent-2); }
 .fb { display: flex; gap: 6px; }
 .fb button {
   background: transparent; border: 1px solid var(--border); color: var(--muted);
@@ -113,6 +108,19 @@ body {
   border-radius: 999px; padding: 5px 12px; font-size: .8rem; cursor: pointer;
 }
 .teach-chip:hover { background: rgba(124,92,255,.22); }
+
+/* chain of thought */
+details.chain {
+  background: rgba(124,92,255,.06); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 10px; font-size: .74rem; color: var(--muted);
+}
+details.chain summary { cursor: pointer; color: var(--accent-2); font-size: .72rem;
+  letter-spacing: .3px; outline: none; }
+details.chain ol { margin: 8px 0 4px; padding-left: 18px; display: flex;
+  flex-direction: column; gap: 5px; }
+details.chain li b { color: var(--accent); text-transform: lowercase; margin-right: 4px; }
+details.chain .hyp { margin-top: 6px; color: var(--muted); }
+details.chain .hyp em { color: #cfd6e6; font-style: normal; }
 
 /* typing indicator */
 .typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
@@ -193,6 +201,7 @@ button.ghost:hover { border-color: var(--accent-2); }
 #loss-chart { width: 100%; height: auto; display: block; }
 .chart-caption { font-size: .7rem; color: var(--muted); margin-top: 6px; text-align: center; }
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stats-grid.cols4 { grid-template-columns: repeat(4, 1fr); }
 .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
   padding: 9px; text-align: center; }
 .stat b { display: block; font-size: 1.05rem; color: var(--accent-2); }
@@ -214,18 +223,16 @@ button.ghost:hover { border-color: var(--accent-2); }
 .events li { font-size: .76rem; color: var(--muted); padding: 6px 9px;
   background: var(--panel); border-radius: 6px; border: 1px solid var(--border); }
 .events .time { color: var(--accent); margin-right: 6px; }
-<<<<<<< HEAD
-=======
 .events .kind { display: inline-block; font-size: .62rem; text-transform: uppercase;
   letter-spacing: .5px; color: var(--accent-2); margin-right: 6px; }
 
 /* mind tab */
-.principles, .facts-list, .lessons-list, .skills-list {
+.principles, .facts-list, .lessons-list, .skills-list, .goals-list {
   list-style: none; margin: 0; padding: 0; display: flex;
   flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .principles li { font-size: .78rem; color: #cfd6e6; padding: 7px 10px;
   background: var(--panel); border-left: 3px solid var(--accent); border-radius: 6px; }
-.facts-list li, .lessons-list li, .skills-list li {
+.facts-list li, .lessons-list li, .skills-list li, .goals-list li {
   font-size: .76rem; color: var(--muted); padding: 7px 10px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
   display: flex; align-items: center; gap: 8px; }
@@ -236,12 +243,26 @@ button.ghost:hover { border-color: var(--accent-2); }
   cursor: pointer; font-size: .8rem; padding: 0 4px; }
 .facts-list .forget:hover { transform: scale(1.15); }
 .lessons-list li { border-left: 3px solid var(--accent-2); }
-.skills-list li { flex-direction: column; align-items: flex-start; gap: 2px; }
+.skills-list li, .goals-list li { flex-direction: column; align-items: stretch; gap: 3px; }
 .skills-list .sname { color: var(--accent); font-weight: 600; font-size: .78rem; }
+.goals-list .gtitle { color: var(--text); font-weight: 600; font-size: .78rem;
+  display: flex; justify-content: space-between; }
+.goals-list .gbar { height: 6px; background: var(--border); border-radius: 4px;
+  overflow: hidden; margin-top: 4px; }
+.goals-list .gfill { height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.goals-list .gwhy { font-size: .68rem; color: var(--muted); }
 .card code { color: var(--accent-2); font-size: .72rem; }
 .card a { color: var(--accent); text-decoration: none; }
 .card a:hover { text-decoration: underline; }
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
+
+/* import */
+.import-row { align-items: center; flex-wrap: wrap; }
+.import-row input[type=file] { flex: 1; min-width: 150px; font-size: .72rem;
+  color: var(--muted); }
+#import-btn { flex: none; margin-top: 0; width: auto; }
+.import-result { margin-top: 10px; font-size: .78rem; color: var(--accent-2);
+  line-height: 1.5; }
 
 /* toast */
 .toast {

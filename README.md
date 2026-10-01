@@ -8,10 +8,11 @@ and you can literally watch its loss curve drop in the built-in Growth dashboard
 
 No GPUs, no API keys, no cloud — the whole brain runs in NumPy.
 
-The self-improvement loop is ported from
+The self-learning machinery is ported from
 [**CORTEX**](https://github.com/codero-sus/agi) (`codero-sus/agi`): fact extraction,
-self-critique, constitution growth, skill synthesis, self-eval, background training
-and dream replay.
+self-critique, constitution growth, skill synthesis, self-eval, background training,
+dream replay, **System-2 chain-of-thought**, **episodic memory**, **goals**, and
+**chat-history import** ("import your other lives").
 
 ## Quick start
 
@@ -58,6 +59,34 @@ delete that folder to give MyGPT amnesia and start over.
 10. **Dream replay** — when idle 20s, it re-learns a distilled snapshot of its own
     mind (preamble, facts, lessons, dialogue)
 
+## System-2 chain of thought (from CORTEX)
+
+Hard questions run a deliberative chain before the bot speaks — visible as a
+collapsible 💭 trace under each reply:
+
+1. **Parse** — restate the question and its kind (why/how/compare/what-if/plan/…)
+2. **Strategy** — causal, mechanism, compare, counterfactual, means-ends,
+   principled, retrieve, first-principles, compute
+3. **Decompose** — 2–4 subquestions
+4. **Retrieve / deduce** — taught knowledge, semantic facts, episodic memories
+5. **Hypothesize** — competing candidates (grounded / first-principles /
+   analogical / composer), scored
+6. **Critique** — devil's advocate pokes holes and drops confidence
+7. **Decide** — commit with a confidence
+
+Fast paths (math, skills, facts, strong recall, greetings) stay System-1 with a
+short trace. Compare questions always deliberate — both sides get characterized.
+
+## Episodic memory, goals, and importing your other lives
+
+* **Episodes** — every turn is stored with a hashed-token embedding; recall is a
+  NumPy matrix-vector product with a recency bonus
+* **Goals** — intrinsic drives (`become-more-capable`, `know-the-user`,
+  `keep-constitution`) nudged forward by the improvement loop
+* **Import** — drop a WhatsApp `.txt/.zip`, ChatGPT `conversations.json`, Claude
+  JSON, Telegram `result.json`, or messages JSONL/CSV onto the Mind tab. Turns
+  become episodes and train the neural core in the background (25MB / 5000-turn cap)
+
 ## How it answers
 
 | Priority | Source                                    |
@@ -70,11 +99,12 @@ delete that folder to give MyGPT amnesia and start over.
 
 ## The WebUI
 
-* **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns
+* **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns,
+  collapsible chain-of-thought traces
 * **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log
 * **Mind tab** — the CORTEX loop: trainer status, self-eval %, constitution,
-  semantic facts (with forget buttons), lessons, skills, improvement events
+  semantic facts (with forget buttons), lessons, skills, goals, chat import
 
 ## Architecture
 
@@ -88,6 +118,10 @@ mygpt/
   selflearn.py          the self-improvement loop                       (CORTEX)
   trainer.py            background trainer + dream replay               (CORTEX)
   skills.py             skill registry: skills as Python files          (CORTEX)
+  reason.py             System-2 chain-of-thought reasoner              (CORTEX)
+  episodes.py           episodic memory, hashed embeddings, numpy index (CORTEX)
+  goals.py              intrinsic goals nudged by the loop              (CORTEX)
+  importers.py          WhatsApp/ChatGPT/Claude/Telegram/JSONL parsers  (CORTEX)
   tokenizer.py          shared tokenizer
 skills/                 procedural memory — starter + auto-written skills
 seed_corpus.json        starter knowledge + LM pretraining text
@@ -104,8 +138,9 @@ templates/ static/      the WebUI
 | POST   | `/api/train`    | `{"epochs": 10}`                       |
 | POST   | `/api/improve`  | — (force a medium improvement cycle)   |
 | POST   | `/api/forget`   | `{"q": "user name"}` (drop facts)      |
+| POST   | `/api/import`   | multipart `file` (chat export)         |
 | GET    | `/api/dream`    | —                                       |
-| GET    | `/api/stats`    | — (includes `mind` self-learning state)|
+| GET    | `/api/stats`    | — (includes `mind`, `goals`, episodes) |
 | GET    | `/api/memory`   | —                                       |
 
 ## Honest scope

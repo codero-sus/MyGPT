@@ -1,4 +1,5 @@
-/* MyGPT frontend — chat, feedback loop, teaching and growth dashboard. */
+/* MyGPT frontend — chat, feedback loop, teaching, growth and the
+   CORTEX self-learning mind (facts, constitution, skills, goals, import). */
 
 const $ = (id) => document.getElementById(id);
 const chatEl = $("chat");
@@ -8,11 +9,8 @@ const MODE_LABELS = {
   guess: "guessing",
   curious: "curious",
   math: "computed",
-<<<<<<< HEAD
-=======
   skill: "skill",
   fact: "fact recall",
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 };
 
 /* ---------------- helpers ---------------- */
@@ -41,6 +39,11 @@ function scrollDown() {
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 /* ---------------- chat rendering ---------------- */
 
 function addMessage(role, text) {
@@ -61,20 +64,49 @@ function addMessage(role, text) {
   return wrap;
 }
 
+function addChain(chain, wrap) {
+  if (!chain || !chain.steps || chain.steps.length < 2) return;
+  const det = document.createElement("details");
+  det.className = "chain";
+  const sum = document.createElement("summary");
+  sum.textContent =
+    `💭 ${chain.system === 2 ? "System-2 thinking" : "Thinking"} · ` +
+    `${chain.strategy} · conf ${Math.round(chain.confidence * 100)}%`;
+  det.appendChild(sum);
+  const ol = document.createElement("ol");
+  for (const s of chain.steps) {
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = s.kind;
+    li.append(b, document.createTextNode(" " + s.text));
+    ol.appendChild(li);
+  }
+  det.appendChild(ol);
+  if (chain.hypotheses && chain.hypotheses.length > 1 && chain.system === 2) {
+    const hyp = document.createElement("div");
+    hyp.className = "hyp";
+    hyp.append(document.createTextNode("Candidates: "));
+    chain.hypotheses.forEach((h, i) => {
+      const em = document.createElement("em");
+      em.textContent = `${h.label} ${Math.round(h.score * 100)}%`;
+      hyp.appendChild(em);
+      if (i < chain.hypotheses.length - 1) hyp.append(document.createTextNode(" · "));
+    });
+    det.appendChild(hyp);
+  }
+  wrap.appendChild(det);
+}
+
 function addBotReply(data) {
   const wrap = addMessage("bot", data.reply);
+  addChain(data.chain, wrap);
 
   const meta = document.createElement("div");
   meta.className = "meta-row";
   const tag = document.createElement("span");
-<<<<<<< HEAD
-  tag.className = "mode-tag";
-  tag.textContent = MODE_LABELS[data.mode] || data.mode;
-=======
   tag.className = "mode-tag" + (data.mode === "skill" ? " skill" : "");
   tag.textContent = data.mode === "skill" && data.skill
     ? `skill: ${data.skill}` : (MODE_LABELS[data.mode] || data.mode);
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
   meta.appendChild(tag);
 
   if (data.teach_prompt) {
@@ -190,13 +222,9 @@ function switchTab(name) {
     t.classList.toggle("active", t.dataset.tab === name));
   $("panel-learn").classList.toggle("hidden", name !== "learn");
   $("panel-growth").classList.toggle("hidden", name !== "growth");
-<<<<<<< HEAD
-  if (name === "growth") refreshStats();
-=======
   $("panel-mind").classList.toggle("hidden", name !== "mind");
   if (name === "growth") refreshStats();
   if (name === "mind") refreshMind();
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
 }
 
 async function refreshMemory() {
@@ -222,11 +250,6 @@ async function refreshMemory() {
     li.append(w, q, a);
     list.appendChild(li);
   }
-}
-
-function fmtTime(ts) {
-  const d = new Date(ts * 1000);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 async function refreshStats() {
@@ -256,9 +279,71 @@ async function refreshStats() {
 function refreshSidebars() {
   refreshMemory();
   if (!$("panel-growth").classList.contains("hidden")) refreshStats();
-<<<<<<< HEAD
-=======
   if (!$("panel-mind").classList.contains("hidden")) refreshMind();
+}
+
+/* ---------------- loss chart ---------------- */
+
+function drawChart(history) {
+  const canvas = $("loss-chart");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height, pad = 26;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!history || history.length < 2) {
+    $("chart-caption").textContent =
+      "Not enough training rounds yet — chat, give feedback or press Train now.";
+    ctx.strokeStyle = "#232d42";
+    ctx.strokeRect(pad, pad / 2, W - pad * 1.5, H - pad * 1.5);
+    return;
+  }
+
+  const losses = history.map((h) => h.loss);
+  const max = Math.max(...losses), min = Math.min(...losses);
+  const span = max - min || 1;
+  const x = (i) => pad + (i / (losses.length - 1)) * (W - pad * 1.8);
+  const y = (v) => pad / 2 + (1 - (v - min) / span) * (H - pad * 1.6);
+
+  ctx.strokeStyle = "#232d42";
+  ctx.lineWidth = 1;
+  for (let g = 0; g <= 3; g++) {
+    const gy = pad / 2 + (g / 3) * (H - pad * 1.6);
+    ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(W - pad * 0.8, gy); ctx.stroke();
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, "rgba(124,92,255,.35)");
+  grad.addColorStop(1, "rgba(124,92,255,0)");
+  ctx.beginPath();
+  losses.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+  ctx.lineTo(x(losses.length - 1), H - pad);
+  ctx.lineTo(x(0), H - pad);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  losses.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
+  const lineGrad = ctx.createLinearGradient(pad, 0, W, 0);
+  lineGrad.addColorStop(0, "#7c5cff");
+  lineGrad.addColorStop(1, "#00d4c8");
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  const lx = x(losses.length - 1), ly = y(losses[losses.length - 1]);
+  ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+  ctx.fillStyle = "#00d4c8"; ctx.fill();
+
+  ctx.fillStyle = "#8b95ab";
+  ctx.font = "11px Inter, sans-serif";
+  ctx.fillText(max.toFixed(2), 2, pad / 2 + 8);
+  ctx.fillText(min.toFixed(2), 2, H - pad * 1.2);
+
+  const drop = (((max - losses[losses.length - 1]) / (max || 1)) * 100).toFixed(0);
+  $("chart-caption").textContent =
+    `${history.length} training rounds · loss ${max.toFixed(2)} → ` +
+    `${losses[losses.length - 1].toFixed(2)} (${drop}% improvement)`;
 }
 
 /* ---------------- mind tab (self-learning loop) ---------------- */
@@ -276,6 +361,8 @@ async function refreshMind() {
   $("mn-cycles").textContent = data.counters.cycles || 0;
   $("mn-constit").textContent = `v${data.constitution_version}`;
   $("mn-constit-pill").textContent = `v${data.constitution_version}`;
+  $("mn-episodes").textContent = data.episodes || 0;
+  $("mn-imports").textContent = data.imports || 0;
 
   // constitution
   const pr = $("principles");
@@ -290,7 +377,8 @@ async function refreshMind() {
   $("mn-facts-pill").textContent = (mind.facts || []).length;
   const fl = $("facts-list");
   fl.innerHTML = "";
-  if (!(mind.facts || []).length) fl.innerHTML = '<li class="empty">No facts yet — say “my name is …” or “note: …”.</li>';
+  if (!(mind.facts || []).length)
+    fl.innerHTML = '<li class="empty">No facts yet — say “my name is …” or “note: …”.</li>';
   for (const f of mind.facts || []) {
     const li = document.createElement("li");
     const triple = document.createElement("span");
@@ -318,7 +406,8 @@ async function refreshMind() {
   $("mn-lessons-pill").textContent = (mind.lessons || []).length;
   const ll = $("lessons-list");
   ll.innerHTML = "";
-  if (!(mind.lessons || []).length) ll.innerHTML = '<li class="empty">No self-critique lessons yet.</li>';
+  if (!(mind.lessons || []).length)
+    ll.innerHTML = '<li class="empty">No self-critique lessons yet.</li>';
   for (const l of mind.lessons || []) {
     const li = document.createElement("li");
     li.textContent = l;
@@ -338,6 +427,31 @@ async function refreshMind() {
     ds.textContent = s.description;
     li.append(nm, ds);
     sl.appendChild(li);
+  }
+
+  // goals
+  const gl = $("goals-list");
+  gl.innerHTML = "";
+  for (const g of data.goals || []) {
+    const li = document.createElement("li");
+    const title = document.createElement("div");
+    title.className = "gtitle";
+    const name = document.createElement("span");
+    name.textContent = g.title;
+    const pct = document.createElement("span");
+    pct.textContent = `${Math.round((g.progress || 0) * 100)}%`;
+    title.append(name, pct);
+    const bar = document.createElement("div");
+    bar.className = "gbar";
+    const fill = document.createElement("div");
+    fill.className = "gfill";
+    fill.style.width = `${Math.round((g.progress || 0) * 100)}%`;
+    bar.appendChild(fill);
+    const why = document.createElement("div");
+    why.className = "gwhy";
+    why.textContent = g.why || "";
+    li.append(title, bar, why);
+    gl.appendChild(li);
   }
 
   // recent improvement events
@@ -360,76 +474,6 @@ async function refreshMind() {
     li.append(kind, time, document.createTextNode(text));
     ev.appendChild(li);
   }
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
-}
-
-/* ---------------- loss chart ---------------- */
-
-function drawChart(history) {
-  const canvas = $("loss-chart");
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width, H = canvas.height, pad = 26;
-  ctx.clearRect(0, 0, W, H);
-
-  if (!history || history.length < 2) {
-    $("chart-caption").textContent =
-      "Not enough training rounds yet — chat, give feedback or press Train now.";
-    ctx.strokeStyle = "#232d42";
-    ctx.strokeRect(pad, pad / 2, W - pad * 1.5, H - pad * 1.5);
-    return;
-  }
-
-  const losses = history.map((h) => h.loss);
-  const max = Math.max(...losses), min = Math.min(...losses);
-  const span = max - min || 1;
-  const x = (i) => pad + (i / (losses.length - 1)) * (W - pad * 1.8);
-  const y = (v) => pad / 2 + (1 - (v - min) / span) * (H - pad * 1.6);
-
-  // grid
-  ctx.strokeStyle = "#232d42";
-  ctx.lineWidth = 1;
-  for (let g = 0; g <= 3; g++) {
-    const gy = pad / 2 + (g / 3) * (H - pad * 1.6);
-    ctx.beginPath(); ctx.moveTo(pad, gy); ctx.lineTo(W - pad * 0.8, gy); ctx.stroke();
-  }
-
-  // area fill
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, "rgba(124,92,255,.35)");
-  grad.addColorStop(1, "rgba(124,92,255,0)");
-  ctx.beginPath();
-  losses.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
-  ctx.lineTo(x(losses.length - 1), H - pad);
-  ctx.lineTo(x(0), H - pad);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // line
-  ctx.beginPath();
-  losses.forEach((v, i) => (i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v))));
-  const lineGrad = ctx.createLinearGradient(pad, 0, W, 0);
-  lineGrad.addColorStop(0, "#7c5cff");
-  lineGrad.addColorStop(1, "#00d4c8");
-  ctx.strokeStyle = lineGrad;
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-
-  // last point
-  const lx = x(losses.length - 1), ly = y(losses[losses.length - 1]);
-  ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2);
-  ctx.fillStyle = "#00d4c8"; ctx.fill();
-
-  // labels
-  ctx.fillStyle = "#8b95ab";
-  ctx.font = "11px Inter, sans-serif";
-  ctx.fillText(max.toFixed(2), 2, pad / 2 + 8);
-  ctx.fillText(min.toFixed(2), 2, H - pad * 1.2);
-
-  const drop = (((max - losses[losses.length - 1]) / (max || 1)) * 100).toFixed(0);
-  $("chart-caption").textContent =
-    `${history.length} training rounds · loss ${max.toFixed(2)} → ` +
-    `${losses[losses.length - 1].toFixed(2)} (${drop}% improvement)`;
 }
 
 /* ---------------- actions ---------------- */
@@ -475,8 +519,6 @@ $("dream-btn").addEventListener("click", async () => {
   box.textContent = "💭 “" + data.text + "”";
 });
 
-<<<<<<< HEAD
-=======
 $("improve-btn").addEventListener("click", async () => {
   const btn = $("improve-btn");
   btn.disabled = true;
@@ -491,12 +533,43 @@ $("improve-btn").addEventListener("click", async () => {
   refreshMind();
 });
 
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
+$("import-btn").addEventListener("click", async () => {
+  const fileInput = $("import-file");
+  const out = $("import-result");
+  if (!fileInput.files.length) return toast("Choose a chat export file first.");
+  const btn = $("import-btn");
+  btn.disabled = true;
+  btn.textContent = "Importing…";
+  out.textContent = "";
+  const form = new FormData();
+  form.append("file", fileInput.files[0]);
+  try {
+    const res = await fetch("/api/import", { method: "POST", body: form });
+    const data = await res.json();
+    if (data.ok) {
+      out.textContent =
+        `✅ ${data.filename}: ${data.source.join(", ")} · ${data.threads} thread(s), ` +
+        `${data.turns} turns → ${data.remembered} episodes remembered, ` +
+        `${data.trained} training snips queued. The core is learning them now.`;
+      toast("Chat history absorbed into the mind.");
+      fileInput.value = "";
+    } else {
+      out.textContent = "⚠️ " + (data.error || "import failed");
+    }
+  } catch (err) {
+    out.textContent = "⚠️ " + err;
+  }
+  btn.disabled = false;
+  btn.textContent = "📥 Import";
+  refreshMind();
+});
+
 /* ---------------- boot ---------------- */
 
 addMessage("bot",
   "Hi! I'm MyGPT — a tiny chatbot that trains itself on our conversation.\n" +
-  "Ask me things, rate my answers with 👍/👎, or teach me facts in the Learn tab. " +
-  "Watch my loss curve drop in the Growth tab. 📉");
+  "Ask me things (hard questions get a full System-2 chain of thought 💭), " +
+  "rate my answers with 👍/👎, teach me facts in the Learn tab, and watch the " +
+  "self-learning loop in the Mind tab.");
 refreshSidebars();
 $("input").focus();

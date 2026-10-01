@@ -18,6 +18,7 @@ DATA_DIR = os.environ.get("MYGPT_DATA", os.path.join(ROOT, "data"))
 SEED_PATH = os.path.join(ROOT, "seed_corpus.json")
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 26 * 1024 * 1024  # 25MB import cap + slack
 brain = Brain(DATA_DIR, SEED_PATH)
 _lock = threading.Lock()
 
@@ -89,6 +90,19 @@ def forget():
     with _lock:
         n = brain.forget(q)
     return jsonify({"ok": True, "removed": n})
+
+
+@app.post("/api/import")
+def import_history():
+    """Absorb an exported chat history: WhatsApp .txt/.zip, ChatGPT
+    conversations.json, Claude JSON, Telegram result.json, messages JSONL/CSV."""
+    f = request.files.get("file")
+    if f is None or not f.filename:
+        return jsonify({"ok": False, "error": "no file uploaded"}), 400
+    data = f.read()
+    with _lock:
+        result = brain.import_history(f.filename, data)
+    return jsonify(result), (200 if result.get("ok") else 400)
 
 
 @app.get("/api/stats")

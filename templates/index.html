@@ -26,7 +26,7 @@
         <div class="chat-scroll" id="chat"></div>
         <form class="composer" id="composer">
           <input id="input" type="text" autocomplete="off"
-                 placeholder="Message MyGPT…  (try: who are you? · 23*47 · tell me a joke)" />
+                 placeholder="Message MyGPT…  (try: who are you? · 23*47 · why does rain happen?)" />
           <button type="submit" id="send" title="Send">➤</button>
         </form>
       </section>
@@ -36,10 +36,7 @@
         <nav class="tabs">
           <button class="tab active" data-tab="learn">📚 Learn</button>
           <button class="tab" data-tab="growth">📈 Growth</button>
-<<<<<<< HEAD
-=======
           <button class="tab" data-tab="mind">🧬 Mind</button>
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
         </nav>
 
         <!-- Learn tab -->
@@ -94,8 +91,6 @@
             <ul class="events" id="events"></ul>
           </div>
         </div>
-<<<<<<< HEAD
-=======
 
         <!-- Mind tab (CORTEX self-learning loop) -->
         <div class="panel hidden" id="panel-mind">
@@ -103,16 +98,18 @@
             <h2>Self-learning loop</h2>
             <p class="hint">
               Light pass after every turn (facts · critique · background gradients),
-              medium pass every 5 turns. Ported from
+              medium pass every 5 turns, System-2 chains on hard questions. Ported from
               <a href="https://github.com/codero-sus/agi" target="_blank" rel="noopener">CORTEX</a>.
             </p>
-            <div class="stats-grid">
+            <div class="stats-grid cols4">
               <div class="stat"><b id="mn-status">idle</b><span>trainer</span></div>
               <div class="stat"><b id="mn-steps">0</b><span>bg steps</span></div>
               <div class="stat"><b id="mn-loss">–</b><span>bg loss</span></div>
               <div class="stat"><b id="mn-eval">–</b><span>self-eval</span></div>
               <div class="stat"><b id="mn-cycles">0</b><span>cycles</span></div>
               <div class="stat"><b id="mn-constit">v1</b><span>constitution</span></div>
+              <div class="stat"><b id="mn-episodes">0</b><span>episodes</span></div>
+              <div class="stat"><b id="mn-imports">0</b><span>imports</span></div>
             </div>
             <div class="row actions">
               <button class="primary" id="improve-btn">🔁 Run improvement cycle</button>
@@ -137,8 +134,24 @@
               New ones are auto-written when an intent keeps repeating.</p>
             <ul class="skills-list" id="skills-list"></ul>
           </div>
+          <div class="card">
+            <h2>Goals</h2>
+            <p class="hint">Intrinsic drives, nudged forward by the improvement loop.</p>
+            <ul class="goals-list" id="goals-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Import your other lives</h2>
+            <p class="hint">Drop a WhatsApp <code>.txt/.zip</code>, ChatGPT
+              <code>conversations.json</code>, Claude JSON, Telegram
+              <code>result.json</code>, or messages JSONL/CSV. The turns become
+              episodic memories and train the neural core in the background.</p>
+            <div class="row actions import-row">
+              <input type="file" id="import-file" />
+              <button class="primary" id="import-btn">📥 Import</button>
+            </div>
+            <div class="import-result" id="import-result"></div>
+          </div>
         </div>
->>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
       </aside>
     </main>
   </div>
