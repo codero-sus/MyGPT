@@ -1,16 +1,17 @@
-"""The Brain: ties memory + language model + feedback into one self-training loop.
+"""The Brain: memory + language model + CORTEX-style self-improvement loop.
 
 Flow of a conversation turn:
-    1. Try to answer from learned memory (TF-IDF retrieval).
-    2. Fall back to small built-in skills (arithmetic).
-    3. Otherwise admit ignorance and ask to be taught.
+    1. Built-in skills (arithmetic) and learned skill files
+    2. Semantic facts extracted from earlier turns ("my name is …")
+    3. Learned memory pairs (TF-IDF retrieval)
+    4. Otherwise admit ignorance and ask to be taught
 
-Flow of learning:
-    * thumbs-up   -> reinforce matched pair, append exchange to LM corpus
-    * thumbs-down -> weaken pair; if corrected, learn the right answer
-    * teach       -> add a brand new pair
-    * every few learning events the language model retrains automatically and
-      its loss is recorded -> visible in the Growth dashboard.
+Self-learning (ported from codero-sus/agi, "CORTEX"):
+    * light pass after every turn: fact extraction, self-critique -> lessons,
+      background Adam steps queued on the exchange
+    * medium pass every 5 turns: skill synthesis, constitution promotion,
+      self-eval battery, corpus training, consolidation
+    * heavy pass: background trainer with dream replay + debounced checkpoints
 """
 
 from __future__ import annotations
@@ -21,14 +22,19 @@ import random
 import re
 import time
 import uuid
+from pathlib import Path
 
 from .langmodel import NeuralLM
 from .memory import Memory
+from .selflearn import SelfImprovement, classify_intent
+from .skills import SkillRegistry, ensure_starter_skills
+from .store import SelfLearnStore
 from .tokenizer import normalize
+from .trainer import BackgroundTrainer
 
 STRONG_MATCH = 0.52      # confident recall
 WEAK_MATCH = 0.30        # a guess worth offering
-AUTO_TRAIN_EVERY = 5     # learning events between automatic training rounds
+AUTO_TRAIN_EVERY = 5     # curated-learning events between blocking train rounds
 AUTO_TRAIN_EPOCHS = 6
 
 TEACH_REPLIES = [
@@ -40,20 +46,30 @@ MATH_RE = re.compile(r"^[\s0-9+\-*/().%^]+$")
 
 
 class Brain:
-    def __init__(self, data_dir: str, seed_path: str) -> None:
+    def __init__(self, data_dir: str, seed_path: str, skills_dir: str | None = None):
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
         self.lm = NeuralLM()
         self.memory = Memory()
+        self.store = SelfLearnStore(os.path.join(data_dir, "selflearn.json"))
+        self.skills_root = Path(skills_dir) if skills_dir else \
+            Path(__file__).resolve().parent.parent / "skills"
+        ensure_starter_skills(self.skills_root)
+        self.skills = SkillRegistry(self.skills_root)
         self.corpus: list[str] = []
         self.pending: dict[str, dict] = {}     # msg_id -> last-reply record
         self.started = time.time()
         self.counters = {
             "messages": 0, "up": 0, "down": 0, "corrections": 0,
             "teachings": 0, "train_rounds": 0, "events_since_train": 0,
+            "turns": 0, "cycles": 0,
         }
         self.loss_history: list[dict] = []
-        self.events: list[str] = []
+        self.events: list[dict] = []
+
+        self.trainer = BackgroundTrainer(self.lm, save_fn=self.save)
+        self.trainer.dream_source = self._dream_text
+        self.improver = SelfImprovement(self)
 
         self._seed_path = seed_path
         self._load()
@@ -76,7 +92,9 @@ class Brain:
         if os.path.exists(met_path):
             with open(met_path, encoding="utf-8") as f:
                 meta = json.load(f)
-                self.counters.update(meta.get("counters", {}))
+                saved = meta.get("counters", {})
+                for k, v in saved.items():
+                    self.counters[k] = v
                 self.loss_history = meta.get("loss_history", [])
                 self.events = meta.get("events", [])
 
@@ -101,6 +119,7 @@ class Brain:
             "loss_history": self.loss_history[-200:],
             "events": self.events[-40:],
         })
+        self.store.save()
         self.lm.save(os.path.join(self.data_dir, "lm_weights.npz"))
 
     def _write(self, name: str, obj) -> None:
@@ -152,10 +171,10 @@ class Brain:
         text = user_text.strip()
         qn = normalize(text)
         self.counters["messages"] += 1
+        intent = classify_intent(text)
         msg_id = uuid.uuid4().hex[:10]
-
         record = {"id": msg_id, "user": text, "mode": None, "pair_id": None,
-                  "confidence": 0.0}
+                  "confidence": 0.0, "intent": intent}
 
         # 1) arithmetic skill -------------------------------------------------
         expr = self._find_math(text)
@@ -164,36 +183,99 @@ class Brain:
             if result is not None:
                 record.update(mode="math", confidence=1.0,
                               reply=f"{expr.strip(' =?')} = {result}")
-                return self._finalize(record)
+                return self._after_turn(record, extract=False)
 
-        # 2) learned memory ----------------------------------------------------
+        # 2) learned skill files (procedural memory) ---------------------------
+        skill = self.skills.match(text)
+        if skill:
+            ctx = {"user": text, "brain": self, "store": self.store,
+                   "memory": self.memory, "counts": dict(self.counters)}
+            out = self.skills.run(skill.name, ctx, text=text)
+            record.update(mode="skill", confidence=0.9, reply=out,
+                          skill=skill.name)
+            return self._after_turn(record, extract=False)
+
+        # 3) new facts about the user ------------------------------------------
+        extracted = self.store.extract_from_user(text)
+        if extracted:
+            parts = []
+            for subj, pred, obj in extracted:
+                self.store.add_fact(subj, pred, obj, 0.9)
+                self.store.log_event("fact", {"subject": subj, "predicate": pred,
+                                              "object": obj})
+                parts.append(f"{subj} {pred} {obj}")
+            record.update(mode="fact", confidence=1.0,
+                          reply="Got it — stored as semantic fact" +
+                                ("s" if len(parts) > 1 else "") + ": " +
+                                "; ".join(parts) +
+                                ". I'll remember that across sessions.")
+            return self._after_turn(record, extract=False)
+
+        # 4) recall stored personal facts ---------------------------------------
+        fact_reply = self._fact_answer(qn)
+        if fact_reply:
+            record.update(mode="fact", confidence=0.95, reply=fact_reply)
+            return self._after_turn(record)
+
+        # 5) learned memory ------------------------------------------------------
         matches = self.memory.search(qn, k=1)
         if matches:
             pair, score = matches[0]
             if score >= STRONG_MATCH:
                 record.update(mode="memory", pair_id=pair["id"],
                               confidence=score, reply=pair["a"])
-                return self._finalize(record)
+                return self._after_turn(record)
             if score >= WEAK_MATCH:
                 record.update(mode="guess", pair_id=pair["id"],
                               confidence=score,
                               reply=f"{pair['a']}\n(I'm only {round(score*100)}% sure — "
                                     f"use 👍/👎 so I can learn.)")
-                return self._finalize(record)
+                return self._after_turn(record)
 
-        # 3) unknown -> ask to be taught ---------------------------------------
+        # 6) unknown -> ask to be taught -----------------------------------------
         record.update(mode="curious", confidence=0.0,
                       reply=random.choice(TEACH_REPLIES), teach_prompt=True)
-        return self._finalize(record)
+        return self._after_turn(record)
 
-    def _finalize(self, record: dict) -> dict:
+    def _after_turn(self, record: dict, extract: bool = True) -> dict:
+        """Finalize the reply, then run the CORTEX light-pass self-improvement."""
         self.pending[record["id"]] = record
         if len(self.pending) > 200:
             for k in list(self.pending)[:len(self.pending) - 200]:
                 self.pending.pop(k, None)
-        out = {k: record.get(k) for k in
-               ("id", "reply", "mode", "confidence", "teach_prompt")}
-        return out
+
+        if extract:
+            self.improver.after_turn(record["user"], record["reply"],
+                                     record.get("intent", "chat"))
+
+        return {k: record.get(k) for k in
+                ("id", "reply", "mode", "confidence", "teach_prompt", "skill")}
+
+    def _fact_answer(self, qn: str) -> str | None:
+        if not re.search(r"\b(my|me|i|mine)\b", qn) and "note" not in qn:
+            return None
+        facts = [f for f in self.store.facts_about(qn, k=4) if f.subject == "user"]
+        if not facts:
+            return None
+        parts = []
+        for f in facts:
+            pred = f.predicate.replace("_", " ")
+            if f.predicate == "name":
+                parts.append(f"your name is {f.obj}")
+            elif f.predicate == "lives_in":
+                parts.append(f"you live in {f.obj}")
+            elif f.predicate == "likes":
+                parts.append(f"you like {f.obj}")
+            elif f.predicate == "works":
+                parts.append(f"you work {f.obj}")
+            elif f.predicate == "note":
+                parts.append(f"you noted: {f.obj}")
+            elif f.predicate.startswith("favorite"):
+                parts.append(f"your {f.predicate.split('_', 1)[1]} is {f.obj}")
+            else:
+                parts.append(f"{pred}: {f.obj}")
+        return ("From what you told me earlier — " + "; ".join(parts) +
+                ". (semantic facts, extracted and stored automatically)")
 
     @staticmethod
     def _find_math(text: str) -> str | None:
@@ -217,6 +299,25 @@ class Brain:
             return f"{value:.6g}"
         except Exception:
             return None
+
+    # ------------------------------------------------------- quick answering
+    def quick_answer(self, text: str) -> str:
+        """Side-effect-free answer used by the self-eval battery."""
+        expr = self._find_math(text)
+        if expr:
+            result = self._math(expr)
+            if result is not None:
+                return f"{expr} = {result}"
+        qn = normalize(text)
+        if "principle" in qn:
+            return "; ".join(self.store.principles)
+        matches = self.memory.search(qn, k=1)
+        if matches and matches[0][1] >= WEAK_MATCH:
+            return matches[0][0]["a"]
+        facts = [f for f in self.store.facts_about(qn, k=3) if f.subject == "user"]
+        if facts:
+            return " ".join(f"{f.subject} {f.predicate} {f.obj}" for f in facts)
+        return ""
 
     # -------------------------------------------------------------- feedback
     def feedback(self, msg_id: str, verdict: str,
@@ -265,23 +366,64 @@ class Brain:
         self.save()
         return {"ok": True, "pairs": len(self.memory.pairs)}
 
+    # ------------------------------------------------------------ improvement
+    def improve_cycle(self, reason: str = "manual") -> list[dict]:
+        return self.improver.cycle(reason=reason)
+
+    def forget(self, query: str) -> int:
+        n = self.store.forget_facts(query)
+        if n:
+            self.store.log_event("forget", {"q": query, "removed": n})
+            self.save()
+        return n
+
+    def _dream_text(self) -> str:
+        """Distilled mind state the idle trainer re-learns (dream replay)."""
+        principles = "\n".join(f"- {p}" for p in self.store.principles[-8:])
+        facts = "; ".join(f"{f.subject} {f.predicate} {f.obj}"
+                          for f in self.store.all_facts(k=12))
+        lessons = "\n".join(self.store.lessons(k=6))
+        dialogue = "\n".join(self.corpus[-8:])
+        return (f"I am MyGPT, a self-training chatbot.\n"
+                f"Principles:\n{principles}\nFacts: {facts}\n"
+                f"Lessons:\n{lessons}\nDialogue:\n{dialogue}")[:4000]
+
     # ----------------------------------------------------------------- extra
     def dream(self, n_tokens: int = 40) -> str:
         text = self.lm.generate(n_tokens=n_tokens)
         return text or "… my weights are still too young to dream."
 
     def stats(self) -> dict:
-        tokens = sum(len(t.split()) for t in self.corpus)
+        counts = self.store.counts()
         return {
             "counters": self.counters,
             "pairs": len(self.memory.pairs),
             "vocab_size": self.lm.vocab_size,
             "corpus_lines": len(self.corpus),
-            "tokens_trained": tokens,
+            "tokens_trained": sum(len(t.split()) for t in self.corpus),
             "loss_history": self.loss_history[-60:],
             "events": list(reversed(self.events[-12:])),
             "last_loss": self.loss_history[-1]["loss"] if self.loss_history else None,
             "uptime_s": int(time.time() - self.started),
+            # self-learning (CORTEX loop)
+            "constitution_version": self.store.constitution_version,
+            "principles": len(self.store.principles),
+            "facts": counts["facts"],
+            "lessons": counts["lessons"],
+            "mind": {
+                "facts": [{"subject": f.subject, "predicate": f.predicate,
+                            "object": f.obj, "confidence": f.confidence}
+                           for f in self.store.all_facts(k=24)],
+                "lessons": list(reversed(self.store.lessons(k=16))),
+                "principles": self.store.principles,
+                "constitution_version": self.store.constitution_version,
+                "skills": self.skills.list(),
+                "trainer": self.trainer.snapshot(),
+                "self_eval": self.store.metric_series("self_eval", 40),
+                "bg_loss": self.store.metric_series("loss", 80),
+                "events": self.store.recent_events(24),
+                "improver": self.improver.snapshot(),
+            },
         }
 
     def recent_pairs(self, limit: int = 12) -> list[dict]:

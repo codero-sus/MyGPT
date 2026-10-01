@@ -72,6 +72,25 @@ def dream():
     return jsonify({"ok": True, "text": text})
 
 
+@app.post("/api/improve")
+def improve():
+    """Force a medium self-improvement cycle (skills, constitution, self-eval)."""
+    with _lock:
+        events = brain.improve_cycle(reason="manual")
+    return jsonify({"ok": True, "events": events})
+
+
+@app.post("/api/forget")
+def forget():
+    body = request.get_json(silent=True) or {}
+    q = (body.get("q") or "").strip()
+    if not q:
+        return jsonify({"ok": False, "error": "empty query"}), 400
+    with _lock:
+        n = brain.forget(q)
+    return jsonify({"ok": True, "removed": n})
+
+
 @app.get("/api/stats")
 def stats():
     with _lock:

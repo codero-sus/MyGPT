@@ -8,6 +8,11 @@ and you can literally watch its loss curve drop in the built-in Growth dashboard
 
 No GPUs, no API keys, no cloud — the whole brain runs in NumPy.
 
+The self-improvement loop is ported from
+[**CORTEX**](https://github.com/codero-sus/agi) (`codero-sus/agi`): fact extraction,
+self-critique, constitution growth, skill synthesis, self-eval, background training
+and dream replay.
+
 ## Quick start
 
 ```bash
@@ -25,18 +30,51 @@ python3 -m venv .venv
 Set `PORT` to change the port (default `8000`). All learned state lives in `data/` —
 delete that folder to give MyGPT amnesia and start over.
 
-## How it learns
+## The self-learning loop (from CORTEX)
 
-| You do this                        | MyGPT does this                                              |
-|------------------------------------|--------------------------------------------------------------|
-| 👍 an answer                        | Reinforces the matched memory pair, adds the exchange to its training corpus |
-| 👎 an answer + correction           | Replaces the wrong answer with yours and trains on it        |
-| Teach it a fact (Learn tab)         | Stores a permanent Q→A pair and adds it to the corpus        |
-| Chat                               | Every 5 learning events it auto-retrains its language model  |
-| **Train now** (Growth tab)          | Full training round — watch the loss curve drop              |
-| **Dream** (Growth tab)              | Samples a fresh sentence from the language model             |
+**Light pass — after every turn:**
 
-When it doesn't know something, it admits it and asks to be taught.
+1. **Fact extraction** — "my name is Ada and I live in Delhi" becomes semantic triples
+   (`user name Ada`, `user lives_in Delhi`), recalled later when you ask about yourself
+2. **Self-critique** — the reply is critiqued; weaknesses become *lessons*, and
+   lessons starting with `Principle:` are promoted into the **constitution**
+3. **Background training** — Adam steps on the exchange are queued to the trainer
+   thread; the reply path never waits on gradients
+
+**Medium pass — every 5 turns (or the 🔁 button in the Mind tab):**
+
+4. **Skill synthesis** — if one intent keeps repeating, MyGPT *writes a new Python
+   skill file* into `skills/` (procedural memory)
+5. **Constitution promotion** — principle-lessons become permanent principles
+6. **Self-eval battery** — 5 questions (math, identity, knowledge, principles) scored
+   as a percentage and charted over time
+7. **Corpus training** — principles + lessons + facts + taught pairs + dialogue go
+   back into the trainer
+8. **Consolidation** — periodic distilled lessons about what it now holds
+
+**Heavy pass — background trainer:**
+
+9. Queue-fed Adam steps with debounced checkpoints
+10. **Dream replay** — when idle 20s, it re-learns a distilled snapshot of its own
+    mind (preamble, facts, lessons, dialogue)
+
+## How it answers
+
+| Priority | Source                                    |
+|----------|-------------------------------------------|
+| 1 | Arithmetic skill (`12*12`, `(3+4)*2`) |
+| 2 | Learned skill files in `skills/` (pattern-matched) |
+| 3 | Semantic facts about you (`what is my name?`) |
+| 4 | Learned Q→A memory pairs (TF-IDF retrieval); 👍 reinforces, 👎+correction replaces |
+| 5 | Admits ignorance and asks to be taught |
+
+## The WebUI
+
+* **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns
+* **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
+* **Growth tab** — loss chart, vitals, Train now, Dream, activity log
+* **Mind tab** — the CORTEX loop: trainer status, self-eval %, constitution,
+  semantic facts (with forget buttons), lessons, skills, improvement events
 
 ## Architecture
 
@@ -45,18 +83,16 @@ app.py                  Flask server + JSON API
 mygpt/
   brain.py              orchestrator: reply / feedback / teach / train loop
   memory.py             long-term Q→A memory, TF-IDF cosine retrieval
-  langmodel.py          feedforward neural language model (NumPy, Adam, backprop)
+  langmodel.py          feedforward neural LM (NumPy, Adam, backprop, thread-safe)
+  store.py              facts, lessons, constitution, metrics, events  (CORTEX)
+  selflearn.py          the self-improvement loop                       (CORTEX)
+  trainer.py            background trainer + dream replay               (CORTEX)
+  skills.py             skill registry: skills as Python files          (CORTEX)
   tokenizer.py          shared tokenizer
+skills/                 procedural memory — starter + auto-written skills
 seed_corpus.json        starter knowledge + LM pretraining text
-templates/ static/      the WebUI (chat, Learn tab, Growth dashboard)
+templates/ static/      the WebUI
 ```
-
-* **Memory** — every learned Q→A pair is vectorized (stopword-filtered, stemmed
-  TF-IDF) and retrieved by cosine similarity. Feedback re-weights pairs.
-* **Language model** — a Bengio-style neural LM: context embeddings → mean-pool →
-  tanh hidden → softmax over vocab, trained online with Adam and gradient clipping.
-  Its loss after each training round is the number charted in the Growth tab.
-* **Skills** — a deterministic arithmetic evaluator (`12*12`, `(3+4)*2`, …).
 
 ## API
 
@@ -66,8 +102,10 @@ templates/ static/      the WebUI (chat, Learn tab, Growth dashboard)
 | POST   | `/api/feedback` | `{"msg_id", "verdict": "up"\|"down", "correction"?}` |
 | POST   | `/api/teach`    | `{"question", "answer"}`               |
 | POST   | `/api/train`    | `{"epochs": 10}`                       |
+| POST   | `/api/improve`  | — (force a medium improvement cycle)   |
+| POST   | `/api/forget`   | `{"q": "user name"}` (drop facts)      |
 | GET    | `/api/dream`    | —                                       |
-| GET    | `/api/stats`    | —                                       |
+| GET    | `/api/stats`    | — (includes `mind` self-learning state)|
 | GET    | `/api/memory`   | —                                       |
 
 ## Honest scope
@@ -75,4 +113,6 @@ templates/ static/      the WebUI (chat, Learn tab, Growth dashboard)
 This is a small, transparent model of the self-improvement loop — learn from
 feedback → train → measure improvement — not a foundation model. Its "GPT" has
 ~200k parameters and gets genuinely better at predicting the conversations it has,
-which is exactly what the dashboard shows.
+which is exactly what the dashboard shows. Self-learning mechanics (facts,
+critique, constitution, skills, self-eval, background training, dreaming) are
+adapted from the CORTEX project (`codero-sus/agi`).

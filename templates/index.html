@@ -36,6 +36,10 @@
         <nav class="tabs">
           <button class="tab active" data-tab="learn">📚 Learn</button>
           <button class="tab" data-tab="growth">📈 Growth</button>
+<<<<<<< HEAD
+=======
+          <button class="tab" data-tab="mind">🧬 Mind</button>
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
         </nav>
 
         <!-- Learn tab -->
@@ -90,6 +94,51 @@
             <ul class="events" id="events"></ul>
           </div>
         </div>
+<<<<<<< HEAD
+=======
+
+        <!-- Mind tab (CORTEX self-learning loop) -->
+        <div class="panel hidden" id="panel-mind">
+          <div class="card">
+            <h2>Self-learning loop</h2>
+            <p class="hint">
+              Light pass after every turn (facts · critique · background gradients),
+              medium pass every 5 turns. Ported from
+              <a href="https://github.com/codero-sus/agi" target="_blank" rel="noopener">CORTEX</a>.
+            </p>
+            <div class="stats-grid">
+              <div class="stat"><b id="mn-status">idle</b><span>trainer</span></div>
+              <div class="stat"><b id="mn-steps">0</b><span>bg steps</span></div>
+              <div class="stat"><b id="mn-loss">–</b><span>bg loss</span></div>
+              <div class="stat"><b id="mn-eval">–</b><span>self-eval</span></div>
+              <div class="stat"><b id="mn-cycles">0</b><span>cycles</span></div>
+              <div class="stat"><b id="mn-constit">v1</b><span>constitution</span></div>
+            </div>
+            <div class="row actions">
+              <button class="primary" id="improve-btn">🔁 Run improvement cycle</button>
+            </div>
+            <ul class="events" id="improve-events" style="margin-top:10px"></ul>
+          </div>
+          <div class="card">
+            <h2>Constitution <span class="pill" id="mn-constit-pill">v1</span></h2>
+            <ul class="principles" id="principles"></ul>
+          </div>
+          <div class="card">
+            <h2>Semantic facts <span class="pill" id="mn-facts-pill">0</span></h2>
+            <ul class="facts-list" id="facts-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Lessons <span class="pill" id="mn-lessons-pill">0</span></h2>
+            <ul class="lessons-list" id="lessons-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Skills <span class="pill" id="mn-skills-pill">0</span></h2>
+            <p class="hint">Procedural memory: Python files in <code>skills/</code>.
+              New ones are auto-written when an intent keeps repeating.</p>
+            <ul class="skills-list" id="skills-list"></ul>
+          </div>
+        </div>
+>>>>>>> e8af68f (Integrate CORTEX self-learning loop from codero-sus/agi)
       </aside>
     </main>
   </div>
