@@ -1,0 +1,7 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# MyGPT runtime state (memory, corpus, weights, metrics)
+data/
