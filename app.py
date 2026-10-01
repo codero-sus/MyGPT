@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+"""MyGPT — self-training chatbot with a Flask WebUI.
+
+Run:  python app.py   (then open http://localhost:8000)
+"""
+
+from __future__ import annotations
+
+import os
+import threading
+
+from flask import Flask, jsonify, render_template, request
+
+from mygpt.brain import Brain
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.environ.get("MYGPT_DATA", os.path.join(ROOT, "data"))
+SEED_PATH = os.path.join(ROOT, "seed_corpus.json")
+
+app = Flask(__name__)
+brain = Brain(DATA_DIR, SEED_PATH)
+_lock = threading.Lock()
+
+
+@app.get("/")
+def index():
+    return render_template("index.html")
+
+
+@app.post("/api/chat")
+def chat():
+    message = (request.get_json(silent=True) or {}).get("message", "")
+    if not message.strip():
+        return jsonify({"ok": False, "error": "empty message"}), 400
+    with _lock:
+        result = brain.reply(message)
+        brain.save()
+    return jsonify({"ok": True, **result})
+
+
+@app.post("/api/feedback")
+def feedback():
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        result = brain.feedback(body.get("msg_id", ""),
+                                body.get("verdict", ""),
+                                body.get("correction"))
+    return jsonify(result), (200 if result.get("ok") else 400)
+
+
+@app.post("/api/teach")
+def teach():
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        result = brain.teach(body.get("question", ""), body.get("answer", ""))
+    return jsonify(result), (200 if result.get("ok") else 400)
+
+
+@app.post("/api/train")
+def train():
+    body = request.get_json(silent=True) or {}
+    epochs = max(1, min(100, int(body.get("epochs", 10))))
+    with _lock:
+        result = brain.train(epochs=epochs, reason="manual")
+    return jsonify(result)
+
+
+@app.get("/api/dream")
+def dream():
+    with _lock:
+        text = brain.dream()
+    return jsonify({"ok": True, "text": text})
+
+
+@app.get("/api/stats")
+def stats():
+    with _lock:
+        return jsonify({"ok": True, **brain.stats()})
+
+
+@app.get("/api/memory")
+def memory():
+    with _lock:
+        return jsonify({"ok": True, "pairs": brain.recent_pairs(20)})
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, threaded=True)

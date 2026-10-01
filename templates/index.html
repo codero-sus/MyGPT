@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyGPT — self-training chatbot</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%237c5cff'/></svg>" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="orb"></div>
+        <div>
+          <h1>MyGPT</h1>
+          <p class="tagline">self-training chatbot · pure Python + NumPy</p>
+        </div>
+      </div>
+      <div class="status"><span class="dot"></span> online &amp; learning</div>
+    </header>
+
+    <main class="layout">
+      <!-- ================= CHAT ================= -->
+      <section class="chat-panel">
+        <div class="chat-scroll" id="chat"></div>
+        <form class="composer" id="composer">
+          <input id="input" type="text" autocomplete="off"
+                 placeholder="Message MyGPT…  (try: who are you? · 23*47 · tell me a joke)" />
+          <button type="submit" id="send" title="Send">➤</button>
+        </form>
+      </section>
+
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="sidebar">
+        <nav class="tabs">
+          <button class="tab active" data-tab="learn">📚 Learn</button>
+          <button class="tab" data-tab="growth">📈 Growth</button>
+        </nav>
+
+        <!-- Learn tab -->
+        <div class="panel" id="panel-learn">
+          <div class="card">
+            <h2>Teach MyGPT</h2>
+            <p class="hint">Anything you add here becomes permanent knowledge and training data.</p>
+            <label for="teach-q">Question</label>
+            <input id="teach-q" type="text" placeholder="e.g. what is the capital of france" />
+            <label for="teach-a">Answer</label>
+            <textarea id="teach-a" rows="3" placeholder="e.g. The capital of France is Paris."></textarea>
+            <button class="primary" id="teach-btn">Teach it</button>
+          </div>
+          <div class="card">
+            <h2>What I know <span class="pill" id="pair-count">0</span></h2>
+            <ul class="memory-list" id="memory-list"></ul>
+          </div>
+        </div>
+
+        <!-- Growth tab -->
+        <div class="panel hidden" id="panel-growth">
+          <div class="card">
+            <h2>Learning curve</h2>
+            <p class="hint">Language-model loss after each training round — lower is smarter.</p>
+            <canvas id="loss-chart" width="560" height="190"></canvas>
+            <div class="chart-caption" id="chart-caption"></div>
+          </div>
+          <div class="card">
+            <h2>Vitals</h2>
+            <div class="stats-grid">
+              <div class="stat"><b id="st-pairs">0</b><span>memories</span></div>
+              <div class="stat"><b id="st-msgs">0</b><span>messages</span></div>
+              <div class="stat"><b id="st-up">0</b><span>👍 feedback</span></div>
+              <div class="stat"><b id="st-corr">0</b><span>corrections</span></div>
+              <div class="stat"><b id="st-vocab">0</b><span>vocab size</span></div>
+              <div class="stat"><b id="st-rounds">0</b><span>train rounds</span></div>
+            </div>
+            <div class="row actions">
+              <select id="epochs">
+                <option value="5">5 epochs</option>
+                <option value="10" selected>10 epochs</option>
+                <option value="25">25 epochs</option>
+                <option value="50">50 epochs</option>
+              </select>
+              <button class="primary" id="train-btn">🏋️ Train now</button>
+              <button class="ghost" id="dream-btn">💭 Dream</button>
+            </div>
+            <div class="dream-box hidden" id="dream-box"></div>
+          </div>
+          <div class="card">
+            <h2>Recent activity</h2>
+            <ul class="events" id="events"></ul>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
