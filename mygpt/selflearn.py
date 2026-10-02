@@ -38,6 +38,9 @@ def _contains_any(text: str, needles: list[str]) -> bool:
 
 def classify_intent(text: str) -> str:
     low = text.lower()
+    from . import agents as _agents
+    if _agents.wants_agent(text):
+        return "agent"
     if re.search(r"^[\s0-9+\-*/().%^]+$", text) and re.search(r"[+\-*/%^]", text):
         return "math"
     if re.search(r"\d[\d\s+\-*/().%^]*[+\-*/%^]", low):
@@ -173,7 +176,7 @@ class SelfImprovement:
             return None
         counts = Counter(self.recent_intents)
         intent, n = counts.most_common(1)[0]
-        if n < 3 or intent in ("chat", "identity", "unknown"):
+        if n < 3 or intent in ("chat", "identity", "unknown", "agent"):
             return None
         name = f"handle_{intent}"
         if name in self.brain.skills.skills:

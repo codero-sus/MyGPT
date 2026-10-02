@@ -92,6 +92,50 @@ def forget():
     return jsonify({"ok": True, "removed": n})
 
 
+@app.get("/api/agents")
+def list_agents():
+    with _lock:
+        return jsonify({"ok": True, "agents": brain.roster.list(),
+                        "runs": brain.roster.recent_runs(8)})
+
+
+@app.post("/api/agents")
+def create_agent():
+    body = request.get_json(silent=True) or {}
+    try:
+        with _lock:
+            spec = brain.roster.create(body.get("name", ""),
+                                       body.get("mission", ""),
+                                       body.get("tools") or [])
+            brain.store.add_fact("agent", "spawned", spec.name, 0.9)
+            brain.save()
+        return jsonify({"ok": True, "agent": spec.as_dict()})
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@app.post("/api/agents/delete")
+def delete_agent():
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        ok = brain.roster.delete(body.get("key", ""))
+    return jsonify({"ok": ok})
+
+
+@app.post("/api/agents/run")
+def run_agent_endpoint():
+    body = request.get_json(silent=True) or {}
+    goal = (body.get("goal") or "").strip()
+    if not goal:
+        return jsonify({"ok": False, "error": "empty goal"}), 400
+    from mygpt import agents as agents_mod
+    with _lock:
+        spec = brain.roster.get(body.get("name", "")) if body.get("name") \
+            else brain.roster.default()
+        run = agents_mod.run_agent(brain, spec, goal[:240], goal)
+    return jsonify({"ok": True, **run.as_dict()})
+
+
 @app.post("/api/import")
 def import_history():
     """Absorb an exported chat history: WhatsApp .txt/.zip, ChatGPT

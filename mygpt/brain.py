@@ -34,6 +34,7 @@ from .skills import SkillRegistry, ensure_starter_skills
 from .store import SelfLearnStore
 from .tokenizer import normalize
 from .trainer import BackgroundTrainer
+from . import agents
 from . import importers
 
 STRONG_MATCH = 0.52      # confident recall
@@ -63,6 +64,8 @@ class Brain:
         ensure_starter_skills(self.skills_root)
         self.skills = SkillRegistry(self.skills_root)
         self.reasoner = Reasoner(self)
+        self.roster = agents.Roster(os.path.join(data_dir, "agents.json"))
+        self.coder_counts: dict[str, int] = {}
         self.corpus: list[str] = []
         self.pending: dict[str, dict] = {}     # msg_id -> last-reply record
         self.started = time.time()
@@ -104,6 +107,13 @@ class Brain:
                     self.counters[k] = v
                 self.loss_history = meta.get("loss_history", [])
                 self.events = meta.get("events", [])
+        coder_path = os.path.join(self.data_dir, "coder.json")
+        if os.path.exists(coder_path):
+            try:
+                with open(coder_path, encoding="utf-8") as f:
+                    self.coder_counts = json.load(f)
+            except Exception:
+                self.coder_counts = {}
 
         if not self.memory.pairs and os.path.exists(self._seed_path):
             with open(self._seed_path, encoding="utf-8") as f:
@@ -206,7 +216,34 @@ class Brain:
                           skill=skill.name)
             return self._after_turn(record, extract=False)
 
-        # 3) new facts about the user ------------------------------------------
+        # 3) agents: spawn, run, or coding commands ---------------------------
+        spawned = agents.parse_spawn(text)
+        if spawned:
+            try:
+                spec = self.roster.create(spawned["name"], spawned["mission"],
+                                          spawned["tools"], created_by="user")
+                self.store.add_fact("agent", "spawned", spec.name, 0.9)
+                self._log(f"agent spawned: {spec.name}")
+                record.update(mode="agent", confidence=1.0,
+                              reply=f"Agent {spec.name} is live.\n"
+                                    f"Mission: {spec.mission}\n"
+                                    f"Tools: {', '.join(spec.tools)}\n"
+                                    f"Run it with: @{spec.name} <task>  or  "
+                                    f"run {spec.name}: <task>")
+            except ValueError as e:
+                record.update(mode="agent", confidence=1.0,
+                              reply=f"Could not spawn agent: {e}")
+            return self._after_turn(record, extract=False)
+
+        if agents.wants_agent(text):
+            run = agents.act(self, text)
+            summary = run.result or run.markdown
+            record.update(mode="agent", confidence=run.confidence,
+                          reply=f"🤖 {run.agent} · {run.goal}\n\n{summary}",
+                          run=run.as_dict())
+            return self._after_turn(record, extract=False)
+
+        # 4) new facts about the user ------------------------------------------
         extracted = self.store.extract_from_user(text)
         if extracted:
             parts = []
@@ -222,13 +259,13 @@ class Brain:
                                 ". I'll remember that across sessions.")
             return self._after_turn(record, extract=False)
 
-        # 4) recall stored personal facts ---------------------------------------
+        # 5) recall stored personal facts ---------------------------------------
         fact_reply = self._fact_answer(qn)
         if fact_reply:
             record.update(mode="fact", confidence=0.95, reply=fact_reply)
             return self._after_turn(record)
 
-        # 5) learned memory ------------------------------------------------------
+        # 6) learned memory ------------------------------------------------------
         matches = self.memory.search(qn, k=1)
         if matches:
             pair, score = matches[0]
@@ -243,7 +280,7 @@ class Brain:
                                     f"use 👍/👎 so I can learn.)")
                 return self._after_turn(record)
 
-        # 6) unknown -> ask to be taught -----------------------------------------
+        # 7) unknown -> ask to be taught -----------------------------------------
         record.update(mode="curious", confidence=0.0,
                       reply=random.choice(TEACH_REPLIES), teach_prompt=True)
         return self._after_turn(record)
@@ -252,7 +289,8 @@ class Brain:
         """Finalize the reply: attach a chain of thought, remember the episode,
         then run the CORTEX light-pass self-improvement."""
         self.episodes.remember("mygpt", record["reply"])
-        record["chain"] = self._build_chain(record).as_dict()
+        if record["mode"] != "agent":  # agent runs carry their own trace
+            record["chain"] = self._build_chain(record).as_dict()
 
         self.pending[record["id"]] = record
         if len(self.pending) > 200:
@@ -265,7 +303,7 @@ class Brain:
 
         return {k: record.get(k) for k in
                 ("id", "reply", "mode", "confidence", "teach_prompt", "skill",
-                 "chain")}
+                 "chain", "run")}
 
     def _build_chain(self, record: dict):
         """System-1 trace for fast modes; full System-2 deliberation otherwise."""
@@ -436,6 +474,20 @@ class Brain:
         """Absorb an exported chat history (WhatsApp/ChatGPT/Claude/Telegram/…)."""
         return importers.absorb(self, filename, data)
 
+    def _coder_family_used(self, family_name: str | None) -> None:
+        """Track coding-agent usage; write a learned skill when a family repeats."""
+        if not family_name or family_name == "raw-python":
+            return
+        self.coder_counts[family_name] = self.coder_counts.get(family_name, 0) + 1
+        self._write("coder.json", self.coder_counts)
+        from . import coding
+        news = coding.maybe_learn_skill(family_name, self.skills_root,
+                                        self.skills, self.coder_counts)
+        if news:
+            self._log(news)
+            self.store.log_event("skill", {"text": news})
+            self.goals.nudge("become-more-capable", 0.02)
+
     # ----------------------------------------------------------------- extra
     def dream(self, n_tokens: int = 40) -> str:
         text = self.lm.generate(n_tokens=n_tokens)
@@ -461,6 +513,9 @@ class Brain:
             "episodes": len(self.episodes.episodes),
             "imports": self.counters.get("imports", 0),
             "goals": self.goals.snapshot(),
+            "agents": self.roster.list(),
+            "agent_runs": self.roster.recent_runs(6),
+            "coder_counts": self.coder_counts,
             "mind": {
                 "facts": [{"subject": f.subject, "predicate": f.predicate,
                             "object": f.obj, "confidence": f.confidence}
