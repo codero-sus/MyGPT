@@ -11,6 +11,7 @@ const MODE_LABELS = {
   math: "computed",
   skill: "skill",
   fact: "fact recall",
+  agent: "agent",
 };
 
 /* ---------------- helpers ---------------- */
@@ -97,8 +98,34 @@ function addChain(chain, wrap) {
   wrap.appendChild(det);
 }
 
+function addAgentRun(run, wrap) {
+  if (!run || !run.steps || !run.steps.length) return;
+  const det = document.createElement("details");
+  det.className = "chain";
+  const sum = document.createElement("summary");
+  sum.textContent =
+    `🤖 ${run.agent} · ${run.steps.length} steps · conf ${Math.round(run.confidence * 100)}%`;
+  det.appendChild(sum);
+  const ol = document.createElement("ol");
+  for (const s of run.steps) {
+    const li = document.createElement("li");
+    const b = document.createElement("b");
+    b.textContent = s.kind;
+    li.append(b, document.createTextNode(" " + s.text));
+    if (s.code) {
+      const pre = document.createElement("pre");
+      pre.textContent = s.code;
+      li.appendChild(pre);
+    }
+    ol.appendChild(li);
+  }
+  det.appendChild(ol);
+  wrap.appendChild(det);
+}
+
 function addBotReply(data) {
   const wrap = addMessage("bot", data.reply);
+  if (data.run) addAgentRun(data.run, wrap);
   addChain(data.chain, wrap);
 
   const meta = document.createElement("div");
@@ -429,6 +456,48 @@ async function refreshMind() {
     sl.appendChild(li);
   }
 
+  // agents
+  $("mn-agents-pill").textContent = (data.agents || []).length;
+  const al = $("agents-list");
+  al.innerHTML = "";
+  for (const a of data.agents || []) {
+    const li = document.createElement("li");
+    const runs = document.createElement("span");
+    runs.className = "aruns";
+    runs.textContent = `${a.runs} runs`;
+    const nm = document.createElement("span");
+    nm.className = "aname";
+    nm.textContent = a.name;
+    const miss = document.createElement("div");
+    miss.className = "amission";
+    miss.textContent = a.mission;
+    const tools = document.createElement("div");
+    tools.className = "atools";
+    for (const t of a.tools) {
+      const chip = document.createElement("span");
+      chip.className = "atool";
+      chip.textContent = t;
+      tools.appendChild(chip);
+    }
+    li.append(runs, nm, miss, tools);
+    al.appendChild(li);
+  }
+  const ar = $("agent-runs");
+  ar.innerHTML = "";
+  const runs = data.agent_runs || [];
+  if (!runs.length) ar.innerHTML = '<li class="empty">No agent runs yet — try “run Coder: first 20 primes”.</li>';
+  for (const r of runs.slice(0, 6)) {
+    const li = document.createElement("li");
+    const kind = document.createElement("span");
+    kind.className = "kind";
+    kind.textContent = r.agent;
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = fmtTime(r.t);
+    li.append(kind, time, document.createTextNode(r.goal));
+    ar.appendChild(li);
+  }
+
   // goals
   const gl = $("goals-list");
   gl.innerHTML = "";
@@ -568,8 +637,8 @@ $("import-btn").addEventListener("click", async () => {
 
 addMessage("bot",
   "Hi! I'm MyGPT — a tiny chatbot that trains itself on our conversation.\n" +
-  "Ask me things (hard questions get a full System-2 chain of thought 💭), " +
-  "rate my answers with 👍/👎, teach me facts in the Learn tab, and watch the " +
-  "self-learning loop in the Mind tab.");
+  "Ask me things (hard questions get a System-2 chain of thought 💭), rate my " +
+  "answers with 👍/👎, or put my agents to work — try " +
+  "“run Coder: first 20 primes” or “write code to reverse 12345”. 🤖");
 refreshSidebars();
 $("input").focus();

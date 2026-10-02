@@ -77,6 +77,34 @@ collapsible 💭 trace under each reply:
 Fast paths (math, skills, facts, strong recall, greetings) stay System-1 with a
 short trace. Compare questions always deliberate — both sides get characterized.
 
+## Agentic coding
+
+MyGPT spawns **named agents** (CORTEX-style: a mission + a tool whitelist, no
+shell, no root) — seed crew: **Coder**, Researcher, Critic, Tutor, Operator.
+
+```
+run Coder: first 20 primes          → agent run with a code trace
+write code to compute factorial 12  → natural coding asks route to Coder
+create agent Scout — mission: watch what we learn tools: knowledge, note
+@Scout what do you know about learning
+```
+
+The **Coder** runs a real coding loop:
+
+1. **Plan** — parse the task into a family (26 templates: primes, fibonacci,
+   factorials, statistics, gcd/lcm, base conversion, dates, geometry,
+   palindromes, anagrams, unit conversion, raw Python…)
+2. **Compose** — emit actual Python for the task
+3. **Run** — execute in a jailed subprocess (8s timeout, AST import allowlist,
+   no `open`/`os`/`subprocess`, no `__import__` escapes)
+4. **Inspect & repair** — bounded retries: add imports, force an ANSWER line
+5. **Learn** — after a family is used 3 times, the agent **writes a reusable
+   skill file** into `skills/` (`code_<family>.py`); future asks of that family
+   are answered instantly by the learned skill
+
+Every agent run keeps a trace, trains the neural core on it, and shows up in
+the Mind tab with its steps and generated code.
+
 ## Episodic memory, goals, and importing your other lives
 
 * **Episodes** — every turn is stored with a hashed-token embedding; recall is a
@@ -93,9 +121,10 @@ short trace. Compare questions always deliberate — both sides get characterize
 |----------|-------------------------------------------|
 | 1 | Arithmetic skill (`12*12`, `(3+4)*2`) |
 | 2 | Learned skill files in `skills/` (pattern-matched) |
-| 3 | Semantic facts about you (`what is my name?`) |
-| 4 | Learned Q→A memory pairs (TF-IDF retrieval); 👍 reinforces, 👎+correction replaces |
-| 5 | Admits ignorance and asks to be taught |
+| 3 | Agent commands (`run Coder: …`, `create agent …`, coding asks) |
+| 4 | Semantic facts about you (`what is my name?`) |
+| 5 | Learned Q→A memory pairs (TF-IDF retrieval); 👍 reinforces, 👎+correction replaces |
+| 6 | Admits ignorance and asks to be taught |
 
 ## The WebUI
 
@@ -104,7 +133,8 @@ short trace. Compare questions always deliberate — both sides get characterize
 * **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log
 * **Mind tab** — the CORTEX loop: trainer status, self-eval %, constitution,
-  semantic facts (with forget buttons), lessons, skills, goals, chat import
+  semantic facts (with forget buttons), lessons, skills, goals, agents roster
+  with recent runs, chat import
 
 ## Architecture
 
@@ -122,6 +152,9 @@ mygpt/
   episodes.py           episodic memory, hashed embeddings, numpy index (CORTEX)
   goals.py              intrinsic goals nudged by the loop              (CORTEX)
   importers.py          WhatsApp/ChatGPT/Claude/Telegram/JSONL parsers  (CORTEX)
+  agents.py             named agents: roster, spawn/run, tool loop      (CORTEX)
+  coding.py             the coding agent: plan → code → run → repair
+  sandbox.py            jailed subprocess Python runner
   tokenizer.py          shared tokenizer
 skills/                 procedural memory — starter + auto-written skills
 seed_corpus.json        starter knowledge + LM pretraining text
@@ -139,8 +172,12 @@ templates/ static/      the WebUI
 | POST   | `/api/improve`  | — (force a medium improvement cycle)   |
 | POST   | `/api/forget`   | `{"q": "user name"}` (drop facts)      |
 | POST   | `/api/import`   | multipart `file` (chat export)         |
+| GET    | `/api/agents`   | — (roster + recent runs)               |
+| POST   | `/api/agents`   | `{"name", "mission", "tools"}` (spawn) |
+| POST   | `/api/agents/run` | `{"name"?, "goal"}`                  |
+| POST   | `/api/agents/delete` | `{"key"}`                          |
 | GET    | `/api/dream`    | —                                       |
-| GET    | `/api/stats`    | — (includes `mind`, `goals`, episodes) |
+| GET    | `/api/stats`    | — (includes `mind`, `goals`, agents)   |
 | GET    | `/api/memory`   | —                                       |
 
 ## Honest scope
