@@ -31,9 +31,9 @@ def family(name: str, pattern: str):
     return deco
 
 
-@family("primes (first N)", r"first (\d+) primes?")
+@family("primes (first N)", r"first (\d+) primes?|primes?\b(?: numbers?)?(?! ?(?:up to|below|under|until))")
 def _primes_first(m, goal):
-    n = int(m.group(1))
+    n = int(m.group(1)) if m.group(1) else 10
     return (
         f"n = {n}\n"
         "sieve = [True] * max(2, n * 20)\n"
@@ -64,9 +64,9 @@ def _primes_upto(m, goal):
     )
 
 
-@family("fibonacci", r"(?:first (\d+) fibonacci|fibonacci(?: number)?(?: of)?[ :]? ?(\d+)|fib\((\d+)\))")
+@family("fibonacci", r"(?:first (\d+) fibonacci|fibonacci(?: number)?(?: of)?[ :]? ?(\d+)|fib\((\d+)\)|fibonacci)")
 def _fibonacci(m, goal):
-    n = int(next(g for g in m.groups() if g))
+    n = int(next((g for g in m.groups() if g), "10"))
     if re.search(r"first", goal, re.I):
         return (
             f"n = {n}\n"
@@ -85,9 +85,9 @@ def _fibonacci(m, goal):
     )
 
 
-@family("factorial", r"factorial(?: of)? (\d+)|(\d+)!")
+@family("factorial", r"factorial(?: of)? (\d+)|(\d+)!|factorial")
 def _factorial(m, goal):
-    n = int(next(g for g in m.groups() if g))
+    n = int(next((g for g in m.groups() if g), "5"))
     return (
         f"n = {n}\n"
         "r = 1\n"
@@ -107,19 +107,21 @@ def _digits_reverse(m, goal):
     return f"print(int(str({m.group(1)})[::-1]))\n"
 
 
-@family("reverse a string", r"reverse (?:the )?(?:string|word|text) ['“\"]?([A-Za-z0-9 _\-]+)['”\"]?")
+@family("reverse a string", r"reverse (?:a |the )?(?:string|word|text)(?: ['“\"]?([A-Za-z0-9 _\-]+)['”\"]?)?")
 def _str_reverse(m, goal):
-    return f"s = {m.group(1).strip()!r}\nprint(s[::-1])\n"
+    s = (m.group(1) or "hello").strip() or "hello"
+    return f"s = {s!r}\nprint(s[::-1])\n"
 
 
-@family("palindrome check (number)", r"check|is (\d+) a palindrome")
+@family("palindrome check (number)", r"is (\d+) a palindrome|check (?:if |whether )?(?:the )?(?:number )?(\d+)(?: is)?(?: a)? palindrome")
 def _palindrome_num(m, goal):
-    return f"s = str({m.group(1)})\nprint(s == s[::-1])\n"
+    n = m.group(1) or m.group(2) or "121"
+    return f"s = str({n})\nprint(s == s[::-1])\n"
 
 
-@family("palindrome check (word)", r"is ([a-z]+) a palindrome|palindrome (?:of|check) ([a-z]+)")
+@family("palindrome check (word)", r"is ([a-z]+) a palindrome|palindrome (?:of|check) ([a-z]+)|palindrome")
 def _palindrome_word(m, goal):
-    w = (m.group(1) or m.group(2)).lower()
+    w = (m.group(1) or m.group(2) or "level").lower()
     return f"s = {w!r}.lower()\nprint(s == s[::-1])\n"
 
 
@@ -146,14 +148,21 @@ def _statistics(m, goal):
     return f"data = [{data}]\nprint({op}(data))\n"
 
 
-@family("gcd", r"(?:gcd|greatest common divisor)(?: of)? (\d+) and (\d+)")
+@family("gcd", r"(?:gcd|greatest common divisor)(?: of)? (\d+) and (\d+)|(?:gcd|greatest common divisor)\b")
 def _gcd(m, goal):
-    return f"import math\nprint(math.gcd({m.group(1)}, {m.group(2)}))\n"
+    a = m.group(1) or "48"
+    b = m.group(2) or "36"
+    code = f"import math\nprint(math.gcd({a}, {b}))\n"
+    if re.search(r"\blcm\b", goal, re.I):
+        code += f"print(math.lcm({a}, {b}))\n"
+    return code
 
 
-@family("lcm", r"(?:lcm|least common multiple)(?: of)? (\d+) and (\d+)")
+@family("lcm", r"(?:lcm|least common multiple)(?: of)? (\d+) and (\d+)|(?:lcm|least common multiple)\b")
 def _lcm(m, goal):
-    return f"import math\nprint(math.lcm({m.group(1)}, {m.group(2)}))\n"
+    a = m.group(1) or "4"
+    b = m.group(2) or "6"
+    return f"import math\nprint(math.lcm({a}, {b}))\n"
 
 
 @family("base conversion (to binary/hex/octal)",
@@ -216,10 +225,10 @@ def _weekday(m, goal):
     )
 
 
-@family("circle area/circumference", r"(area|circumference) of (?:a )?circle (?:with )?r(?:adius)? (\d+(?:\.\d+)?)")
+@family("circle area/circumference", r"(area|circumference) of (?:a )?circle(?: (?:with )?r(?:adius)? (\d+(?:\.\d+)?))?")
 def _circle(m, goal):
     expr = "math.pi * r ** 2" if m.group(1).lower() == "area" else "2 * math.pi * r"
-    return f"import math\nr = {m.group(2)}\nprint(round({expr}, 6))\n"
+    return f"import math\nr = {m.group(2) or 5}\nprint(round({expr}, 6))\n"
 
 
 @family("sphere volume", r"volume of (?:a )?sphere (?:with )?r(?:adius)? (\d+(?:\.\d+)?)")
@@ -233,9 +242,9 @@ def _triangle(m, goal):
     return f"print({m.group(1)} * {m.group(2)} / 2)\n"
 
 
-@family("armstrong number", r"is (\d+) (?:an )?armstrong|armstrong (?:of|check) (\d+)")
+@family("armstrong number", r"is (\d+) (?:an )?armstrong|armstrong (?:of|check) (\d+)|armstrong")
 def _armstrong(m, goal):
-    n = m.group(1) or m.group(2)
+    n = m.group(1) or m.group(2) or "153"
     return (
         f"n = {n}\n"
         "s = str(n)\n"
@@ -243,10 +252,10 @@ def _armstrong(m, goal):
     )
 
 
-@family("powers of two", r"powers of (?:2|two) (?:up to|below|under) (\d+)")
+@family("powers of two", r"powers of (?:2|two) (?:up to|below|under) (\d+)|powers of (?:2|two)")
 def _powers_of_two(m, goal):
     return (
-        f"n = {m.group(1)}\n"
+        f"n = {m.group(1) or 64}\n"
         "out, p = [], 1\n"
         "while p < n:\n"
         "    out.append(p)\n"
@@ -283,9 +292,9 @@ def _range_sum(m, goal):
     return f"print(sum(range({m.group(1)}, {m.group(2)} + 1)))\n"
 
 
-@family("perfect square check", r"is (\d+) (?:a )?perfect square")
+@family("perfect square check", r"is (\d+) (?:a )?perfect square|perfect square")
 def _perfect_square(m, goal):
-    return (f"import math\nn = {m.group(1)}\nr = math.isqrt(n)\n"
+    return (f"import math\nn = {m.group(1) or 25}\nr = math.isqrt(n)\n"
             "print(r * r == n)\n")
 
 
