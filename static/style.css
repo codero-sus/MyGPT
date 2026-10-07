@@ -256,22 +256,30 @@ button.ghost:hover { border-color: var(--accent-2); }
 .card a { color: var(--accent); text-decoration: none; }
 .card a:hover { text-decoration: underline; }
 
-/* agents */
-.agents-list { list-style: none; margin: 0; padding: 0; display: flex;
-  flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
-.agents-list li { background: var(--panel); border: 1px solid var(--border);
-  border-radius: 6px; padding: 8px 10px; font-size: .76rem; }
-.agents-list .aname { color: var(--accent); font-weight: 600; font-size: .8rem; }
-.agents-list .aruns { float: right; color: var(--muted); font-size: .66rem; }
-.agents-list .amission { color: var(--muted); margin-top: 2px; }
-.agents-list .atools { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px; }
-.agents-list .atool { background: rgba(0,212,200,.1); border: 1px solid rgba(0,212,200,.3);
-  color: var(--accent-2); border-radius: 4px; padding: 1px 6px; font-size: .62rem; }
+/* code blocks inside chat bubbles */
+.bubble pre {
+  background: #0a0e16; border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; margin: 8px 0; overflow-x: auto;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: .76rem; line-height: 1.5; color: #a8e6cf;
+  white-space: pre; max-width: 100%;
+}
+.bubble pre code { font-family: inherit; }
 
 details.chain pre { background: #0a0e16; border: 1px solid var(--border);
   border-radius: 6px; padding: 8px 10px; font-size: .68rem; line-height: 1.4;
   overflow-x: auto; color: #a8e6cf; margin: 4px 0; white-space: pre-wrap;
   word-break: break-word; font-family: "SF Mono", Menlo, Consolas, monospace; }
+
+/* github credit */
+.credit {
+  display: block; text-align: center; font-size: .72rem; color: var(--muted);
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 12px; text-decoration: none;
+  transition: all .15s; flex: none;
+}
+.credit b { color: var(--accent); }
+.credit:hover { border-color: var(--accent); color: var(--text); }
 
 /* import */
 .import-row { align-items: center; flex-wrap: wrap; }
