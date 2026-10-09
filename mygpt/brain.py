@@ -36,6 +36,7 @@ from .tokenizer import normalize
 from .trainer import BackgroundTrainer
 from . import codegen
 from . import importers
+from .cortex import CortexClient
 
 STRONG_MATCH = 0.52      # confident recall
 WEAK_MATCH = 0.30        # a guess worth offering
@@ -78,6 +79,7 @@ class Brain:
         self.trainer = BackgroundTrainer(self.lm, save_fn=self.save)
         self.trainer.dream_source = self._dream_text
         self.improver = SelfImprovement(self)
+        self.cortex = CortexClient(os.path.join(data_dir, "cortex.json"))
 
         self._seed_path = seed_path
         self._load()
@@ -246,6 +248,26 @@ class Brain:
                 record.update(mode="memory", pair_id=pair["id"],
                               confidence=score, reply=pair["a"])
                 return self._after_turn(record)
+
+        # 6b) Cortex LLMHoster — a locally hosted model fills knowledge gaps ---
+        if self.cortex.available():
+            history = [{"role": "user" if e["role"] == "user" else "assistant",
+                        "content": e["content"]}
+                       for e in self.episodes.recent_dialogue(k=6)]
+            answer = self.cortex.chat(text, history)
+            if answer:
+                if self.cortex.learn:
+                    # internalise the hosted model's answer so the self-trained
+                    # brain owns this knowledge next time
+                    self.memory.add(qn, answer[:600], replace_question=qn)
+                    self._ingest(f"user: {text} mygpt: {answer[:600]}")
+                record.update(mode="cortex", confidence=0.8, reply=answer)
+                self._log("open question answered by Cortex LLMHoster"
+                          + ("" if self.cortex.learn else " (not learned)"))
+                return self._after_turn(record)
+
+        if matches:
+            pair, score = matches[0]
             if score >= WEAK_MATCH:
                 record.update(mode="guess", pair_id=pair["id"],
                               confidence=score,
@@ -472,6 +494,7 @@ class Brain:
             "imports": self.counters.get("imports", 0),
             "goals": self.goals.snapshot(),
             "github": codegen.GITHUB_URL,
+            "cortex": self.cortex.probe(),
             "mind": {
                 "facts": [{"subject": f.subject, "predicate": f.predicate,
                             "object": f.obj, "confidence": f.confidence}

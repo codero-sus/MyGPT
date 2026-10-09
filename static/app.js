@@ -12,6 +12,7 @@ const MODE_LABELS = {
   skill: "skill",
   fact: "fact recall",
   code: "code",
+  cortex: "cortex llm",
 };
 
 /* ---------------- helpers ---------------- */
@@ -250,7 +251,61 @@ function switchTab(name) {
   $("panel-growth").classList.toggle("hidden", name !== "growth");
   $("panel-mind").classList.toggle("hidden", name !== "mind");
   if (name === "growth") refreshStats();
-  if (name === "mind") refreshMind();
+  if (name === "mind") {
+    refreshMind();
+    refreshCortex();
+  }
+}
+
+/* ---------------- Cortex LLMHoster backend ---------------- */
+
+function renderCortexStatus(c) {
+  const pill = $("cx-pill");
+  const status = $("cx-status");
+  const models = $("cx-models");
+  pill.className = "pill";
+  if (!c.enabled) {
+    pill.textContent = "off";
+    pill.classList.add("cx-off");
+  } else if (c.reachable) {
+    pill.textContent = "connected";
+    pill.classList.add("cx-on");
+  } else {
+    pill.textContent = "unreachable";
+    pill.classList.add("cx-bad");
+  }
+  const bits = [];
+  if (!c.enabled) bits.push("Backend disabled — MyGPT answers with its self-trained brain.");
+  else if (c.reachable) bits.push(`Connected at ${c.base_url}${c.api_base}.`);
+  else bits.push(`Can't reach ${c.base_url} — MyGPT falls back to its self-trained brain.`);
+  if (c.answers) bits.push(`${c.answers} open question${c.answers === 1 ? "" : "s"} answered by the hosted model so far.`);
+  if (c.reason) bits.push(c.reason);
+  status.textContent = bits.join(" ");
+  status.className = "cx-status " + (c.reachable ? "good" : (c.enabled ? "warn" : ""));
+
+  models.innerHTML = "";
+  for (const m of c.models || []) {
+    const li = document.createElement("li");
+    const caps = (m.capabilities || []).join(", ");
+    li.textContent = `🧠 ${m.id}` + (m.runtime ? ` · ${m.runtime}` : "") + (caps ? ` · ${caps}` : "");
+    models.appendChild(li);
+  }
+  if (c.reachable && !(c.models || []).length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "No models configured in Cortex yet — add one in the Cortex dashboard.";
+    models.appendChild(li);
+  }
+}
+
+async function refreshCortex() {
+  const c = await api("/api/cortex");
+  $("cx-url").value = c.base_url || "";
+  $("cx-apibase").value = c.api_base || "";
+  $("cx-model").value = c.model || "";
+  $("cx-enabled").checked = !!c.enabled;
+  $("cx-learn").checked = !!c.learn;
+  renderCortexStatus(c);
 }
 
 async function refreshMemory() {
@@ -556,6 +611,30 @@ $("improve-btn").addEventListener("click", async () => {
     const n = (data.events || []).length;
     toast(`Improvement cycle done — ${n} event${n === 1 ? "" : "s"}.`);
   }
+  refreshMind();
+});
+
+$("cx-save").addEventListener("click", async () => {
+  const btn = $("cx-save");
+  btn.disabled = true;
+  btn.textContent = "Testing…";
+  const body = {
+    enabled: $("cx-enabled").checked,
+    learn: $("cx-learn").checked,
+    base_url: $("cx-url").value.trim(),
+    api_base: $("cx-apibase").value.trim() || "/v1",
+    model: $("cx-model").value.trim(),
+  };
+  const key = $("cx-key").value;
+  if (key) body.api_key = key;   // empty = keep whatever is stored
+  const c = await api("/api/cortex", body);
+  $("cx-key").value = "";
+  renderCortexStatus(c);
+  btn.disabled = false;
+  btn.textContent = "💾 Save & test connection";
+  if (c.reachable) toast("Cortex LLMHoster connected ✅");
+  else if (c.enabled) toast("Settings saved — Cortex not reachable yet");
+  else toast("Cortex backend disabled");
   refreshMind();
 });
 

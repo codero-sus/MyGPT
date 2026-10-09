@@ -5,3 +5,6 @@ __pycache__/
 
 # MyGPT runtime state (memory, corpus, weights, metrics)
 data/
+
+# Skills auto-written at runtime by the self-learning loop (handle_<intent>)
+skills/handle_*.py

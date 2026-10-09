@@ -117,6 +117,40 @@
             <ul class="events" id="improve-events" style="margin-top:10px"></ul>
           </div>
           <div class="card">
+            <h2>Local LLM · Cortex LLMHoster <span class="pill" id="cx-pill">…</span></h2>
+            <p class="hint">
+              Open questions MyGPT can't answer itself can be routed to a model
+              hosted locally by
+              <a href="https://github.com/codero-sus/Cortex_LLMHoster" target="_blank" rel="noopener">Cortex LLMHoster</a>
+              (OpenAI-compatible API — no cloud, prompts never leave this machine).
+              Answers are learned back into MyGPT's own memory. When Cortex is
+              off or unreachable, the self-trained brain keeps answering.
+            </p>
+            <div class="cx-form">
+              <label class="cx-row"><span>Server URL</span>
+                <input type="text" id="cx-url" placeholder="http://127.0.0.1:8624" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>API base</span>
+                <input type="text" id="cx-apibase" placeholder="/v1" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>Model <em>(blank = Cortex default)</em></span>
+                <input type="text" id="cx-model" placeholder="" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>API key <em>(optional bearer secret)</em></span>
+                <input type="password" id="cx-key" placeholder="" autocomplete="off" />
+              </label>
+              <div class="row cx-checks">
+                <label class="checkline"><input type="checkbox" id="cx-enabled" /> Use Cortex for open questions</label>
+                <label class="checkline"><input type="checkbox" id="cx-learn" /> Learn Cortex answers into MyGPT</label>
+              </div>
+              <div class="row actions">
+                <button class="primary" id="cx-save">💾 Save &amp; test connection</button>
+              </div>
+              <div class="cx-status" id="cx-status"></div>
+              <ul class="cx-models" id="cx-models"></ul>
+            </div>
+          </div>
+          <div class="card">
             <h2>Constitution <span class="pill" id="mn-constit-pill">v1</span></h2>
             <ul class="principles" id="principles"></ul>
           </div>
