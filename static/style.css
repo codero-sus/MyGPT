@@ -302,3 +302,28 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
 ::-webkit-scrollbar-thumb:hover { background: #2e3a55; }
+
+/* ---- Cortex LLMHoster backend card ---- */
+.pill.cx-on  { background: #2fbf71; }
+.pill.cx-off { background: var(--muted); }
+.pill.cx-bad { background: #e05260; }
+.cx-form { display: flex; flex-direction: column; gap: 2px; }
+.cx-row { display: block; }
+.cx-row span { display: block; font-size: .75rem; color: var(--muted); margin: 10px 0 4px; }
+.cx-row span em { font-style: normal; opacity: .7; }
+.cx-row input { width: 100%; background: var(--panel); border: 1px solid var(--border);
+  color: var(--text); border-radius: 8px; padding: 9px 11px; font-size: .85rem;
+  font-family: inherit; outline: none; box-sizing: border-box; }
+.cx-row input:focus { border-color: var(--accent); }
+.cx-checks { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.checkline { display: flex !important; align-items: center; gap: 7px;
+  font-size: .8rem; color: var(--text); margin: 0 !important; cursor: pointer; }
+.checkline input { accent-color: var(--accent); width: 15px; height: 15px; }
+.cx-status { margin-top: 10px; font-size: .8rem; color: var(--muted); line-height: 1.45; }
+.cx-status.good { color: #2fbf71; }
+.cx-status.warn { color: #e0a13f; }
+.cx-models { list-style: none; margin: 8px 0 0; padding: 0; display: flex;
+  flex-direction: column; gap: 5px; }
+.cx-models li { font-size: .78rem; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; color: var(--text); }
+.cx-models li.empty { color: var(--muted); border-style: dashed; }

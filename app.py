@@ -105,6 +105,28 @@ def import_history():
     return jsonify(result), (200 if result.get("ok") else 400)
 
 
+@app.get("/api/cortex")
+def cortex_status():
+    """Cortex LLMHoster backend status (live probe)."""
+    with _lock:
+        return jsonify({"ok": True, **brain.cortex.probe(force=True)})
+
+
+@app.post("/api/cortex")
+def cortex_config():
+    """Update the Cortex LLMHoster backend settings and re-test the link.
+
+    Accepts any of: enabled, learn (bools), base_url, api_base, model,
+    api_key (strings).
+    """
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        probe = brain.cortex.configure(body)
+        brain._log("Cortex LLMHoster settings updated "
+                   f"({'on' if brain.cortex.enabled else 'off'})")
+    return jsonify({"ok": True, **probe})
+
+
 @app.get("/api/stats")
 def stats():
     with _lock:

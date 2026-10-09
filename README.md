@@ -95,6 +95,38 @@ points the user to **codero-sus on GitHub** for more:
 
 The same link is credited in the sidebar and after every code reply.
 
+## Local LLM back end · Cortex LLMHoster
+
+MyGPT can route the open-ended questions it can't answer on its own to a
+**locally hosted model** running under
+[Cortex LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster) — a
+free-to-use local model hoster that manages llama.cpp/GGUF models (or any
+OpenAI-compatible local engine) and exposes an OpenAI-compatible API.
+
+* **No cloud.** Cortex runs on your machine; prompts and answers never leave
+  it. MyGPT talks to it purely over HTTP (`/v1/chat/completions`, `/v1/models`,
+  `/health`) as an ordinary client — Cortex itself is used unmodified, per its
+  personal-use license.
+* **Self-training stays in charge.** Math, learned skills, code requests and
+  semantic facts always win. Cortex is only consulted for the questions MyGPT
+  would otherwise shrug at, and each hosted answer can be **learned back** into
+  MyGPT's own memory + corpus so the NumPy brain owns that knowledge next time.
+* **Graceful fallback.** If Cortex is disabled, unreachable, or has no model
+  loaded, MyGPT silently answers with its self-trained brain. Nothing breaks.
+
+Point MyGPT at a running Cortex in **Mind → “Local LLM · Cortex LLMHoster”**
+(server URL, API base, model, optional bearer key, enable/learn toggles, and a
+*Save & test connection* button), or seed it from the environment:
+
+```
+MYGPT_CORTEX_URL=http://127.0.0.1:8624   # Cortex default
+MYGPT_CORTEX_API_BASE=/v1                # OpenAI route prefix
+MYGPT_CORTEX_MODEL=                      # blank = Cortex default model
+MYGPT_CORTEX_API_KEY=                    # Cortex CORTEX_API_KEY, if set
+MYGPT_CORTEX_ENABLED=1                   # 0 to disable
+MYGPT_CORTEX_LEARN=1                     # 0 to not internalise answers
+```
+
 ## Episodic memory, goals, and importing your other lives
 
 * **Episodes** — every turn is stored with a hashed-token embedding; recall is a
@@ -114,6 +146,7 @@ The same link is credited in the sidebar and after every code reply.
 | 3 | Code requests → fenced code block in chat + codero-sus GitHub link |
 | 4 | Semantic facts about you (`what is my name?`) |
 | 5 | Learned Q→A memory pairs (TF-IDF retrieval); 👍 reinforces, 👎+correction replaces |
+| 5b | **Cortex LLMHoster** — a locally hosted model answers the rest (optional, learned back into memory) |
 | 6 | Admits ignorance and asks to be taught |
 
 ## The WebUI
@@ -123,9 +156,12 @@ The same link is credited in the sidebar and after every code reply.
 * **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log
 * **Mind tab** — the CORTEX loop: trainer status, self-eval %, constitution,
-  semantic facts (with forget buttons), lessons, skills, goals, chat import
+  semantic facts (with forget buttons), lessons, skills, goals, chat import,
+  and a **Cortex LLMHoster** card to connect/test a local model back end
 * **Code asks** — answered with a fenced code block in chat (never run, never
   written to files), plus a link to codero-sus on GitHub
+* **Local LLM** — open questions can be answered by a model hosted by Cortex
+  LLMHoster, with live connection status and the hosted model list
 
 ## Architecture
 
@@ -144,6 +180,7 @@ mygpt/
   goals.py              intrinsic goals nudged by the loop              (CORTEX)
   importers.py          WhatsApp/ChatGPT/Claude/Telegram/JSONL parsers  (CORTEX)
   codegen.py            code requests → fenced code blocks in chat (no exec)
+  cortex.py             Cortex LLMHoster client — optional local LLM back end
   tokenizer.py          shared tokenizer
 skills/                 procedural memory — starter + auto-written skills
 seed_corpus.json        starter knowledge + LM pretraining text
@@ -162,7 +199,9 @@ templates/ static/      the WebUI
 | POST   | `/api/forget`   | `{"q": "user name"}` (drop facts)      |
 | POST   | `/api/import`   | multipart `file` (chat export)         |
 | GET    | `/api/dream`    | —                                       |
-| GET    | `/api/stats`    | — (includes `mind`, `goals`, github)   |
+| GET    | `/api/cortex`   | — (live Cortex LLMHoster status probe) |
+| POST   | `/api/cortex`   | `{"enabled", "base_url", "api_base", "model", "api_key", "learn"}` |
+| GET    | `/api/stats`    | — (includes `mind`, `goals`, `cortex`, github) |
 | GET    | `/api/memory`   | —                                       |
 
 ## Honest scope
