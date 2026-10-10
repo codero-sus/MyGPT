@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Start the MyGPT WebUI.
+# MyGPT Personal-Use License — see LICENSE. Personal, non-commercial use of
+# unmodified copies only.
 set -e
 cd "$(dirname "$0")"
 

@@ -1,0 +1,44 @@
+MyGPT Personal-Use License
+Copyright (c) 2026 codero-sus
+
+MyGPT is semi-closed-source software. It is free to use for personal,
+non-commercial purposes under the terms below.
+
+1. Permissions
+   You may download, install, and run an UNMODIFIED copy of MyGPT, free of
+   charge, for personal, non-commercial use.
+
+2. Restrictions
+   Without separate, prior written permission from the copyright holder,
+   you may NOT:
+   a) modify, adapt, or create derivative works of MyGPT;
+   b) redistribute, republish, mirror, or rehost MyGPT or any part of it;
+   c) sell, rent, lease, sublicense, or otherwise commercialize MyGPT;
+   d) use MyGPT, in whole or in part, for commercial purposes;
+   e) remove, obscure, or alter this license or the copyright notices.
+
+3. Updates
+   The built-in updater installs only official, unmodified archives published
+   by the copyright holder. Using the updater constitutes acceptance of the
+   then-current version of this license.
+
+4. Third-party components
+   MyGPT depends on third-party Python packages (Flask, NumPy) which are
+   governed by their own licenses. The self-learning mechanics are adapted
+   from the author's own CORTEX project (codero-sus/agi), and the optional
+   local-LLM integration communicates with the author's Cortex LLMHoster
+   (codero-sus/Cortex_LLMHoster), each under its own terms.
+
+5. No warranty
+   MyGPT is provided "AS IS", without warranty of any kind, express or
+   implied, including but not limited to the warranties of merchantability,
+   fitness for a particular purpose, and noninfringement. In no event shall
+   the copyright holder be liable for any claim, damages, or other liability
+   arising from the use of MyGPT.
+
+6. Termination
+   Any use of MyGPT in violation of this license automatically terminates
+   your rights under it.
+
+For permission requests (modification, redistribution, or commercial use),
+contact the author via GitHub: https://github.com/codero-sus

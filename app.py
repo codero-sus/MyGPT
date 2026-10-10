@@ -2,6 +2,10 @@
 """MyGPT — self-training chatbot with a Flask WebUI.
 
 Run:  python app.py   (then open http://localhost:8000)
+
+License: MyGPT Personal-Use License (see LICENSE). Free to download and run
+unmodified for personal, non-commercial use. Redistribution, sale,
+sublicensing, modification and commercial use require written permission.
 """
 
 from __future__ import annotations
@@ -11,6 +15,7 @@ import threading
 
 from flask import Flask, jsonify, render_template, request
 
+from mygpt import __version__, updater
 from mygpt.brain import Brain
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +26,7 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 26 * 1024 * 1024  # 25MB import cap + slack
 brain = Brain(DATA_DIR, SEED_PATH)
 _lock = threading.Lock()
+_update_lock = threading.Lock()   # one update at a time (mirrors Cortex)
 
 
 @app.get("/")
@@ -127,10 +133,59 @@ def cortex_config():
     return jsonify({"ok": True, **probe})
 
 
+@app.get("/api/update/check")
+def update_check():
+    """Manual, branch-pinned update check against codero-sus/MyGPT."""
+    try:
+        info = updater.check_for_updates(__version__)
+    except updater.UpdateError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 502
+    return jsonify({"ok": True, **info.as_dict(),
+                    "last_update": updater.last_update(DATA_DIR)})
+
+
+@app.post("/api/update/install")
+def update_install():
+    """Install a confirmed update. Requires the commit SHA from a fresh check."""
+    body = request.get_json(silent=True) or {}
+    confirmed = body.get("commit_sha")
+    if not isinstance(confirmed, str) or not confirmed:
+        return jsonify({"ok": False,
+                        "error": "Confirm the commit ID shown by the update check."}), 400
+    with _update_lock:
+        try:
+            info = updater.check_for_updates(__version__)
+            if not info.update_available:
+                return jsonify({
+                    "ok": False,
+                    "error": f"MyGPT {__version__} is already at the latest branch "
+                             f"version ({info.latest_version})."}), 409
+            if info.commit_sha != confirmed:
+                return jsonify({
+                    "ok": False,
+                    "error": "The update branch changed after your check. "
+                             "Check again and confirm the new commit."}), 409
+            summary = updater.install_from_commit(confirmed, ROOT, ref=info.source_ref)
+        except updater.UpdateError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 502
+    return jsonify({
+        "ok": True,
+        "current_version": info.current_version,
+        "installed_version": info.latest_version,
+        "source_repository": info.source_repository,
+        "source_ref": info.source_ref,
+        "commit_sha": info.commit_sha,
+        "replaced": summary["replaced"],
+        "preserved": summary["preserved"],
+        "restart_required": True,
+        "message": "The update was installed. Restart MyGPT to load the new version.",
+    })
+
+
 @app.get("/api/stats")
 def stats():
     with _lock:
-        return jsonify({"ok": True, **brain.stats()})
+        return jsonify({"ok": True, "version": __version__, **brain.stats()})
 
 
 @app.get("/api/memory")
