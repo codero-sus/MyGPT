@@ -36,6 +36,18 @@ python3 -m venv .venv
 Set `PORT` to change the port (default `8000`). All learned state lives in `data/` —
 delete that folder to give MyGPT amnesia and start over.
 
+**Python location** — the launcher scripts (`run.sh`, `updater.sh`,
+`updater.bat`) read the interpreter from **`python.env`** in the project root:
+
+```
+PYTHON=.venv/bin/python        # Linux/macOS venv (default)
+PYTHON=.venv\Scripts\python.exe  # Windows venv
+PYTHON=/usr/bin/python3        # or any absolute path
+```
+
+If `python.env` is absent or its path doesn't exist, the scripts fall back to
+the project `.venv`, then `python3` / `python`.
+
 ## Software updates (branch-pinned, confirmed)
 
 MyGPT ships with a **manual, branch-pinned updater** (modeled on the one in
@@ -203,6 +215,7 @@ MYGPT_CORTEX_LEARN=1                     # 0 to not internalise answers
 
 ```
 app.py                  Flask server + JSON API
+python.env              Python interpreter location for the launcher scripts
 updater.sh / .bat       command-line updater (check → confirm → install)
 mygpt/
   brain.py              orchestrator: reply / feedback / teach / train loop
