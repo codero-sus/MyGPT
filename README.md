@@ -22,22 +22,25 @@ dream replay, **System-2 chain-of-thought**, **episodic memory**, **goals**, and
 ## Quick start
 
 ```bash
-./run.sh            # creates a venv, installs deps, starts on http://localhost:8000
+./run.sh            # Linux / macOS — creates a venv, installs deps,
+                    # starts on http://localhost:8000
+run.bat             # Windows — same, in Command Prompt / PowerShell
 ```
 
 or manually:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/python app.py
+.venv/bin/pip install -r requirements.txt      # .venv\Scripts\pip on Windows
+.venv/bin/python app.py                        # .venv\Scripts\python app.py
 ```
 
 Set `PORT` to change the port (default `8000`). All learned state lives in `data/` —
 delete that folder to give MyGPT amnesia and start over.
 
-**Python location (optional)** — the launcher scripts (`run.sh`, `updater.sh`,
-`updater.bat`) resolve the interpreter in this order; the first valid one wins:
+**Python location (optional)** — the launcher scripts (`run.sh` / `run.bat`,
+`updater.sh` / `updater.bat` — Linux, macOS and Windows all use the same
+rules) resolve the interpreter in this order; the first valid one wins:
 
 1. **`python.env`** in the project root (optional file) — `PYTHON=<path>`
 2. the **`2PY2` environment variable** — a "second python" for users with a
@@ -226,7 +229,8 @@ MYGPT_CORTEX_LEARN=1                     # 0 to not internalise answers
 
 ```
 app.py                  Flask server + JSON API
-python.env              Python interpreter location for the launcher scripts
+python.env              optional Python location for the launcher scripts
+run.sh / run.bat        start the WebUI (Linux/macOS and Windows)
 updater.sh / .bat       command-line updater (check → confirm → install)
 mygpt/
   brain.py              orchestrator: reply / feedback / teach / train loop
