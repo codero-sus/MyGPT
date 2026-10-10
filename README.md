@@ -40,9 +40,17 @@ delete that folder to give MyGPT amnesia and start over.
 
 MyGPT ships with a **manual, branch-pinned updater** (modeled on the one in
 [Cortex LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster)). Nothing
-runs by itself:
+runs by itself — use either the WebUI or the command-line scripts:
 
-1. **Check** — *Growth → Software updates → 🔎 Check for updates* reads the head
+```bash
+./updater.sh              # Linux / macOS — check, then ask before installing
+./updater.sh --check      # only check, never install
+./updater.sh --yes        # install without asking
+updater.bat               # Windows — same options
+```
+
+1. **Check** — *Growth → Software updates → 🔎 Check for updates* (or
+   `./updater.sh --check`) reads the head
    commit of the pinned branch of `codero-sus/MyGPT` (the branch MyGPT ships on;
    override with `MYGPT_UPDATE_REF`) and the version declared there via the
    GitHub API.
@@ -195,6 +203,7 @@ MYGPT_CORTEX_LEARN=1                     # 0 to not internalise answers
 
 ```
 app.py                  Flask server + JSON API
+updater.sh / .bat       command-line updater (check → confirm → install)
 mygpt/
   brain.py              orchestrator: reply / feedback / teach / train loop
   memory.py             long-term Q→A memory, TF-IDF cosine retrieval
