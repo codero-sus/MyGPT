@@ -8,6 +8,11 @@ and you can literally watch its loss curve drop in the built-in Growth dashboard
 
 No GPUs, no API keys, no cloud — the whole brain runs in NumPy.
 
+> **License — semi-closed source.** MyGPT is free to download and run
+> *unmodified* for personal, non-commercial use. Redistribution, republishing,
+> sale, sublicensing, modification, and commercial use are **not** permitted
+> without written permission. See [LICENSE](LICENSE).
+
 The self-learning machinery is ported from
 [**CORTEX**](https://github.com/codero-sus/agi) (`codero-sus/agi`): fact extraction,
 self-critique, constitution growth, skill synthesis, self-eval, background training,
@@ -30,6 +35,28 @@ python3 -m venv .venv
 
 Set `PORT` to change the port (default `8000`). All learned state lives in `data/` —
 delete that folder to give MyGPT amnesia and start over.
+
+## Software updates (branch-pinned, confirmed)
+
+MyGPT ships with a **manual, branch-pinned updater** (modeled on the one in
+[Cortex LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster)). Nothing
+runs by itself:
+
+1. **Check** — *Growth → Software updates → 🔎 Check for updates* reads the head
+   commit of the pinned branch of `codero-sus/MyGPT` (the branch MyGPT ships on;
+   override with `MYGPT_UPDATE_REF`) and the version declared there via the
+   GitHub API.
+2. **Install** — only after you press *⬇️ Install update* and confirm the exact
+   commit shown by the check. MyGPT downloads the immutable archive
+   `github.com/codero-sus/MyGPT/archive/<sha>.zip`, verifies it looks like MyGPT,
+   and syncs it over the app directory.
+3. **Preserved** — your learned state is never touched: `data/` (memory, weights,
+   facts, episodes, Cortex settings), `.git/`, `.venv/`, dotfiles, and locally
+   auto-written `skills/handle_*.py` files all survive. Restart the server to
+   finish the update.
+
+If the branch moved between your check and install, the install refuses and asks
+for a fresh confirmation — you always install exactly the commit you reviewed.
 
 ## The self-learning loop (from CORTEX)
 
@@ -154,7 +181,8 @@ MYGPT_CORTEX_LEARN=1                     # 0 to not internalise answers
 * **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns,
   collapsible chain-of-thought traces
 * **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
-* **Growth tab** — loss chart, vitals, Train now, Dream, activity log
+* **Growth tab** — loss chart, vitals, Train now, Dream, activity log, and a
+  Software-updates card (manual check + confirmed branch-pinned install)
 * **Mind tab** — the CORTEX loop: trainer status, self-eval %, constitution,
   semantic facts (with forget buttons), lessons, skills, goals, chat import,
   and a **Cortex LLMHoster** card to connect/test a local model back end
@@ -181,6 +209,7 @@ mygpt/
   importers.py          WhatsApp/ChatGPT/Claude/Telegram/JSONL parsers  (CORTEX)
   codegen.py            code requests → fenced code blocks in chat (no exec)
   cortex.py             Cortex LLMHoster client — optional local LLM back end
+  updater.py            manual, branch-pinned update check + confirmed install
   tokenizer.py          shared tokenizer
 skills/                 procedural memory — starter + auto-written skills
 seed_corpus.json        starter knowledge + LM pretraining text
@@ -201,7 +230,9 @@ templates/ static/      the WebUI
 | GET    | `/api/dream`    | —                                       |
 | GET    | `/api/cortex`   | — (live Cortex LLMHoster status probe) |
 | POST   | `/api/cortex`   | `{"enabled", "base_url", "api_base", "model", "api_key", "learn"}` |
-| GET    | `/api/stats`    | — (includes `mind`, `goals`, `cortex`, github) |
+| GET    | `/api/update/check` | — (branch-pinned update check via GitHub) |
+| POST   | `/api/update/install` | `{"commit_sha"}` confirmed from a fresh check |
+| GET    | `/api/stats`    | — (includes `version`, `mind`, `goals`, `cortex`, github) |
 | GET    | `/api/memory`   | —                                       |
 
 ## Honest scope
@@ -212,3 +243,18 @@ feedback → train → measure improvement — not a foundation model. Its "GPT"
 which is exactly what the dashboard shows. Self-learning mechanics (facts,
 critique, constitution, skills, self-eval, background training, dreaming) are
 adapted from the CORTEX project (`codero-sus/agi`).
+
+## License and permitted use
+
+MyGPT is **semi-closed source** under the *MyGPT Personal-Use License*
+(see [LICENSE](LICENSE)):
+
+* ✅ Anyone may **download, install, and run an unmodified copy**, free of
+  charge, for **personal, non-commercial** use.
+* ❌ **Modification, redistribution, republishing, sale, sublicensing, and any
+  commercial use** are **not permitted** without separate written permission.
+* The built-in updater installs only official, unmodified archives published by
+  the author; using it means accepting the then-current license.
+* Third-party dependencies (Flask, NumPy) keep their own licenses.
+
+Permission requests: contact the author via https://github.com/codero-sus.

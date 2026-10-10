@@ -90,6 +90,21 @@
             <h2>Recent activity</h2>
             <ul class="events" id="events"></ul>
           </div>
+          <div class="card">
+            <h2>Software updates <span class="pill" id="up-version">v–</span></h2>
+            <p class="hint">
+              MyGPT updates itself from the official
+              <a href="https://github.com/codero-sus/MyGPT" target="_blank" rel="noopener">codero-sus/MyGPT</a>
+              branch. Checks are manual; installing needs you to confirm the exact
+              commit. Your learned memory, weights and settings in <code>data/</code>
+              are never touched. Restart the server to finish an install.
+            </p>
+            <div class="row actions">
+              <button class="primary" id="up-check">🔎 Check for updates</button>
+              <button class="ghost" id="up-install" disabled>⬇️ Install update</button>
+            </div>
+            <div class="up-status" id="up-status"></div>
+          </div>
         </div>
 
         <!-- Mind tab (CORTEX self-learning loop) -->

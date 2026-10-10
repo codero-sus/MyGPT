@@ -327,3 +327,8 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
 .cx-models li { font-size: .78rem; background: var(--panel); border: 1px solid var(--border);
   border-radius: 8px; padding: 6px 10px; color: var(--text); }
 .cx-models li.empty { color: var(--muted); border-style: dashed; }
+
+/* ---- software updates card ---- */
+.up-status { margin-top: 10px; font-size: .8rem; color: var(--muted); line-height: 1.45; }
+.up-status.good { color: #2fbf71; }
+.up-status.warn { color: #e0a13f; }

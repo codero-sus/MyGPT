@@ -341,6 +341,7 @@ async function refreshStats() {
   $("st-corr").textContent = data.counters.corrections;
   $("st-vocab").textContent = data.vocab_size;
   $("st-rounds").textContent = data.counters.train_rounds;
+  if (data.version) $("up-version").textContent = "v" + data.version;
 
   drawChart(data.loss_history);
 
@@ -637,6 +638,87 @@ $("cx-save").addEventListener("click", async () => {
   else toast("Cortex backend disabled");
   refreshMind();
 });
+
+/* ---------------- software updates ---------------- */
+
+let pendingUpdate = null;   // UpdateInfo from the last successful check
+
+function setUpStatus(text, kind) {
+  const el = $("up-status");
+  el.textContent = text;
+  el.className = "up-status " + (kind || "");
+}
+
+async function checkUpdate() {
+  const btn = $("up-check");
+  btn.disabled = true;
+  $("up-install").disabled = true;
+  pendingUpdate = null;
+  setUpStatus("Checking the codero-sus/MyGPT branch on GitHub…");
+  try {
+    const res = await fetch("/api/update/check");
+    const d = await res.json();
+    if (!d.ok) {
+      setUpStatus("⚠️ " + (d.error || "update check failed"), "warn");
+      return;
+    }
+    pendingUpdate = d;
+    const short = d.commit_sha.slice(0, 7);
+    if (d.update_available) {
+      setUpStatus(
+        `Update available: v${d.current_version} → v${d.latest_version} ` +
+        `(branch ${d.source_ref}, commit ${short}). Confirm to install.`, "good");
+      $("up-install").disabled = false;
+    } else {
+      setUpStatus(
+        `You're on the latest branch version (v${d.latest_version}, ` +
+        `commit ${short}). No update needed.`, "good");
+    }
+  } catch (err) {
+    setUpStatus("⚠️ " + err, "warn");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function installUpdate() {
+  if (!pendingUpdate) return;
+  const short = pendingUpdate.commit_sha.slice(0, 7);
+  const ok = confirm(
+    `Install MyGPT update from commit ${short} ` +
+    `(v${pendingUpdate.latest_version})?\n\n` +
+    `Your learned data/ is preserved. You must restart the server afterwards.`);
+  if (!ok) return;
+  const btn = $("up-install");
+  btn.disabled = true;
+  $("up-check").disabled = true;
+  setUpStatus("Downloading and installing the pinned update…");
+  try {
+    const res = await fetch("/api/update/install", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commit_sha: pendingUpdate.commit_sha }),
+    });
+    const d = await res.json();
+    if (!d.ok) {
+      setUpStatus("⚠️ " + (d.error || "install failed"), "warn");
+      return;
+    }
+    setUpStatus(
+      `✅ Installed v${d.installed_version} (commit ${d.commit_sha.slice(0, 7)}). ` +
+      `Preserved: ${d.preserved.join(", ")}. ` +
+      `Restart the server to load the new version.`, "good");
+    toast("Update installed — restart MyGPT to finish.");
+  } catch (err) {
+    setUpStatus("⚠️ " + err, "warn");
+  } finally {
+    $("up-check").disabled = false;
+    pendingUpdate = null;
+  }
+}
+
+$("up-check").addEventListener("click", checkUpdate);
+$("up-install").addEventListener("click", installUpdate);
 
 $("import-btn").addEventListener("click", async () => {
   const fileInput = $("import-file");
