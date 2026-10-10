@@ -284,3 +284,74 @@ def last_update(data_dir: str) -> dict | None:
             return json.load(f)
     except (OSError, ValueError):
         return None
+
+
+# ----------------------------------------------------------------------- CLI
+def _app_dir() -> str:
+    """The MyGPT root: the folder that contains the ``mygpt`` package."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Command-line updater, used by ``updater.sh`` / ``updater.bat``.
+
+    Usage:
+        python -m mygpt.updater             check, then confirm to install
+        python -m mygpt.updater --check     only check, never install
+        python -m mygpt.updater --yes       install without asking
+    """
+    import argparse
+    from . import __version__
+
+    parser = argparse.ArgumentParser(
+        prog="mygpt-updater",
+        description="Manual, branch-pinned MyGPT update checker/installer.")
+    parser.add_argument("--check", action="store_true",
+                        help="only check for updates; never install")
+    parser.add_argument("--yes", action="store_true",
+                        help="install without asking (still pinned to the "
+                             "checked commit)")
+    args = parser.parse_args(argv)
+
+    print(f"MyGPT updater — current version {__version__}")
+    print(f"Update source: github.com/{REPOSITORY} (branch {UPDATE_REF})")
+    try:
+        info = check_for_updates(__version__)
+    except UpdateError as exc:
+        print(f"Update check failed: {exc}")
+        return 1
+    print(f"Branch head commit : {info.commit_sha}")
+    print(f"Latest version     : {info.latest_version}")
+    if not info.update_available:
+        print(f"MyGPT {__version__} is up to date.")
+        return 0
+
+    print(f"\nUpdate available: {info.current_version} -> {info.latest_version}")
+    if args.check:
+        print("Check-only mode: nothing was installed.")
+        return 0
+    if not args.yes:
+        try:
+            answer = input(f"Install commit {info.commit_sha[:12]} now? [y/N] ")
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() not in ("y", "yes"):
+            print("Update cancelled. Your installation was not modified.")
+            return 0
+
+    print("Downloading and installing the pinned update "
+          "(data/, .git, .venv and learned skills are preserved)…")
+    try:
+        summary = install_from_commit(info.commit_sha, _app_dir(),
+                                      ref=info.source_ref)
+    except UpdateError as exc:
+        print(f"Update failed: {exc}")
+        return 1
+    print(f"Installed MyGPT {info.latest_version} (commit {info.commit_sha[:12]}).")
+    print("Preserved: " + ", ".join(summary["preserved"]))
+    print("Restart MyGPT (./run.sh or python app.py) to load the new version.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
