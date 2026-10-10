@@ -7,10 +7,12 @@ directory of source files rather than an installed package, so an update is a
 
 How it works
 ------------
-* **Check** — reads the head commit of the pinned branch
-  (``codero-sus/MyGPT``, branch ``main`` by default; override with the
-  ``MYGPT_UPDATE_REF`` environment variable) via the GitHub API, then reads
-  ``mygpt/__init__.py`` at that exact commit to learn the newest version.
+* **Check** — reads the head commit of the pinned branch of
+  ``codero-sus/MyGPT`` via the GitHub API. The branch is resolved as:
+  ``MYGPT_UPDATE_REF`` env var, else the git branch this copy is checked out
+  on (so a checkout always updates from its own branch), else the shipped
+  default ``arena/01a0f6e2-mygpt``. It then reads ``mygpt/__init__.py`` at
+  that exact commit to learn the newest version.
 * **Install** — only after the user confirms the commit ID shown by a check:
   downloads the immutable archive ``https://github.com/codero-sus/MyGPT/
   archive/<sha>.zip``, verifies it looks like MyGPT, and syncs it over the
@@ -43,9 +45,34 @@ import zipfile
 from dataclasses import dataclass
 
 REPOSITORY = "codero-sus/MyGPT"
-# Branch-pinned update source. Like Cortex LLMHoster, the updater tracks the
-# exact branch it ships on; override with MYGPT_UPDATE_REF.
-UPDATE_REF = os.environ.get("MYGPT_UPDATE_REF", "arena/01a0f6e2-mygpt")
+# Branch-pinned update source, like Cortex LLMHoster. Resolution order:
+#   1. MYGPT_UPDATE_REF environment variable (explicit override)
+#   2. the branch this copy is checked out on (a git checkout updates from
+#      its own branch)
+#   3. the shipped default below
+_FALLBACK_REF = "arena/01a0f6e2-mygpt"
+
+
+def _detect_branch() -> str | None:
+    """The current git branch of this checkout, if it is one."""
+    try:
+        import subprocess
+        out = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=5,
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if out.returncode == 0:
+            branch = out.stdout.strip()
+            if branch and branch != "HEAD":   # detached HEAD -> not a branch
+                return branch
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
+    return None
+
+
+UPDATE_REF = (os.environ.get("MYGPT_UPDATE_REF")
+              or _detect_branch()
+              or _FALLBACK_REF)
 GITHUB_API = f"https://api.github.com/repos/{REPOSITORY}"
 _GITHUB_HEADERS = {
     "accept": "application/vnd.github+json",

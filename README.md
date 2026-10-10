@@ -76,10 +76,11 @@ updater.bat               # Windows — same options
 ```
 
 1. **Check** — *Growth → Software updates → 🔎 Check for updates* (or
-   `./updater.sh --check`) reads the head
-   commit of the pinned branch of `codero-sus/MyGPT` (the branch MyGPT ships on;
-   override with `MYGPT_UPDATE_REF`) and the version declared there via the
-   GitHub API.
+   `./updater.sh --check`) reads the head commit of the pinned branch of
+   `codero-sus/MyGPT` and the version declared there via the GitHub API.
+   The branch is resolved as: `MYGPT_UPDATE_REF` env var → the git branch
+   this copy is checked out on (**so it always updates from *this* branch**)
+   → the shipped default `arena/01a0f6e2-mygpt`.
 2. **Install** — only after you press *⬇️ Install update* and confirm the exact
    commit shown by the check. MyGPT downloads the immutable archive
    `github.com/codero-sus/MyGPT/archive/<sha>.zip`, verifies it looks like MyGPT,
