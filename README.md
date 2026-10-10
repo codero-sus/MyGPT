@@ -36,17 +36,28 @@ python3 -m venv .venv
 Set `PORT` to change the port (default `8000`). All learned state lives in `data/` —
 delete that folder to give MyGPT amnesia and start over.
 
-**Python location** — the launcher scripts (`run.sh`, `updater.sh`,
-`updater.bat`) read the interpreter from **`python.env`** in the project root:
+**Python location (optional)** — the launcher scripts (`run.sh`, `updater.sh`,
+`updater.bat`) resolve the interpreter in this order; the first valid one wins:
+
+1. **`python.env`** in the project root (optional file) — `PYTHON=<path>`
+2. the **`2PY2` environment variable** — a "second python" for users with a
+   portable or embeddable Python (the name means a *second* python, not python2)
+3. the project `.venv`, then `python3` / `python` on PATH
 
 ```
-PYTHON=.venv/bin/python        # Linux/macOS venv (default)
+# python.env examples
+PYTHON=.venv/bin/python          # Linux/macOS venv (default)
 PYTHON=.venv\Scripts\python.exe  # Windows venv
-PYTHON=/usr/bin/python3        # or any absolute path
+PYTHON=/usr/bin/python3          # or any absolute path
+
+# or, for portable/embeddable Python users:
+set 2PY2=D:\python-embed\python.exe    (Windows)
+export 2PY2=~/portable/python3.12      (note: set via env/printenv, the name
+                                        starts with a digit)
 ```
 
-If `python.env` is absent or its path doesn't exist, the scripts fall back to
-the project `.venv`, then `python3` / `python`.
+Delete `python.env` and leave `2PY2` unset and everything falls back to the
+project `.venv` automatically.
 
 ## Software updates (branch-pinned, confirmed)
 
