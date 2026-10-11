@@ -358,6 +358,28 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
 .mb-pill.mb-hosted { color: #7ee0a3; border-color: #2fbf71;
   background: rgba(47, 191, 113, .1); }
 .mb-pill:empty { display: none; }
+.mb-probe { margin-left: auto; font-size: .64rem; color: var(--muted);
+  letter-spacing: .3px; white-space: nowrap; opacity: .8; }
+.mb-probe.on { color: #7ee0a3; opacity: 1; }
+
+/* ---- "install a local LLM" hint banner ---- */
+.install-hint {
+  display: flex; align-items: flex-start; gap: 10px; margin: 10px 14px 0;
+  padding: 10px 14px; border-radius: 10px; font-size: .78rem; line-height: 1.5;
+  color: #e8d9b0; background: linear-gradient(135deg, rgba(224, 161, 63, .12),
+  rgba(224, 161, 63, .05)); border: 1px solid rgba(224, 161, 63, .45);
+}
+.install-hint.hidden { display: none; }
+.install-hint .ih-text { flex: 1; }
+.install-hint b { color: #f0c069; }
+.install-hint em { color: #cfd6e6; font-style: normal; font-size: .72rem; }
+.install-hint a { color: var(--accent-2); text-decoration: none; }
+.install-hint a:hover { text-decoration: underline; }
+.install-hint .ih-note { display: block; margin-top: 3px; font-size: .68rem;
+  color: var(--muted); }
+.install-hint button { background: transparent; border: none; color: var(--muted);
+  cursor: pointer; font-size: .85rem; padding: 0 2px; }
+.install-hint button:hover { color: var(--text); }
 
 /* ---- checkpoints card ---- */
 .ckpt-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex;

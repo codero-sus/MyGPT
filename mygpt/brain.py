@@ -20,6 +20,7 @@ import json
 import os
 import random
 import re
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -44,6 +45,7 @@ STRONG_MATCH = 0.52      # confident recall
 WEAK_MATCH = 0.30        # a guess worth offering
 AUTO_TRAIN_EVERY = 5     # curated-learning events between blocking train rounds
 AUTO_TRAIN_EPOCHS = 6
+PROBE_INTERVAL_S = 20.0     # background auto-probe of local LLM backends
 
 TEACH_REPLIES = [
     "I don't know that yet — but you can teach me! Add an answer in the Teach panel and I'll remember it forever.",
@@ -95,8 +97,17 @@ class Brain:
         self.chat_model = ""
         self._backends_path = os.path.join(data_dir, "backends.json")
 
+        # background auto-probe of the local LLM backends (Cortex & Ollama)
+        self._probe_state: dict = {"cortex": None, "ollama": None,
+                                   "last_check": 0}
+        self._install_nudges = 0
+        self._prober_stop = threading.Event()
+        self._prober = threading.Thread(target=self._auto_probe_loop,
+                                        daemon=True, name="backend-prober")
+
         self._seed_path = seed_path
         self._load()
+        self._prober.start()
 
     # ---------------------------------------------------------------- setup
     def _load(self) -> None:
@@ -172,7 +183,75 @@ class Brain:
                 "ollama": self.ollama.probe(),
             },
             "checkpoints": self.checkpoints.list(),
+            "auto_probe": {"interval_s": PROBE_INTERVAL_S,
+                           **self._probe_state},
+            "install_hint": self.install_hint(),
         }
+
+    # ----------------------------------------------------------- auto-probe
+    def _auto_probe_loop(self) -> None:
+        """Quietly watch for local LLM backends coming and going."""
+        # first probe shortly after boot, then on the steady interval
+        wait = 1.0
+        while not self._prober_stop.wait(wait):
+            try:
+                self._auto_probe_once()
+            except Exception:
+                pass
+            wait = PROBE_INTERVAL_S
+
+    def _auto_probe_once(self) -> None:
+        labels = (("cortex", self.cortex, "Cortex LLMHoster"),
+                  ("ollama", self.ollama, "Ollama"))
+        for key, client, label in labels:
+            # presence = server answers, regardless of the enable toggle
+            up = bool(client.health())
+            prev = self._probe_state.get(key)
+            if up and prev is None:
+                self._log(f"auto-probe: {label} detected at {client.base_url}")
+            elif up and prev is False:
+                self._log(f"auto-probe: {label} back online at {client.base_url}")
+            elif not up and prev is True:
+                self._log(f"auto-probe: {label} went offline")
+            self._probe_state[key] = up
+        self._probe_state["last_check"] = round(time.time())
+
+    def any_local_llm(self) -> bool:
+        """True when at least one local LLM host is actually present."""
+        return bool(self.cortex.health()) or bool(self.ollama.health())
+
+    def install_hint(self) -> dict | None:
+        """Install suggestions when neither Cortex nor Ollama is present."""
+        if self.any_local_llm():
+            return None
+        return {
+            "title": "No local LLM detected",
+            "message": "Install a local model host so MyGPT can route the "
+                       "open questions it can't answer to a real model. "
+                       "MyGPT keeps answering with its self-trained brain "
+                       "either way.",
+            "options": [
+                {"name": "Cortex LLMHoster", "author": "codero-sus",
+                 "repo": "https://github.com/codero-sus/Cortex_LLMHoster",
+                 "website": "https://the-codero.web.app/",
+                 "hint": "pip install cortex-llmhoster, then run "
+                         "`cortex-llmhoster`"},
+                {"name": "Ollama", "url": "https://ollama.com",
+                 "hint": "install Ollama, run `ollama serve`, then "
+                         "`ollama pull <model>`"},
+            ],
+        }
+
+    def _chat_install_nudge(self) -> str | None:
+        """Occasionally suggest installing a local LLM host in chat."""
+        if self._install_nudges >= 2 or self.any_local_llm():
+            return None
+        self._install_nudges += 1
+        return ("💡 Tip: I don't see a local LLM host yet. Install "
+                "Cortex LLMHoster (by codero-sus — "
+                "https://github.com/codero-sus/Cortex_LLMHoster) or Ollama "
+                "(https://ollama.com) and I can route open questions to a "
+                "real model. My own brain keeps answering either way.")
 
     def checkpoint(self, label: str = "", note: str = "") -> dict:
         """Snapshot the current trained weights into _model_trained/."""
@@ -216,6 +295,9 @@ class Brain:
         """Ask the selected local LLM back end(s). Returns (answer, engine,
         learned) or None. Deterministic routes always run first; this only
         fills the gaps the self-trained brain can't."""
+        # In "auto" mode Cortex LLMHoster is deliberately tried first —
+        # codero-sus' own hoster gets the quiet priority; Ollama is the
+        # fallback. The UI stays neutral about this ordering.
         engines = []
         if self.chat_backend in ("auto", "cortex"):
             engines.append(("cortex", self.cortex))
@@ -405,6 +487,12 @@ class Brain:
         then run the CORTEX light-pass self-improvement."""
         self.episodes.remember("mygpt", record["reply"])
         record["chain"] = self._build_chain(record).as_dict()
+        # curious replies may have been rewritten by the System-2 chain, so the
+        # "install a local LLM" suggestion is attached here, after the chain
+        if record["mode"] == "curious":
+            nudge = self._chat_install_nudge()
+            if nudge:
+                record["reply"] += "\n\n" + nudge
 
         self.pending[record["id"]] = record
         if len(self.pending) > 200:
@@ -618,7 +706,7 @@ class Brain:
             "website": codegen.WEBSITE_URL,
             "cortex": self.cortex.probe(),
             "ollama": self.ollama.probe(),
-            "backends": self.backends(),
+            "backends": self.backends(),   # includes auto_probe + install_hint
             "checkpoints": self.checkpoints.list(),
             "mind": {
                 "facts": [{"subject": f.subject, "predicate": f.predicate,
