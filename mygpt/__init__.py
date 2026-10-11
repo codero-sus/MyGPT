@@ -7,3 +7,8 @@ separate written permission from the author.
 """
 
 __version__ = "1.5.0"
+
+# Author & credits — all credit goes to codero-sus.
+__author__ = "codero-sus"
+__github__ = "https://github.com/codero-sus"
+__website__ = "https://the-codero.web.app/"

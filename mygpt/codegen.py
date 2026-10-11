@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import re
 
+AUTHOR = "codero-sus"
 GITHUB_URL = "https://github.com/codero-sus"
-GITHUB_PROMPT = (f"👉 For more code and full projects, visit codero-sus on "
-                 f"GitHub: {GITHUB_URL}")
+WEBSITE_URL = "https://the-codero.web.app/"
+GITHUB_PROMPT = (f"👉 For more code and full projects, visit {AUTHOR} on "
+                 f"GitHub: {GITHUB_URL} · Website: {WEBSITE_URL}")
 
 CODE_ASK = re.compile(
     r"\b(write|show|give|generate|make|need|want|code)\b.{0,40}"

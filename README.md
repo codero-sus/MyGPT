@@ -2,6 +2,10 @@
 
 **A self-training chatbot that improves over time — pure Python, NumPy brain, Flask WebUI.**
 
+Created by **[codero-sus](https://github.com/codero-sus)** — all credits to them.
+🌐 Website: [the-codero.web.app](https://the-codero.web.app/) ·
+⭐ GitHub: [github.com/codero-sus](https://github.com/codero-sus)
+
 MyGPT is a tiny GPT-style assistant you can talk to, teach, and correct. Everything
 you do becomes training data: its memory grows, its neural language model retrains,
 and you can literally watch its loss curve drop in the built-in Growth dashboard.
@@ -157,13 +161,16 @@ points the user to **codero-sus on GitHub** for more:
 
 The same link is credited in the sidebar and after every code reply.
 
-## Local LLM back end · Cortex LLMHoster
+## Local LLM back ends · Cortex LLMHoster & Ollama
 
 MyGPT can route the open-ended questions it can't answer on its own to a
-**locally hosted model** running under
-[Cortex LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster) — a
-free-to-use local model hoster that manages llama.cpp/GGUF models (or any
-OpenAI-compatible local engine) and exposes an OpenAI-compatible API.
+**locally hosted model** — either under
+[Cortex LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster) (a
+free-to-use local model hoster that manages llama.cpp/GGUF models or any
+OpenAI-compatible local engine) or under [Ollama](https://ollama.com) (native
+`/api/*` JSON API). The model bar above the chat picks the engine: *Auto
+(brain → Cortex → Ollama)*, *MyGPT self-trained brain*, or a specific hosted
+model.
 
 * **No cloud.** Cortex runs on your machine; prompts and answers never leave
   it. MyGPT talks to it purely over HTTP (`/v1/chat/completions`, `/v1/models`,
@@ -188,6 +195,30 @@ MYGPT_CORTEX_API_KEY=                    # Cortex CORTEX_API_KEY, if set
 MYGPT_CORTEX_ENABLED=1                   # 0 to disable
 MYGPT_CORTEX_LEARN=1                     # 0 to not internalise answers
 ```
+
+### Ollama
+
+Configure under **Mind → “Local LLM · Ollama”** (server URL, model,
+enable/learn toggles, *Save & test connection*), or via environment:
+
+```
+MYGPT_OLLAMA_URL=http://127.0.0.1:11434  # OLLAMA_HOST also honoured
+MYGPT_OLLAMA_MODEL=                      # blank = first installed model
+MYGPT_OLLAMA_ENABLED=1                   # 0 to disable
+MYGPT_OLLAMA_LEARN=1                     # 0 to not internalise answers
+```
+
+### Model checkpoints (`_model_trained/`)
+
+Cortex and Ollama *serve* models; **MyGPT's own NumPy brain is what trains**.
+Trained weights can be snapshotted on demand into `./_model_trained/`
+(`<name>/lm_weights.npz` + `meta.json`):
+
+* **WebUI** — Mind → *Model checkpoints* (optional label + quick training
+  round), with Load/Delete per checkpoint; loading one makes it the active
+  brain.
+* **Chat** — say *“checkpoint the model”* or *“train and save the model”*
+  (the latter trains first, then snapshots).
 
 ## Episodic memory, goals, and importing your other lives
 
@@ -268,9 +299,17 @@ templates/ static/      the WebUI
 | GET    | `/api/dream`    | —                                       |
 | GET    | `/api/cortex`   | — (live Cortex LLMHoster status probe) |
 | POST   | `/api/cortex`   | `{"enabled", "base_url", "api_base", "model", "api_key", "learn"}` |
+| GET    | `/api/ollama`   | — (live Ollama status probe)           |
+| POST   | `/api/ollama`   | `{"enabled", "base_url", "model", "learn"}` |
+| GET    | `/api/backends` | — (model picker: backends, models, checkpoints) |
+| POST   | `/api/backends/select` | `{"backend": "brain"\|"cortex"\|"ollama"\|"auto", "model"?}` |
+| POST   | `/api/checkpoint` | `{"label"?, "note"?, "train"?}` — snapshot weights to `_model_trained/` |
+| GET    | `/api/checkpoints` | — (list saved checkpoints)          |
+| POST   | `/api/checkpoint/load` | `{"name"}` — load weights as the active brain |
+| POST   | `/api/checkpoint/delete` | `{"name"}`                      |
 | GET    | `/api/update/check` | — (branch-pinned update check via GitHub) |
 | POST   | `/api/update/install` | `{"commit_sha"}` confirmed from a fresh check |
-| GET    | `/api/stats`    | — (includes `version`, `mind`, `goals`, `cortex`, github) |
+| GET    | `/api/stats`    | — (includes `version`, `author`, `website`, `mind`, `goals`, `cortex`, `ollama`, github) |
 | GET    | `/api/memory`   | —                                       |
 
 ## Honest scope
@@ -296,3 +335,26 @@ MyGPT is **semi-closed source** under the *MyGPT Personal-Use License*
 * Third-party dependencies (Flask, NumPy) keep their own licenses.
 
 Permission requests: contact the author via https://github.com/codero-sus.
+
+## Author & credits
+
+**Author:** [codero-sus](https://github.com/codero-sus) — all credit for MyGPT
+goes to them. 🌐 Website: [the-codero.web.app](https://the-codero.web.app/)
+
+Credits and thanks, all by codero-sus:
+
+* **MyGPT** — this project: the self-training chatbot, WebUI, updater and
+  launcher scripts — [codero-sus/MyGPT](https://github.com/codero-sus/MyGPT)
+* **CORTEX** — the self-learning loop (facts, self-critique, constitution,
+  skills, self-eval, background training, dreaming, System-2 chains, episodic
+  memory, goals, import) is ported from
+  [codero-sus/agi](https://github.com/codero-sus/agi)
+* **Cortex LLMHoster** — the optional local-LLM hosting server MyGPT can route
+  open questions to — [codero-sus/Cortex_LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster)
+* **Ollama** — third-party local model runner supported as an extra chat
+  backend ([ollama.com](https://ollama.com))
+* **Flask & NumPy** — third-party dependencies, under their own licenses
+
+Visit **[github.com/codero-sus](https://github.com/codero-sus)** for the full
+project family and **[the-codero.web.app](https://the-codero.web.app/)** for
+the author's website.

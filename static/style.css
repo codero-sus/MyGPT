@@ -271,7 +271,8 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
   overflow-x: auto; color: #a8e6cf; margin: 4px 0; white-space: pre-wrap;
   word-break: break-word; font-family: "SF Mono", Menlo, Consolas, monospace; }
 
-/* github credit */
+/* author & credits */
+.credit-block { display: flex; flex-direction: column; gap: 8px; flex: none; }
 .credit {
   display: block; text-align: center; font-size: .72rem; color: var(--muted);
   background: var(--bg-soft); border: 1px solid var(--border);
@@ -280,6 +281,8 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
 }
 .credit b { color: var(--accent); }
 .credit:hover { border-color: var(--accent); color: var(--text); }
+.tagline a { color: var(--accent); text-decoration: none; }
+.tagline a:hover { text-decoration: underline; }
 
 /* import */
 .import-row { align-items: center; flex-wrap: wrap; }

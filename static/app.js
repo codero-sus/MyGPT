@@ -998,8 +998,9 @@ addMessage("bot",
   "answers with 👍/👎, teach me facts in the Learn tab — or ask for code " +
   "(e.g. “write code for the first 15 primes”) and I'll answer with a code " +
   "block right here in chat.\n\n" +
-  "⭐ Built on the self-learning ideas from codero-sus/agi — " +
-  "visit github.com/codero-sus");
+  "⭐ Created by codero-sus, built on the self-learning ideas from " +
+  "codero-sus/agi — GitHub: github.com/codero-sus · " +
+  "Website: the-codero.web.app");
 refreshSidebars();
 refreshBackends();
 $("input").focus();
