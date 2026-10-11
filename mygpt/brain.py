@@ -614,6 +614,8 @@ class Brain:
             "imports": self.counters.get("imports", 0),
             "goals": self.goals.snapshot(),
             "github": codegen.GITHUB_URL,
+            "author": codegen.AUTHOR,
+            "website": codegen.WEBSITE_URL,
             "cortex": self.cortex.probe(),
             "ollama": self.ollama.probe(),
             "backends": self.backends(),

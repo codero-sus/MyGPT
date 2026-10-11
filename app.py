@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """MyGPT — self-training chatbot with a Flask WebUI.
 
+Author: codero-sus — https://github.com/codero-sus · https://the-codero.web.app/
+
 Run:  python app.py   (then open http://localhost:8000)
 
 License: MyGPT Personal-Use License (see LICENSE). Free to download and run
