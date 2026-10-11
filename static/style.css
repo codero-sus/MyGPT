@@ -343,12 +343,18 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
   backdrop-filter: blur(6px);
 }
 .mb-label { font-size: .72rem; color: var(--muted); letter-spacing: .3px; white-space: nowrap; }
-.modelbar select {
+
+/* model picker — lives in the composer, right next to the send button */
+.composer select {
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
-  border-radius: 8px; padding: 6px 10px; font-size: .8rem; font-family: inherit;
-  outline: none; cursor: pointer; max-width: 340px; transition: border-color .15s;
+  border-radius: 10px; padding: 0 8px; font-size: .78rem; font-family: inherit;
+  outline: none; cursor: pointer; height: 46px; max-width: 200px; min-width: 0;
+  transition: border-color .15s; text-overflow: ellipsis;
 }
-.modelbar select:hover, .modelbar select:focus { border-color: var(--accent); }
+.composer select:hover, .composer select:focus { border-color: var(--accent); }
+@media (max-width: 640px) {
+  .composer select { max-width: 120px; font-size: .7rem; }
+}
 .mb-pill { font-size: .64rem; padding: 3px 10px; border-radius: 999px;
   letter-spacing: .4px; white-space: nowrap; border: 1px solid var(--border); }
 .mb-pill.mb-brain { color: var(--accent-2); border-color: var(--accent-2);
@@ -409,5 +415,5 @@ button.ghost-mini:hover { border-color: #ff5d7a; color: #ff5d7a; }
 .composer button { box-shadow: 0 3px 12px rgba(106, 77, 240, .35); }
 button.primary { box-shadow: 0 3px 12px rgba(106, 77, 240, .25); }
 .composer input:focus, .cx-row input:focus, .card input:focus,
-.card textarea:focus, .card select:focus, .modelbar select:focus {
+.card textarea:focus, .card select:focus, .composer select:focus {
   box-shadow: 0 0 0 3px rgba(124, 92, 255, .14); }

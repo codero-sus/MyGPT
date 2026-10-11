@@ -26,10 +26,6 @@
       <section class="chat-panel">
         <div class="modelbar">
           <span class="mb-label">🤖 answering with</span>
-          <select id="backend-select" title="Choose which model answers open questions">
-            <option value="auto">⚡ Auto (brain → Cortex → Ollama)</option>
-            <option value="brain">🧠 MyGPT self-trained brain</option>
-          </select>
           <span class="mb-pill" id="backend-pill"></span>
           <span class="mb-probe" id="probe-pill" title="MyGPT auto-probes local LLM hosts every 20 s"></span>
         </div>
@@ -41,6 +37,10 @@
         <form class="composer" id="composer">
           <input id="input" type="text" autocomplete="off"
                  placeholder="Message MyGPT…  (try: who are you? · 23*47 · why does rain happen?)" />
+          <select id="backend-select" title="Choose which model answers open questions">
+            <option value="auto">⚡ Auto</option>
+            <option value="brain">🧠 Brain</option>
+          </select>
           <button type="submit" id="send" title="Send">➤</button>
         </form>
       </section>
