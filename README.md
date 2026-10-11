@@ -2,7 +2,7 @@
 
 **A self-training chatbot that improves over time — pure Python, NumPy brain, Flask WebUI.**
 
-Created by **[codero-sus](https://github.com/codero-sus)** — all credits to them.
+Made with ❤️ by **[codero-sus](https://github.com/codero-sus)** — all credits to them.
 🌐 Website: [the-codero.web.app](https://the-codero.web.app/) ·
 ⭐ GitHub: [github.com/codero-sus](https://github.com/codero-sus)
 
@@ -338,8 +338,8 @@ Permission requests: contact the author via https://github.com/codero-sus.
 
 ## Author & credits
 
-**Author:** [codero-sus](https://github.com/codero-sus) — all credit for MyGPT
-goes to them. 🌐 Website: [the-codero.web.app](https://the-codero.web.app/)
+**Author:** MyGPT is made with ❤️ by [codero-sus](https://github.com/codero-sus) —
+all credit goes to them. 🌐 Website: [the-codero.web.app](https://the-codero.web.app/)
 
 Credits and thanks, all by codero-sus:
 
