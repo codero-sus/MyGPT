@@ -172,6 +172,13 @@ OpenAI-compatible local engine) or under [Ollama](https://ollama.com) (native
 (brain → Cortex → Ollama)*, *MyGPT self-trained brain*, or a specific hosted
 model.
 
+**Auto-probe.** A background thread probes both hosts every 20 seconds, logs
+when one appears or disappears, and the WebUI follows — start a host and it
+shows up in the picker on its own. In *Auto* mode Cortex LLMHoster is tried
+before Ollama. If **neither** host is present, MyGPT shows an install hint
+(and occasionally mentions it in chat) pointing to Cortex LLMHoster by
+codero-sus or Ollama; its self-trained brain keeps answering regardless.
+
 * **No cloud.** Cortex runs on your machine; prompts and answers never leave
   it. MyGPT talks to it purely over HTTP (`/v1/chat/completions`, `/v1/models`,
   `/health`) as an ordinary client — Cortex itself is used unmodified, per its

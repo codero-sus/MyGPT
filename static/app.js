@@ -467,6 +467,59 @@ function renderCheckpoints(list) {
   }
 }
 
+function renderProbePill(b) {
+  const pill = $("probe-pill");
+  if (!pill) return;
+  const ap = b.auto_probe || {};
+  const cxUp = !!(b.options.cortex || {}).reachable;
+  const olUp = !!(b.options.ollama || {}).reachable;
+  const found = [];
+  if (cxUp) found.push("Cortex");
+  if (olUp) found.push("Ollama");
+  if (found.length) {
+    pill.textContent = `🔎 ${found.join(" + ")} detected`;
+    pill.className = "mb-probe on";
+  } else {
+    pill.textContent = "🔎 auto-probing for local LLMs…";
+    pill.className = "mb-probe";
+  }
+  if (ap.last_check) {
+    pill.title = `Auto-probe every ${ap.interval_s || 20}s · last check ` +
+      new Date(ap.last_check * 1000).toLocaleTimeString();
+  }
+}
+
+function renderInstallHint(b) {
+  const box = $("install-hint");
+  const text = $("install-hint-text");
+  const hint = b.install_hint;
+  if (!hint || sessionStorage.getItem("installHintDismissed")) {
+    box.classList.add("hidden");
+    return;
+  }
+  text.innerHTML = "";
+  const lead = document.createElement("span");
+  lead.innerHTML = `<b>${hint.title}.</b> ${hint.message} Try: `;
+  text.appendChild(lead);
+  (hint.options || []).forEach((opt, i) => {
+    const a = document.createElement("a");
+    a.href = opt.repo || opt.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.innerHTML = `<b>${opt.name}</b>` +
+      (opt.author ? ` <em>by ${opt.author}</em>` : "");
+    a.title = opt.hint || "";
+    text.appendChild(a);
+    if (i < hint.options.length - 1) text.append(document.createTextNode(" · "));
+  });
+  const note = document.createElement("span");
+  note.className = "ih-note";
+  note.textContent = " MyGPT auto-probes every 20 s and picks them up " +
+    "automatically once one is running.";
+  text.appendChild(note);
+  box.classList.remove("hidden");
+}
+
 let backendsInFlight = null;
 function refreshBackends() {
   if (!backendsInFlight) {
@@ -475,12 +528,16 @@ function refreshBackends() {
         if (b.ok) {
           renderBackendPicker(b);
           renderCheckpoints(b.checkpoints || []);
+          renderProbePill(b);
+          renderInstallHint(b);
         }
       })
       .finally(() => { backendsInFlight = null; });
   }
   return backendsInFlight;
 }
+// follow the server-side auto-probe so the UI notices new local LLMs on its own
+setInterval(() => { refreshBackends(); }, 15000);
 
 async function refreshMemory() {
   const data = await api("/api/memory");
@@ -830,6 +887,11 @@ $("ol-save").addEventListener("click", async () => {
   else if (c.enabled) toast("Settings saved — Ollama not reachable yet");
   else toast("Ollama backend disabled");
   refreshBackends();
+});
+
+$("install-hint-x").addEventListener("click", () => {
+  sessionStorage.setItem("installHintDismissed", "1");
+  $("install-hint").classList.add("hidden");
 });
 
 $("backend-select").addEventListener("change", async () => {
