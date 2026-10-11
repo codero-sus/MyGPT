@@ -101,6 +101,10 @@ body {
 .fb button.active-up { background: #12351f; border-color: #37e08b; color: #37e08b; }
 .fb button.active-down { background: #3a1520; border-color: #ff5d7a; color: #ff5d7a; }
 .fb-note { font-size: .75rem; color: var(--accent-2); }
+.copy-btn { background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 8px; padding: 2px 8px; cursor: pointer;
+  font-size: .8rem; transition: all .15s; }
+.copy-btn:hover { color: var(--text); border-color: var(--accent-2); }
 
 .teach-chip {
   align-self: flex-start; background: rgba(124,92,255,.12);

@@ -12,11 +12,12 @@ sublicensing, modification and commercial use require written permission.
 
 from __future__ import annotations
 
+import json
 import os
 import threading
 import time
 
-from flask import Flask, jsonify, render_template, request
+from flask import (Flask, jsonify, render_template, request, send_file)
 
 from mygpt import __version__, updater
 from mygpt.brain import Brain
@@ -109,6 +110,18 @@ def export_chat():
     return Response(text, mimetype="text/markdown", headers={
         "Content-Disposition":
             f'attachment; filename="mygpt-transcript-{stamp}.md"'})
+
+
+@app.get("/api/history")
+def history():
+    """Recent conversation turns so the WebUI can restore the chat view
+    after a page reload."""
+    limit = max(1, min(100, int(request.args.get("limit", 30))))
+    with _lock:
+        items = brain.episodes.episodes[-limit:]
+    return jsonify({"ok": True, "episodes": [
+        {"id": e["id"], "ts": e["ts"], "role": e["role"],
+         "content": e["content"]} for e in items]})
 
 
 @app.post("/api/forget")
@@ -242,6 +255,32 @@ def checkpoint_delete():
     with _lock:
         result = brain.delete_checkpoint(name)
     return jsonify(result), (200 if result.get("ok") else 404)
+
+
+@app.get("/api/checkpoint/download")
+def checkpoint_download():
+    """Download a checkpoint folder (weights + metadata) as a zip."""
+    import io
+    import zipfile
+    name = (request.args.get("name") or "").strip()
+    with _lock:
+        meta = brain.checkpoints.get(name)
+        wpath = brain.checkpoints.weights_path(name)
+        if not meta or not wpath:
+            return jsonify({"ok": False,
+                            "error": f"checkpoint '{name}' not found"}), 404
+        meta_bytes = json.dumps(meta, ensure_ascii=False,
+                                indent=2).encode("utf-8")
+        with open(wpath, "rb") as f:
+            weights = f.read()
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr(f"{name}/lm_weights.npz", weights)
+        z.writestr(f"{name}/meta.json", meta_bytes)
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip",
+                     as_attachment=True,
+                     download_name=f"{name}.zip")
 
 
 @app.get("/api/update/check")

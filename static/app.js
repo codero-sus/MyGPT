@@ -60,8 +60,11 @@ function toast(text) {
   t._timer = setTimeout(() => t.classList.remove("show"), 2600);
 }
 
-function scrollDown() {
-  chatEl.scrollTop = chatEl.scrollHeight;
+function scrollDown(force = false) {
+  // don't yank the view away when the user is reading back up the log
+  const nearBottom =
+    chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 140;
+  if (force || nearBottom) chatEl.scrollTop = chatEl.scrollHeight;
 }
 
 function fmtTime(ts) {
@@ -71,7 +74,7 @@ function fmtTime(ts) {
 
 /* ---------------- chat rendering ---------------- */
 
-function addMessage(role, text) {
+function addMessage(role, text, opts = {}) {
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
   const avatar = document.createElement("div");
@@ -86,7 +89,7 @@ function addMessage(role, text) {
   wrap.appendChild(bubble);
   msg.append(avatar, wrap);
   chatEl.appendChild(msg);
-  scrollDown();
+  scrollDown(!!opts.force);
   return wrap;
 }
 
@@ -178,6 +181,20 @@ function addBotReply(data, elapsedMs) {
     wrap.appendChild(chip);
   }
 
+  const copy = document.createElement("button");
+  copy.className = "copy-btn";
+  copy.textContent = "⧉";
+  copy.title = "Copy reply";
+  copy.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(data.reply);
+      toast("Reply copied to clipboard ⧉");
+    } catch (err) {
+      toast("⚠️ clipboard unavailable");
+    }
+  };
+  meta.appendChild(copy);
+
   if (data.id && data.mode !== "curious") {
     const fb = document.createElement("div");
     fb.className = "fb";
@@ -208,8 +225,8 @@ async function send() {
   input.value = "";
   $("send").disabled = true;
 
-  addMessage("user", text);
-  const typingWrap = addMessage("bot", "");
+  addMessage("user", text, { force: true });
+  const typingWrap = addMessage("bot", "", { force: true });
   typingWrap.querySelector(".bubble").innerHTML =
     '<span class="typing"><span></span><span></span><span></span></span>';
 
@@ -480,6 +497,14 @@ function renderCheckpoints(list) {
       toast(`Checkpoint ${c.name} is now the active brain 🧠`);
       refreshBackends();
     };
+    const dl = document.createElement("button");
+    dl.className = "mini ghost-mini";
+    dl.textContent = "⬇";
+    dl.title = "download checkpoint (weights + meta) as zip";
+    dl.onclick = () => {
+      window.location.href =
+        "/api/checkpoint/download?name=" + encodeURIComponent(c.name);
+    };
     const del = document.createElement("button");
     del.className = "mini ghost-mini";
     del.textContent = "✕";
@@ -491,7 +516,7 @@ function renderCheckpoints(list) {
       toast("Checkpoint deleted.");
       refreshBackends();
     };
-    btns.append(load, del);
+    btns.append(load, dl, del);
     li.append(info, btns);
     ul.appendChild(li);
   }
@@ -1137,7 +1162,7 @@ $("import-btn").addEventListener("click", async () => {
 
 /* ---------------- boot ---------------- */
 
-addMessage("bot",
+const GREETING =
   "Hi! I'm MyGPT — a tiny chatbot that trains itself on our conversation.\n" +
   "Ask me things (hard questions get a System-2 chain of thought 💭), rate my " +
   "answers with 👍/👎, teach me facts in the Learn tab — or ask for code " +
@@ -1145,10 +1170,9 @@ addMessage("bot",
   "block right here in chat.\n\n" +
   "Made with ❤️ by codero-sus, built on the self-learning ideas from " +
   "codero-sus/agi — GitHub: github.com/codero-sus · " +
-  "Website: the-codero.web.app");
+  "Website: the-codero.web.app";
 
-/* quick-start suggestion chips — removed as soon as the user types */
-(function addChips() {
+function addChips() {
   const chips = document.createElement("div");
   chips.className = "chips";
   ["who are you?", "23*47", "write code for the first 15 primes",
@@ -1165,8 +1189,33 @@ addMessage("bot",
   chatEl.appendChild(chips);
   const strip = () => { chips.remove(); $("input").removeEventListener("keydown", strip); };
   $("input").addEventListener("keydown", strip, { once: true });
-})();
+}
 
-refreshSidebars();
-refreshBackends();
-$("input").focus();
+/* Restore the recent conversation after a page reload; fresh sessions get
+   the greeting + suggestion chips instead. */
+async function restoreHistory() {
+  try {
+    const d = await api("/api/history?limit=30");
+    const eps = d.episodes || [];
+    if (!eps.length) return false;
+    for (const e of eps) {
+      const role = e.role === "user" ? "user" : "bot";
+      addMessage(role, e.content);
+    }
+    scrollDown(true);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+(async function boot() {
+  const hadHistory = await restoreHistory();
+  if (!hadHistory) {
+    addMessage("bot", GREETING);
+    addChips();
+  }
+  refreshSidebars();
+  refreshBackends();
+  $("input").focus();
+})();

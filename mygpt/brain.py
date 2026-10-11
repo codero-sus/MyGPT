@@ -16,6 +16,7 @@ Self-learning (ported from codero-sus/agi, "CORTEX"):
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import random
@@ -46,6 +47,7 @@ WEAK_MATCH = 0.30        # a guess worth offering
 AUTO_TRAIN_EVERY = 5     # curated-learning events between blocking train rounds
 AUTO_TRAIN_EPOCHS = 6
 PROBE_INTERVAL_S = 20.0     # background auto-probe of local LLM backends
+SAVE_MIN_GAP_S = 1.0        # debounce full state writes to disk
 
 TEACH_REPLIES = [
     "I don't know that yet — but you can teach me! Add an answer in the Teach panel and I'll remember it forever.",
@@ -104,6 +106,12 @@ class Brain:
         self._prober_stop = threading.Event()
         self._prober = threading.Thread(target=self._auto_probe_loop,
                                         daemon=True, name="backend-prober")
+        # debounced persistence: full 7-file state writes are coalesced when
+        # they land within SAVE_MIN_GAP_S of each other (chat turns hammer
+        # save()); anything pending is flushed on shutdown
+        self._last_save = 0.0
+        self._save_pending = False
+        atexit.register(self._flush_on_exit)
 
         self._seed_path = seed_path
         self._load()
@@ -262,7 +270,7 @@ class Brain:
             epochs=self.counters.get("train_rounds"),
             corpus_lines=len(self.corpus), label=label)
         self._log(f"model checkpoint saved: {meta['name']}")
-        self.save()
+        self.save(force=True)
         return meta
 
     def load_checkpoint(self, name: str) -> dict:
@@ -270,7 +278,7 @@ class Brain:
         if not meta:
             return {"ok": False, "error": f"checkpoint '{name}' not found"}
         self._log(f"loaded model checkpoint: {name}")
-        self.save()                      # make the checkpoint the live weights
+        self.save(force=True)            # make the checkpoint the live weights
         return {"ok": True, **meta}
 
     def delete_checkpoint(self, name: str) -> dict:
@@ -323,7 +331,16 @@ class Brain:
                 return answer, name, bool(client.learn)
         return None
 
-    def save(self) -> None:
+    def save(self, force: bool = False) -> None:
+        """Persist full state. Debounced: rapid consecutive calls (one per
+        chat turn) coalesce into a single disk write; pass force=True for
+        user-critical state (teach, checkpoints, corrections)."""
+        now = time.time()
+        if not force and now - self._last_save < SAVE_MIN_GAP_S:
+            self._save_pending = True
+            return
+        self._last_save = now
+        self._save_pending = False
         self._write("memory.json", self.memory.to_list())
         self._write("corpus.json", self.corpus[-5000:])
         self._write("metrics.json", {
@@ -335,6 +352,14 @@ class Brain:
         self.episodes.save()
         self.goals.save()
         self.lm.save(os.path.join(self.data_dir, "lm_weights.npz"))
+
+    def _flush_on_exit(self) -> None:
+        """atexit hook: never lose a debounced write on clean shutdown."""
+        if self._save_pending:
+            try:
+                self.save(force=True)
+            except Exception:
+                pass
 
     def _write(self, name: str, obj) -> None:
         tmp = os.path.join(self.data_dir, name + ".tmp")
@@ -559,8 +584,26 @@ class Brain:
                 ". (semantic facts, extracted and stored automatically)")
 
     @staticmethod
+    def _word_math(text: str) -> str:
+        """Rewrite spoken operators ('6 times 7', '12 divided by 4') into
+        symbols so the numeric evaluator can handle them."""
+        low = " " + text.lower() + " "
+        rules = (
+            (r" times ", " * "), (r" multiplied by ", " * "),
+            (r" plus ", " + "), (r" added to ", " + "),
+            (r" minus ", " - "), (r" subtracted from ", " - "),
+            (r" divided by ", " / "), (r" over ", " / "),
+            (r" to the power of ", " ^ "), (r" squared ", " ^ 2 "),
+            (r" mod ", " % "),
+        )
+        for pat, repl in rules:
+            low = re.sub(pat, repl, low)
+        return low
+
+    @staticmethod
     def _find_math(text: str) -> str | None:
         """Find an arithmetic expression: either the whole message or embedded."""
+        text = Brain._word_math(text)
         if MATH_RE.match(text) and re.search(r"[+\-*/%^]", text):
             return text
         m = re.search(r"[(]*\d[\d\s+\-*/().%^]*[+\-*/%^][\d\s().]*\d", text)
@@ -616,7 +659,7 @@ class Brain:
                 self.memory.reinforce(record["pair_id"], +0.25)
             self._ingest(f"user: {record['user']} mygpt: {_strip_md(record['reply'])}")
             self._log("positive feedback received — reinforced")
-            self.save()
+            self.save(force=True)
             return {"ok": True, "message": "Noted — that answer got stronger. 💪"}
 
         # thumbs down
@@ -629,9 +672,9 @@ class Brain:
                             replace_question=user_q if record["pair_id"] else None)
             self._ingest(f"user: {record['user']} mygpt: {correction.strip()}")
             self._log(f"correction learned: '{user_q[:30]}…'")
-            self.save()
+            self.save(force=True)
             return {"ok": True, "message": "Thanks — I replaced that answer with yours."}
-        self.save()
+        self.save(force=True)
         return {"ok": True,
                 "message": "Understood. Tell me the right answer and I'll learn it."}
 
@@ -644,7 +687,7 @@ class Brain:
         self.memory.add(qn, a, replace_question=qn)
         self._ingest(f"user: {q} mygpt: {a}")
         self._log(f"taught: '{qn[:36]}'")
-        self.save()
+        self.save(force=True)
         return {"ok": True, "pairs": len(self.memory.pairs)}
 
     # ------------------------------------------------------------ improvement

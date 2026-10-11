@@ -252,8 +252,9 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 ## The WebUI
 
 * **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns,
-  collapsible chain-of-thought traces, per-reply latency (⏱ ms), quick-start
-  suggestion chips, and a **⬇️ export** button that downloads the whole
+  collapsible chain-of-thought traces, per-reply latency (⏱ ms), a **⧉ copy**
+  button on every reply, quick-start suggestion chips, **conversation restore
+  after page reload**, and a **⬇️ export** button that downloads the whole
   conversation as Markdown
 * **Model picker** — a dropdown right next to the send button picks which
   engine answers (Auto / brain / a specific Cortex or Ollama model); the
@@ -269,7 +270,18 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 * **Code asks** — answered with a fenced code block in chat (never run, never
   written to files), plus a link to codero-sus on GitHub
 * **Local LLM** — open questions can be answered by a model hosted by Cortex
-  LLMHoster or Ollama, with live connection status and the hosted model list
+  LLMHoster or Ollama, with live connection status and the hosted model list;
+  checkpoints can be **downloaded as zip** (weights + metadata)
+
+## Efficiency notes
+
+* Memory retrieval prunes candidates via an inverted token index; tokenizer is
+  memoised; training reuses cached token-id encodings of the append-only corpus
+* Cortex/Ollama clients use keep-alive connections; probes are TTL-cached;
+  full state writes are debounced (user-critical ones — teach, feedback,
+  checkpoints — flush immediately, anything pending flushes on shutdown)
+* The WebUI dedupes `/api/stats` polling and only auto-scrolls when you're
+  already near the bottom
 
 ## Architecture
 
@@ -310,6 +322,8 @@ templates/ static/      the WebUI
 | POST   | `/api/improve`  | — (force a medium improvement cycle)   |
 | POST   | `/api/eval`     | — (run the self-eval battery now, per-question results) |
 | GET    | `/api/export`   | — (download the conversation as Markdown) |
+| GET    | `/api/history`  | `?limit=30` (recent turns; restores the chat view on reload) |
+| GET    | `/api/checkpoint/download` | `?name=…` (checkpoint weights + meta as zip) |
 | POST   | `/api/forget`   | `{"q": "user name"}` (drop facts)      |
 | POST   | `/api/import`   | multipart `file` (chat export)         |
 | GET    | `/api/dream`    | —                                       |
