@@ -367,6 +367,31 @@ details.chain pre { background: #0a0e16; border: 1px solid var(--border);
 .mb-probe { margin-left: auto; font-size: .64rem; color: var(--muted);
   letter-spacing: .3px; white-space: nowrap; opacity: .8; }
 .mb-probe.on { color: #7ee0a3; opacity: 1; }
+.mb-export { background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 8px; padding: 3px 9px; font-size: .64rem;
+  cursor: pointer; white-space: nowrap; transition: all .15s; font-family: inherit; }
+.mb-export:hover { color: var(--text); border-color: var(--accent-2); }
+.mb-export:disabled { opacity: .5; cursor: wait; }
+
+/* ---- quick-start chips ---- */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; align-self: flex-start;
+  margin: 2px 0 0 40px; }
+.chips button { background: rgba(124,92,255,.1); border: 1px solid rgba(124,92,255,.4);
+  color: #c9bcff; border-radius: 999px; padding: 6px 13px; font-size: .76rem;
+  cursor: pointer; font-family: inherit; transition: all .15s; }
+.chips button:hover { background: rgba(124,92,255,.22); color: var(--text);
+  transform: translateY(-1px); }
+
+/* ---- self-evaluation results ---- */
+.eval-box { margin-top: 10px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; font-size: .78rem; }
+.eval-box.hidden { display: none; }
+.eval-head { margin-bottom: 7px; color: var(--text); }
+.eval-head b { color: var(--accent-2); }
+.eval-row { padding: 3px 6px; border-radius: 5px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eval-row.pass { color: #7ee0a3; }
+.eval-row.fail { color: #ff9aa8; }
 
 /* ---- "install a local LLM" hint banner ---- */
 .install-hint {

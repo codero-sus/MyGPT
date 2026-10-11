@@ -47,6 +47,9 @@ class Memory:
         self._dirty = True
         self._vec_cache: dict[str, np.ndarray] = {}
         self._idf: dict[str, float] = {}
+        self._idf_index: dict[str, int] = {}          # word -> vector slot
+        self._postings: dict[str, set] = {}           # token -> {pair ids}
+        self._by_id: dict[str, dict] = {}             # pair id -> pair
 
     # -------------------------------------------------------------- mutation
     def add(self, question: str, answer: str, weight: float = 1.0,
@@ -89,10 +92,17 @@ class Memory:
     # ------------------------------------------------------------ retrieval
     def _rebuild_index(self) -> None:
         df: Counter = Counter()
+        self._postings = {}
+        self._by_id = {}
         for p in self.pairs:
-            df.update(set(content_tokens(p["q"])))
+            self._by_id[p["id"]] = p
+            tokens = set(content_tokens(p["q"]))
+            df.update(tokens)
+            for tok in tokens:
+                self._postings.setdefault(tok, set()).add(p["id"])
         n = max(1, len(self.pairs))
         self._idf = {w: math.log((1 + n) / (1 + c)) + 1.0 for w, c in df.items()}
+        self._idf_index = {w: i for i, w in enumerate(self._idf)}
         self._vec_cache.clear()
         self._dirty = False
 
@@ -101,9 +111,8 @@ class Memory:
             return None
         tf = Counter(tokens)
         vec = np.zeros(len(self._idf), dtype=np.float32)
-        index = {w: i for i, w in enumerate(self._idf)}
         for w, c in tf.items():
-            i = index.get(w)
+            i = self._idf_index.get(w)
             if i is not None:
                 vec[i] = (1.0 + math.log(c)) * self._idf[w]
         norm = float(np.linalg.norm(vec))
@@ -118,11 +127,21 @@ class Memory:
         """Return up to k (pair, score) matches sorted by similarity."""
         if self._dirty:
             self._rebuild_index()
-        qv = self._vectorize(content_tokens(question))
+        q_tokens = content_tokens(question)
+        qv = self._vectorize(q_tokens)
         if qv is None or not self.pairs:
             return []
+        # candidate pruning: only pairs sharing at least one content token can
+        # have a non-zero cosine with the query vector (keeps small memories
+        # exhaustive and large ones fast)
+        cand_ids: set = set()
+        for tok in q_tokens:
+            cand_ids |= self._postings.get(tok, ())
+        if not cand_ids:
+            return []
+        candidates = [self._by_id[i] for i in cand_ids]
         scored = []
-        for p in self.pairs:
+        for p in candidates:
             pv = self._pair_vec(p)
             if pv is None or pv.shape != qv.shape:
                 continue

@@ -252,17 +252,24 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 ## The WebUI
 
 * **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns,
-  collapsible chain-of-thought traces
+  collapsible chain-of-thought traces, per-reply latency (⏱ ms), quick-start
+  suggestion chips, and a **⬇️ export** button that downloads the whole
+  conversation as Markdown
+* **Model picker** — a dropdown right next to the send button picks which
+  engine answers (Auto / brain / a specific Cortex or Ollama model); the
+  status bar shows the active engine and the auto-probe state
 * **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log, and a
   Software-updates card (manual check + confirmed branch-pinned install)
-* **Mind tab** — the CORTEX loop: trainer status, self-eval %, constitution,
-  semantic facts (with forget buttons), lessons, skills, goals, chat import,
-  and a **Cortex LLMHoster** card to connect/test a local model back end
+* **Mind tab** — the CORTEX loop: trainer status, **🧪 on-demand
+  self-evaluation** with per-question results, constitution, semantic facts
+  (with forget buttons), lessons, skills, goals, chat import, **Cortex
+  LLMHoster** and **Ollama** backend cards, and **Model checkpoints**
+  (snapshot/train/load/delete under `_model_trained/`)
 * **Code asks** — answered with a fenced code block in chat (never run, never
   written to files), plus a link to codero-sus on GitHub
 * **Local LLM** — open questions can be answered by a model hosted by Cortex
-  LLMHoster, with live connection status and the hosted model list
+  LLMHoster or Ollama, with live connection status and the hosted model list
 
 ## Architecture
 
@@ -301,6 +308,8 @@ templates/ static/      the WebUI
 | POST   | `/api/teach`    | `{"question", "answer"}`               |
 | POST   | `/api/train`    | `{"epochs": 10}`                       |
 | POST   | `/api/improve`  | — (force a medium improvement cycle)   |
+| POST   | `/api/eval`     | — (run the self-eval battery now, per-question results) |
+| GET    | `/api/export`   | — (download the conversation as Markdown) |
 | POST   | `/api/forget`   | `{"q": "user name"}` (drop facts)      |
 | POST   | `/api/import`   | multipart `file` (chat export)         |
 | GET    | `/api/dream`    | —                                       |

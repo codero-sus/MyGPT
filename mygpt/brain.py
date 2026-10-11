@@ -651,6 +651,38 @@ class Brain:
     def improve_cycle(self, reason: str = "manual") -> list[dict]:
         return self.improver.cycle(reason=reason)
 
+    def run_self_eval(self) -> dict:
+        """Run the self-evaluation battery on demand; score is charted too."""
+        report = self.improver.self_eval_report()
+        self.store.log_metric("self_eval", report["score"])
+        self.store.log_event("self_eval", {"score": report["score"],
+                                           "hits": report["hits"],
+                                           "total": report["total"],
+                                           "reason": "manual"})
+        self._log(f"self-evaluation: {report['hits']}/{report['total']} "
+                  f"({round(report['score'] * 100)}%)")
+        self.save()
+        return report
+
+    def export_transcript(self) -> str:
+        """Render the episodic conversation history as Markdown."""
+        from datetime import datetime
+        lines = ["# MyGPT — conversation export", "",
+                 f"Exported: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                 f"Episodes: {len(self.episodes.episodes)}", "", "---", ""]
+        prev_role = None
+        for ep in self.episodes.episodes:
+            ts = datetime.fromtimestamp(ep["ts"]).strftime("%H:%M:%S")
+            who = "🧑 You" if ep["role"] == "user" else "🤖 MyGPT"
+            if ep["role"] != prev_role:
+                lines.append(f"**{who}** · {ts}")
+                prev_role = ep["role"]
+            lines.append(f"> {ep['content']}")
+            lines.append("")
+        lines += ["---", "", "Made with ❤️ by codero-sus — "
+                  "https://github.com/codero-sus · https://the-codero.web.app/"]
+        return "\n".join(lines)
+
     def forget(self, query: str) -> int:
         n = self.store.forget_facts(query)
         if n:

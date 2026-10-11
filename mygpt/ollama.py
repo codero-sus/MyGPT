@@ -26,15 +26,16 @@ Configuration (persisted in ``data/ollama.json``; env vars seed defaults):
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import time
-import urllib.error
-import urllib.request
+from urllib.parse import urlparse
 
 DEFAULT_URL = "http://127.0.0.1:11434"
 HEALTH_OK_TTL = 15.0
 HEALTH_BAD_TTL = 4.0
+PROBE_TTL = 8.0           # cache the full probe (incl. model list) this long
 CHAT_TIMEOUT = 120.0       # local generation can be slow
 PROBE_TIMEOUT = 4.0
 PROJECT_URL = "https://ollama.com"
@@ -55,6 +56,9 @@ class OllamaClient:
         self.timeout: float = CHAT_TIMEOUT
         self.answers = 0
         self._health: tuple[float, bool] = (0.0, False)
+        self._conn: http.client.HTTPConnection | None = None
+        self._conn_key: tuple | None = None
+        self._probe_cache: tuple[float, dict | None] = (0.0, None)
         self._load()
 
     # ------------------------------------------------------------- settings
@@ -96,34 +100,68 @@ class OllamaClient:
                 setattr(self, key, val.strip())
         self.base_url = self.base_url.rstrip("/") or DEFAULT_URL
         self._health = (0.0, False)
+        self._probe_cache = (0.0, None)
+        self._close_conn()                   # base_url may have changed
         self.save()
         return self.probe(force=True)
 
     # ------------------------------------------------------------------ http
-    def _url(self, path: str) -> str:
-        return f"{self.base_url}{path}"
+    def _close_conn(self) -> None:
+        if self._conn is not None:
+            try:
+                self._conn.close()
+            except OSError:
+                pass
+        self._conn, self._conn_key = None, None
+
+    def _connect(self) -> http.client.HTTPConnection | None:
+        """One keep-alive connection per (host, port) — reused across
+        probes/chats instead of a fresh TCP handshake per request."""
+        parsed = urlparse(self.base_url)
+        key = (parsed.hostname, parsed.port or 80)
+        if self._conn is not None and self._conn_key == key:
+            return self._conn
+        self._close_conn()
+        if not parsed.hostname:
+            return None
+        try:
+            self._conn = http.client.HTTPConnection(parsed.hostname, key[1])
+            self._conn_key = key
+        except (OSError, ValueError):
+            self._conn, self._conn_key = None, None
+        return self._conn
 
     def _request(self, method: str, path: str, body: dict | None = None,
                  timeout: float = PROBE_TIMEOUT):
         """Parsed JSON on 2xx, HTTP_ERROR if alive-but-error, None if unreachable."""
         data = json.dumps(body).encode("utf-8") if body is not None else None
-        req = urllib.request.Request(
-            self._url(path), data=data, method=method,
-            headers={"Content-Type": "application/json",
-                     "Accept": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = resp.read()
-        except urllib.error.HTTPError:
-            return HTTP_ERROR
-        except (urllib.error.URLError, OSError, ValueError, TimeoutError):
-            return None
-        if not raw:
-            return {}
-        try:
-            return json.loads(raw)
-        except ValueError:
-            return None
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        prefix = urlparse(self.base_url).path or ""
+        for attempt in (0, 1):
+            conn = self._connect()
+            if conn is None:
+                return None
+            conn.timeout = timeout
+            try:
+                conn.request(method, prefix + path, body=data, headers=headers)
+                resp = conn.getresponse()
+                raw = resp.read()          # always drain: keep-alive reuse
+            except (OSError, ValueError, TimeoutError,
+                    http.client.HTTPException):
+                self._close_conn()
+                if attempt == 0:
+                    continue               # stale keep-alive → one fresh retry
+                return None
+            if resp.status >= 400:
+                return HTTP_ERROR
+            if not raw:
+                return {}
+            try:
+                return json.loads(raw)
+            except ValueError:
+                return None
+        return None
 
     # --------------------------------------------------------------- queries
     def health(self) -> bool:
@@ -133,14 +171,9 @@ class OllamaClient:
             return ok
         resp = self._request("GET", "/api/version")
         ok = isinstance(resp, dict) and "version" in resp
-        if not ok:
-            # very old / minimal builds: fall back to the root banner
-            req = urllib.request.Request(self._url("/"), method="GET")
-            try:
-                with urllib.request.urlopen(req, timeout=PROBE_TIMEOUT) as r:
-                    ok = b"Ollama is running" in r.read()
-            except (urllib.error.URLError, OSError, ValueError, TimeoutError):
-                ok = False
+        if not ok and resp is HTTP_ERROR:
+            # server answered — treat a live-but-different API as present
+            ok = True
         self._health = (now, ok)
         return ok
 
@@ -197,6 +230,10 @@ class OllamaClient:
 
     # ---------------------------------------------------------------- status
     def probe(self, force: bool = False) -> dict:
+        now = time.time()
+        ts, cached = self._probe_cache
+        if not force and cached is not None and now - ts < PROBE_TTL:
+            return cached
         if force:
             self._health = (0.0, False)
         reachable = self.health()
@@ -209,7 +246,7 @@ class OllamaClient:
             reason = (f"no Ollama server at {self.base_url} — start one with "
                       f"`ollama serve`, or MyGPT keeps answering with its "
                       f"self-trained brain")
-        return {
+        result = {
             "enabled": self.enabled,
             "reachable": reachable,
             "base_url": self.base_url,
@@ -220,3 +257,5 @@ class OllamaClient:
             "reason": reason,
             "project_url": PROJECT_URL,
         }
+        self._probe_cache = (time.time(), result)
+        return result

@@ -32,16 +32,17 @@ Configuration (persisted in ``data/cortex.json``; env vars seed defaults):
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import time
-import urllib.error
-import urllib.request
+from urllib.parse import urlparse
 
 DEFAULT_URL = "http://127.0.0.1:8624"
 DEFAULT_API_BASE = "/v1"
 HEALTH_OK_TTL = 15.0      # cache a successful health check this long
 HEALTH_BAD_TTL = 4.0      # ... and a failed one this long (avoid hammering)
+PROBE_TTL = 8.0           # cache the full probe (incl. model list) this long
 CHAT_TIMEOUT = 60.0       # local generation can take a while
 PROBE_TIMEOUT = 4.0
 PROJECT_URL = "https://github.com/codero-sus/Cortex_LLMHoster"
@@ -63,6 +64,9 @@ class CortexClient:
         self.timeout: float = CHAT_TIMEOUT
         self.answers = 0                     # how many cortex answers served
         self._health: tuple[float, bool] = (0.0, False)
+        self._conn: http.client.HTTPConnection | None = None
+        self._conn_key: tuple | None = None
+        self._probe_cache: tuple[float, dict | None] = (0.0, None)
         self._load()
 
     # ------------------------------------------------------------- settings
@@ -110,13 +114,12 @@ class CortexClient:
         if not self.api_base.startswith("/"):
             self.api_base = "/" + self.api_base
         self._health = (0.0, False)          # invalidate cache
+        self._probe_cache = (0.0, None)
+        self._close_conn()                   # base_url may have changed
         self.save()
         return self.probe(force=True)
 
     # ------------------------------------------------------------------ http
-    def _url(self, path: str) -> str:
-        return f"{self.base_url}{path}"
-
     def _headers(self, auth: bool = True) -> dict:
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
@@ -124,26 +127,62 @@ class CortexClient:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
 
+    def _close_conn(self) -> None:
+        if self._conn is not None:
+            try:
+                self._conn.close()
+            except OSError:
+                pass
+        self._conn, self._conn_key = None, None
+
+    def _connect(self) -> http.client.HTTPConnection | None:
+        """One keep-alive connection per (host, port) — reused across
+        probes/chats instead of a fresh TCP handshake per request."""
+        parsed = urlparse(self.base_url)
+        key = (parsed.hostname, parsed.port or 80)
+        if self._conn is not None and self._conn_key == key:
+            return self._conn
+        self._close_conn()
+        if not parsed.hostname:
+            return None
+        try:
+            self._conn = http.client.HTTPConnection(parsed.hostname, key[1])
+            self._conn_key = key
+        except (OSError, ValueError):
+            self._conn, self._conn_key = None, None
+        return self._conn
+
     def _request(self, method: str, path: str, body: dict | None = None,
                  timeout: float = PROBE_TIMEOUT, auth: bool = True):
         """Returns parsed JSON on 2xx, HTTP_ERROR when the server answered
         with 4xx/5xx (it is alive), or None when it is unreachable."""
         data = json.dumps(body).encode("utf-8") if body is not None else None
-        req = urllib.request.Request(self._url(path), data=data,
-                                     headers=self._headers(auth), method=method)
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                raw = resp.read()
-        except urllib.error.HTTPError:
-            return HTTP_ERROR                 # alive, but rejected the request
-        except (urllib.error.URLError, OSError, ValueError, TimeoutError):
-            return None                       # unreachable
-        if not raw:
-            return {}
-        try:
-            return json.loads(raw)
-        except ValueError:
-            return None
+        headers = self._headers(auth)
+        prefix = urlparse(self.base_url).path or ""
+        for attempt in (0, 1):
+            conn = self._connect()
+            if conn is None:
+                return None
+            conn.timeout = timeout
+            try:
+                conn.request(method, prefix + path, body=data, headers=headers)
+                resp = conn.getresponse()
+                raw = resp.read()          # always drain: keep-alive reuse
+            except (OSError, ValueError, TimeoutError,
+                    http.client.HTTPException):
+                self._close_conn()
+                if attempt == 0:
+                    continue               # stale keep-alive → one fresh retry
+                return None
+            if resp.status >= 400:
+                return HTTP_ERROR          # alive, but rejected the request
+            if not raw:
+                return {}
+            try:
+                return json.loads(raw)
+            except ValueError:
+                return None
+        return None
 
     # --------------------------------------------------------------- queries
     def health(self) -> bool:
@@ -209,6 +248,10 @@ class CortexClient:
     # ---------------------------------------------------------------- status
     def probe(self, force: bool = False) -> dict:
         """Snapshot for the WebUI / /api/stats."""
+        now = time.time()
+        ts, cached = self._probe_cache
+        if not force and cached is not None and now - ts < PROBE_TTL:
+            return cached
         if force:
             self._health = (0.0, False)
         reachable = self.health()
@@ -221,7 +264,7 @@ class CortexClient:
             reason = (f"no Cortex LLMHoster server at {self.base_url} — start "
                       f"one with `cortex-llmhoster`, or MyGPT keeps answering "
                       f"with its self-trained brain")
-        return {
+        result = {
             "enabled": self.enabled,
             "reachable": reachable,
             "base_url": self.base_url,
@@ -233,3 +276,5 @@ class CortexClient:
             "reason": reason,
             "project_url": PROJECT_URL,
         }
+        self._probe_cache = (time.time(), result)
+        return result

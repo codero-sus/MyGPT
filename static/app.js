@@ -30,6 +30,28 @@ async function api(path, body = null) {
   return res.json();
 }
 
+/* /api/stats is read by the Growth and Mind panels and refreshed after every
+   chat turn — dedupe concurrent callers onto one in-flight request with a
+   short cache so the server isn't hammered for identical data. */
+let _statsInFlight = null;
+let _statsCache = { t: 0, data: null };
+const STATS_TTL_MS = 2500;
+function fetchStats(force = false) {
+  const now = Date.now();
+  if (!force && _statsCache.data && now - _statsCache.t < STATS_TTL_MS) {
+    return Promise.resolve(_statsCache.data);
+  }
+  if (!_statsInFlight) {
+    _statsInFlight = api("/api/stats")
+      .then((d) => {
+        _statsCache = { t: Date.now(), data: d };
+        return d;
+      })
+      .finally(() => { _statsInFlight = null; });
+  }
+  return _statsInFlight;
+}
+
 function toast(text) {
   const t = $("toast");
   t.textContent = text;
@@ -125,7 +147,7 @@ function addChain(chain, wrap) {
   wrap.appendChild(det);
 }
 
-function addBotReply(data) {
+function addBotReply(data, elapsedMs) {
   const wrap = addMessage("bot", data.reply);
   addChain(data.chain, wrap);
 
@@ -136,6 +158,13 @@ function addBotReply(data) {
   tag.textContent = data.mode === "skill" && data.skill
     ? `skill: ${data.skill}` : (MODE_LABELS[data.mode] || data.mode);
   meta.appendChild(tag);
+  if (elapsedMs != null) {
+    const ms = document.createElement("span");
+    ms.className = "mode-tag";
+    ms.title = "end-to-end reply time";
+    ms.textContent = `⏱ ${elapsedMs} ms`;
+    meta.appendChild(ms);
+  }
 
   if (data.teach_prompt) {
     const chip = document.createElement("button");
@@ -190,7 +219,8 @@ async function send() {
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
 
   typingWrap.closest(".msg").remove();
-  if (data.ok) addBotReply(data);
+  const elapsed = Date.now() - t0;
+  if (data.ok) addBotReply(data, elapsed);
   else addMessage("bot", "⚠️ " + (data.error || "something went wrong"));
 
   busy = false;
@@ -564,8 +594,8 @@ async function refreshMemory() {
   }
 }
 
-async function refreshStats() {
-  const data = await api("/api/stats");
+async function refreshStats(force = false) {
+  const data = await fetchStats(force);
   $("st-pairs").textContent = data.pairs;
   $("st-msgs").textContent = data.counters.messages;
   $("st-up").textContent = data.counters.up;
@@ -589,10 +619,10 @@ async function refreshStats() {
   }
 }
 
-function refreshSidebars() {
+function refreshSidebars(force = true) {
   refreshMemory();
-  if (!$("panel-growth").classList.contains("hidden")) refreshStats();
-  if (!$("panel-mind").classList.contains("hidden")) refreshMind();
+  if (!$("panel-growth").classList.contains("hidden")) refreshStats(force);
+  if (!$("panel-mind").classList.contains("hidden")) refreshMind(force);
 }
 
 /* ---------------- loss chart ---------------- */
@@ -661,8 +691,8 @@ function drawChart(history) {
 
 /* ---------------- mind tab (self-learning loop) ---------------- */
 
-async function refreshMind() {
-  const data = await api("/api/stats");
+async function refreshMind(force = false) {
+  const data = await fetchStats(force);
   const mind = data.mind || {};
   const tr = mind.trainer || {};
 
@@ -844,6 +874,59 @@ $("improve-btn").addEventListener("click", async () => {
     toast(`Improvement cycle done — ${n} event${n === 1 ? "" : "s"}.`);
   }
   refreshMind();
+});
+
+$("eval-btn").addEventListener("click", async () => {
+  const btn = $("eval-btn");
+  const box = $("eval-box");
+  btn.disabled = true;
+  btn.textContent = "Evaluating…";
+  box.classList.remove("hidden");
+  box.textContent = "Running the self-evaluation battery…";
+  const d = await api("/api/eval", {});
+  btn.disabled = false;
+  btn.textContent = "🧪 Self-eval";
+  if (!d.ok) {
+    box.textContent = "⚠️ " + (d.error || "self-eval failed");
+    return;
+  }
+  box.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "eval-head";
+  head.innerHTML = `Score: <b>${d.hits}/${d.total}</b> ` +
+    `(${Math.round(d.score * 100)}%)`;
+  box.appendChild(head);
+  for (const r of d.results || []) {
+    const row = document.createElement("div");
+    row.className = "eval-row" + (r.passed ? " pass" : " fail");
+    row.textContent = `${r.passed ? "✅" : "❌"} ${r.q}`;
+    row.title = r.answer || "";
+    box.appendChild(row);
+  }
+  toast(`Self-eval: ${Math.round(d.score * 100)}%`);
+});
+
+$("export-btn").addEventListener("click", async () => {
+  const btn = $("export-btn");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/export");
+    if (!res.ok) throw new Error("export failed");
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const disp = res.headers.get("Content-Disposition") || "";
+    const m = disp.match(/filename="([^"]+)"/);
+    a.download = m ? m[1] : "mygpt-transcript.md";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    toast("Conversation exported as Markdown ⬇️");
+  } catch (err) {
+    toast("⚠️ " + err);
+  }
+  btn.disabled = false;
 });
 
 $("cx-save").addEventListener("click", async () => {
@@ -1063,6 +1146,27 @@ addMessage("bot",
   "Made with ❤️ by codero-sus, built on the self-learning ideas from " +
   "codero-sus/agi — GitHub: github.com/codero-sus · " +
   "Website: the-codero.web.app");
+
+/* quick-start suggestion chips — removed as soon as the user types */
+(function addChips() {
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  ["who are you?", "23*47", "write code for the first 15 primes",
+   "checkpoint the model"].forEach((label) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.onclick = () => {
+      $("input").value = label;
+      send();
+    };
+    chips.appendChild(b);
+  });
+  chatEl.appendChild(chips);
+  const strip = () => { chips.remove(); $("input").removeEventListener("keydown", strip); };
+  $("input").addEventListener("keydown", strip, { once: true });
+})();
+
 refreshSidebars();
 refreshBackends();
 $("input").focus();

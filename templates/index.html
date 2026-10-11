@@ -28,6 +28,8 @@
           <span class="mb-label">🤖 answering with</span>
           <span class="mb-pill" id="backend-pill"></span>
           <span class="mb-probe" id="probe-pill" title="MyGPT auto-probes local LLM hosts every 20 s"></span>
+          <button type="button" class="mb-export" id="export-btn"
+                  title="Download the conversation as Markdown">⬇️ export</button>
         </div>
         <div class="install-hint hidden" id="install-hint">
           <div class="ih-text" id="install-hint-text"></div>
@@ -142,7 +144,9 @@
             </div>
             <div class="row actions">
               <button class="primary" id="improve-btn">🔁 Run improvement cycle</button>
+              <button class="ghost" id="eval-btn" title="Math, identity, knowledge, principles">🧪 Self-eval</button>
             </div>
+            <div class="eval-box hidden" id="eval-box"></div>
             <ul class="events" id="improve-events" style="margin-top:10px"></ul>
           </div>
           <div class="card">
