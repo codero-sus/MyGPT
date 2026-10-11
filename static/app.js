@@ -13,6 +13,7 @@ const MODE_LABELS = {
   fact: "fact recall",
   code: "code",
   cortex: "cortex llm",
+  ollama: "ollama llm",
 };
 
 /* ---------------- helpers ---------------- */
@@ -254,6 +255,8 @@ function switchTab(name) {
   if (name === "mind") {
     refreshMind();
     refreshCortex();
+    refreshOllama();
+    refreshBackends();
   }
 }
 
@@ -306,6 +309,177 @@ async function refreshCortex() {
   $("cx-enabled").checked = !!c.enabled;
   $("cx-learn").checked = !!c.learn;
   renderCortexStatus(c);
+}
+
+/* ---------------- Ollama backend ---------------- */
+
+function renderOllamaStatus(c) {
+  const pill = $("ol-pill");
+  const status = $("ol-status");
+  const models = $("ol-models");
+  pill.className = "pill";
+  if (!c.enabled) {
+    pill.textContent = "off";
+    pill.classList.add("cx-off");
+  } else if (c.reachable) {
+    pill.textContent = "connected";
+    pill.classList.add("cx-on");
+  } else {
+    pill.textContent = "unreachable";
+    pill.classList.add("cx-bad");
+  }
+  const bits = [];
+  if (!c.enabled) bits.push("Backend disabled — MyGPT answers with its self-trained brain.");
+  else if (c.reachable) bits.push(`Connected at ${c.base_url}.`);
+  else bits.push(`Can't reach ${c.base_url} — MyGPT falls back to its self-trained brain.`);
+  if (c.answers) bits.push(`${c.answers} open question${c.answers === 1 ? "" : "s"} answered by Ollama so far.`);
+  if (c.reason) bits.push(c.reason);
+  status.textContent = bits.join(" ");
+  status.className = "cx-status " + (c.reachable ? "good" : (c.enabled ? "warn" : ""));
+
+  models.innerHTML = "";
+  for (const m of c.models || []) {
+    const li = document.createElement("li");
+    const size = m.size ? ` · ${(m.size / 1e9).toFixed(1)} GB` : "";
+    li.textContent = `🦙 ${m.id}` + (m.family ? ` · ${m.family}` : "") + size;
+    models.appendChild(li);
+  }
+  if (c.reachable && !(c.models || []).length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "No models pulled yet — run `ollama pull <model>` in a terminal.";
+    models.appendChild(li);
+  }
+}
+
+async function refreshOllama() {
+  const c = await api("/api/ollama");
+  $("ol-url").value = c.base_url || "";
+  $("ol-model").value = c.model || "";
+  $("ol-enabled").checked = !!c.enabled;
+  $("ol-learn").checked = !!c.learn;
+  renderOllamaStatus(c);
+}
+
+/* ---------------- model picker + checkpoints ---------------- */
+
+function backendValue(b) {
+  return b.chat_model ? `${b.chat_backend}:${b.chat_model}` : b.chat_backend;
+}
+
+function renderBackendPicker(b) {
+  const sel = $("backend-select");
+  const pill = $("backend-pill");
+  const cx = (b.options && b.options.cortex) || {};
+  const ol = (b.options && b.options.ollama) || {};
+  const current = backendValue(b);
+  const seen = new Set(["auto", "brain", "cortex", "ollama"]);
+  sel.innerHTML = "";
+
+  const add = (value, label, disabled) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    opt.disabled = !!disabled;
+    sel.appendChild(opt);
+    seen.add(value);
+  };
+  add("auto", "⚡ Auto (brain → Cortex → Ollama)");
+  add("brain", "🧠 MyGPT self-trained brain");
+  if (cx.enabled && cx.reachable) {
+    add("cortex", "🖥️ Cortex · default model");
+    for (const m of cx.models || []) add(`cortex:${m.id}`, `🖥️ Cortex · ${m.id}`);
+  }
+  if (ol.enabled && ol.reachable) {
+    add("ollama", "🦙 Ollama · default model");
+    for (const m of ol.models || []) add(`ollama:${m.id}`, `🦙 Ollama · ${m.id}`);
+  }
+  // keep a manually configured model selectable even if not listed
+  if (b.chat_model && !seen.has(current)) add(current, `${b.chat_backend} · ${b.chat_model}`);
+
+  sel.value = current;
+  if (sel.value !== current) sel.value = b.chat_backend || "auto";
+
+  pill.className = "mb-pill";
+  if (b.chat_backend === "brain") {
+    pill.textContent = "self-trained brain";
+    pill.classList.add("mb-brain");
+  } else if (b.chat_backend === "auto") {
+    pill.textContent = "auto routing";
+    pill.classList.add("mb-auto");
+  } else {
+    pill.textContent = b.chat_model || `${b.chat_backend} default`;
+    pill.classList.add("mb-hosted");
+  }
+}
+
+function renderCheckpoints(list) {
+  $("ckpt-pill").textContent = (list || []).length;
+  const ul = $("ckpt-list");
+  ul.innerHTML = "";
+  if (!(list || []).length) {
+    ul.innerHTML = '<li class="empty">No checkpoints yet — save one above, or tell me in chat to checkpoint the model.</li>';
+    return;
+  }
+  for (const c of list) {
+    const li = document.createElement("li");
+    const info = document.createElement("div");
+    info.className = "ck-info";
+    const name = document.createElement("b");
+    name.textContent = c.name;
+    const when = new Date(c.created * 1000).toLocaleString();
+    const meta = document.createElement("span");
+    meta.className = "ck-meta";
+    meta.textContent = `${when} · vocab ${c.vocab ?? "?"}` +
+      (c.loss != null ? ` · loss ${Number(c.loss).toFixed(3)}` : "") +
+      (c.note ? ` · “${c.note}”` : "");
+    info.append(name, meta);
+    const btns = document.createElement("div");
+    btns.className = "ck-btns";
+    const load = document.createElement("button");
+    load.className = "mini primary-mini";
+    load.textContent = "Load";
+    load.title = "Load these weights as the active brain";
+    load.onclick = async () => {
+      load.disabled = true;
+      const d = await api("/api/checkpoint/load", { name: c.name });
+      load.disabled = false;
+      if (!d.ok) return toast(d.error || "load failed");
+      // the loaded weights ARE the brain — make sure it's the active engine
+      await api("/api/backends/select", { backend: "brain", model: "" });
+      toast(`Checkpoint ${c.name} is now the active brain 🧠`);
+      refreshBackends();
+    };
+    const del = document.createElement("button");
+    del.className = "mini ghost-mini";
+    del.textContent = "✕";
+    del.title = "delete this checkpoint";
+    del.onclick = async () => {
+      if (!confirm(`Delete checkpoint ${c.name} from _model_trained/?`)) return;
+      const d = await api("/api/checkpoint/delete", { name: c.name });
+      if (!d.ok) return toast(d.error || "delete failed");
+      toast("Checkpoint deleted.");
+      refreshBackends();
+    };
+    btns.append(load, del);
+    li.append(info, btns);
+    ul.appendChild(li);
+  }
+}
+
+let backendsInFlight = null;
+function refreshBackends() {
+  if (!backendsInFlight) {
+    backendsInFlight = api("/api/backends")
+      .then((b) => {
+        if (b.ok) {
+          renderBackendPicker(b);
+          renderCheckpoints(b.checkpoints || []);
+        }
+      })
+      .finally(() => { backendsInFlight = null; });
+  }
+  return backendsInFlight;
 }
 
 async function refreshMemory() {
@@ -639,6 +813,71 @@ $("cx-save").addEventListener("click", async () => {
   refreshMind();
 });
 
+$("ol-save").addEventListener("click", async () => {
+  const btn = $("ol-save");
+  btn.disabled = true;
+  btn.textContent = "Testing…";
+  const c = await api("/api/ollama", {
+    enabled: $("ol-enabled").checked,
+    learn: $("ol-learn").checked,
+    base_url: $("ol-url").value.trim(),
+    model: $("ol-model").value.trim(),
+  });
+  renderOllamaStatus(c);
+  btn.disabled = false;
+  btn.textContent = "💾 Save & test connection";
+  if (c.reachable) toast("Ollama connected ✅");
+  else if (c.enabled) toast("Settings saved — Ollama not reachable yet");
+  else toast("Ollama backend disabled");
+  refreshBackends();
+});
+
+$("backend-select").addEventListener("change", async () => {
+  const sel = $("backend-select");
+  const val = sel.value;
+  let backend, model = "";
+  const idx = val.indexOf(":");
+  if (idx > 0) {
+    backend = val.slice(0, idx);
+    model = val.slice(idx + 1);
+  } else {
+    backend = val;
+  }
+  const d = await api("/api/backends/select", { backend, model });
+  if (!d.ok) return toast(d.error || "selection failed");
+  const label = model ? `${backend} · ${model}` : backend;
+  toast(`Open questions now answered by ${label}.`);
+  refreshBackends();
+});
+
+$("ckpt-save").addEventListener("click", async () => {
+  const btn = $("ckpt-save");
+  const status = $("ckpt-status");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  status.textContent = "Snapshotting the trained weights to _model_trained/…";
+  status.className = "cx-status";
+  const d = await api("/api/checkpoint", {
+    label: $("ckpt-label").value.trim(),
+    train: $("ckpt-train").checked,
+  });
+  btn.disabled = false;
+  btn.textContent = "📸 Checkpoint model";
+  if (!d.ok) {
+    status.textContent = "⚠️ " + (d.error || "checkpoint failed");
+    status.className = "cx-status warn";
+    return;
+  }
+  const c = d.checkpoint;
+  const trained = d.train ? ` Trained ${d.train.epochs ?? "?"} epochs first (loss ${d.train.loss}).` : "";
+  status.textContent = `✅ Saved ${c.name} — vocab ${c.vocab ?? "?"}` +
+    (c.loss != null ? `, loss ${Number(c.loss).toFixed(3)}` : "") + `.${trained}`;
+  status.className = "cx-status good";
+  $("ckpt-label").value = "";
+  toast(`Checkpoint saved to _model_trained/${c.name}/ 📸`);
+  refreshBackends();
+});
+
 /* ---------------- software updates ---------------- */
 
 let pendingUpdate = null;   // UpdateInfo from the last successful check
@@ -762,4 +1001,5 @@ addMessage("bot",
   "⭐ Built on the self-learning ideas from codero-sus/agi — " +
   "visit github.com/codero-sus");
 refreshSidebars();
+refreshBackends();
 $("input").focus();

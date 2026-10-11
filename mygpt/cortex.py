@@ -169,7 +169,8 @@ class CortexClient:
                  "capabilities": m.get("capabilities", [])}
                 for m in resp["data"] if isinstance(m, dict)]
 
-    def chat(self, question: str, history: list[dict] | None = None) -> str | None:
+    def chat(self, question: str, history: list[dict] | None = None,
+             model: str | None = None) -> str | None:
         """Ask the locally hosted model via /v1/chat/completions.
 
         Returns the assistant text, or None when anything goes wrong — the
@@ -185,8 +186,9 @@ class CortexClient:
         messages.append({"role": "user", "content": question})
         body: dict = {"messages": messages, "stream": False,
                       "temperature": 0.7}
-        if self.model:
-            body["model"] = self.model
+        chosen = model or self.model
+        if chosen:
+            body["model"] = chosen
         resp = self._request("POST", f"{self.api_base}/chat/completions",
                              body=body, timeout=self.timeout)
         if resp is None:                      # connection failed

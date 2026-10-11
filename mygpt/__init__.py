@@ -6,4 +6,4 @@ sublicensing, modification and commercial use are not permitted without
 separate written permission from the author.
 """
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"

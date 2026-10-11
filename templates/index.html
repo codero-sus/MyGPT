@@ -23,6 +23,14 @@
     <main class="layout">
       <!-- ================= CHAT ================= -->
       <section class="chat-panel">
+        <div class="modelbar">
+          <span class="mb-label">🤖 answering with</span>
+          <select id="backend-select" title="Choose which model answers open questions">
+            <option value="auto">⚡ Auto (brain → Cortex → Ollama)</option>
+            <option value="brain">🧠 MyGPT self-trained brain</option>
+          </select>
+          <span class="mb-pill" id="backend-pill"></span>
+        </div>
         <div class="chat-scroll" id="chat"></div>
         <form class="composer" id="composer">
           <input id="input" type="text" autocomplete="off"
@@ -163,6 +171,55 @@
               </div>
               <div class="cx-status" id="cx-status"></div>
               <ul class="cx-models" id="cx-models"></ul>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Local LLM · Ollama <span class="pill" id="ol-pill">…</span></h2>
+            <p class="hint">
+              MyGPT can also route open questions to models running on
+              <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>
+              (native JSON API). Pull a model (<code>ollama pull llama3.2</code>)
+              and it appears here. Like Cortex, Ollama <em>serves</em> models —
+              MyGPT's own NumPy brain is what trains.
+            </p>
+            <div class="cx-form">
+              <label class="cx-row"><span>Server URL</span>
+                <input type="text" id="ol-url" placeholder="http://127.0.0.1:11434" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>Model <em>(blank = first installed model)</em></span>
+                <input type="text" id="ol-model" placeholder="" spellcheck="false" />
+              </label>
+              <div class="row cx-checks">
+                <label class="checkline"><input type="checkbox" id="ol-enabled" /> Use Ollama for open questions</label>
+                <label class="checkline"><input type="checkbox" id="ol-learn" /> Learn Ollama answers into MyGPT</label>
+              </div>
+              <div class="row actions">
+                <button class="primary" id="ol-save">💾 Save &amp; test connection</button>
+              </div>
+              <div class="cx-status" id="ol-status"></div>
+              <ul class="cx-models" id="ol-models"></ul>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Model checkpoints <span class="pill" id="ckpt-pill">0</span></h2>
+            <p class="hint">
+              Snapshots of MyGPT's <b>trained weights</b>, saved under
+              <code>_model_trained/</code>. Save one any time — or just ask in
+              chat: <em>“checkpoint the model”</em> (or <em>“train and save the
+              model”</em>). Load a checkpoint back to make it the active brain.
+            </p>
+            <div class="cx-form">
+              <label class="cx-row"><span>Label <em>(optional)</em></span>
+                <input type="text" id="ckpt-label" placeholder="e.g. after-teaching-french" spellcheck="false" />
+              </label>
+              <div class="row cx-checks">
+                <label class="checkline"><input type="checkbox" id="ckpt-train" checked /> Quick training round before saving</label>
+              </div>
+              <div class="row actions">
+                <button class="primary" id="ckpt-save">📸 Checkpoint model</button>
+              </div>
+              <div class="cx-status" id="ckpt-status"></div>
+              <ul class="ckpt-list" id="ckpt-list"></ul>
             </div>
           </div>
           <div class="card">
