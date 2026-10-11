@@ -133,6 +133,93 @@ def cortex_config():
     return jsonify({"ok": True, **probe})
 
 
+@app.get("/api/ollama")
+def ollama_status():
+    """Ollama backend status (live probe)."""
+    with _lock:
+        return jsonify({"ok": True, **brain.ollama.probe(force=True)})
+
+
+@app.post("/api/ollama")
+def ollama_config():
+    """Update the Ollama backend settings and re-test the link.
+
+    Accepts any of: enabled, learn (bools), base_url, url, model (strings).
+    """
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        probe = brain.ollama.configure(body)
+        brain._log("Ollama settings updated "
+                   f"({'on' if brain.ollama.enabled else 'off'})")
+    return jsonify({"ok": True, **probe})
+
+
+@app.get("/api/backends")
+def backends():
+    """Chat model picker: available backends, models, current selection,
+    plus trained-model checkpoints."""
+    with _lock:
+        return jsonify({"ok": True, **brain.backends()})
+
+
+@app.post("/api/backends/select")
+def backends_select():
+    """Choose which engine answers chat: brain / cortex / ollama / auto."""
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        result = brain.set_chat_backend(body.get("backend", "auto"),
+                                        body.get("model", ""))
+    return jsonify(result), (200 if result.get("ok") else 400)
+
+
+@app.post("/api/checkpoint")
+def checkpoint_create():
+    """Snapshot the current trained model into _model_trained/.
+
+    Optional body: {"label": "...", "note": "...", "train": true}
+    (train=true runs a quick training round before snapshotting).
+    """
+    body = request.get_json(silent=True) or {}
+    with _lock:
+        train_info = None
+        if body.get("train"):
+            train_info = brain.train(epochs=6, reason="checkpoint")
+        meta = brain.checkpoint(label=body.get("label", ""),
+                                note=body.get("note", ""))
+    return jsonify({"ok": True, "checkpoint": meta, "train": train_info})
+
+
+@app.get("/api/checkpoints")
+def checkpoints_list():
+    with _lock:
+        return jsonify({"ok": True,
+                        "checkpoints": brain.checkpoints.list(),
+                        "dir": "_model_trained"})
+
+
+@app.post("/api/checkpoint/load")
+def checkpoint_load():
+    """Load a saved checkpoint's weights as the active chat model."""
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "checkpoint name required"}), 400
+    with _lock:
+        result = brain.load_checkpoint(name)
+    return jsonify(result), (200 if result.get("ok") else 404)
+
+
+@app.post("/api/checkpoint/delete")
+def checkpoint_delete():
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or "").strip()
+    if not name:
+        return jsonify({"ok": False, "error": "checkpoint name required"}), 400
+    with _lock:
+        result = brain.delete_checkpoint(name)
+    return jsonify(result), (200 if result.get("ok") else 404)
+
+
 @app.get("/api/update/check")
 def update_check():
     """Manual, branch-pinned update check against codero-sus/MyGPT."""

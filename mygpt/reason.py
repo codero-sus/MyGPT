@@ -20,7 +20,7 @@ from .tokenizer import normalize
 if TYPE_CHECKING:
     from .brain import Brain
 
-FAST_MODES = {"math", "skill", "fact", "memory", "code", "cortex"}
+FAST_MODES = {"math", "skill", "fact", "memory", "code", "cortex", "ollama"}
 
 
 @dataclass

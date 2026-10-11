@@ -8,3 +8,6 @@ data/
 
 # Skills auto-written at runtime by the self-learning loop (handle_<intent>)
 skills/handle_*.py
+
+# trained-model checkpoints (created on demand)
+_model_trained/

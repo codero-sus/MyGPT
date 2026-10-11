@@ -36,7 +36,9 @@ from .tokenizer import normalize
 from .trainer import BackgroundTrainer
 from . import codegen
 from . import importers
+from .checkpoints import CheckpointManager
 from .cortex import CortexClient
+from .ollama import OllamaClient
 
 STRONG_MATCH = 0.52      # confident recall
 WEAK_MATCH = 0.30        # a guess worth offering
@@ -49,6 +51,9 @@ TEACH_REPLIES = [
     "I haven't learned that one. If you teach me now, it becomes permanent training data.",
 ]
 MATH_RE = re.compile(r"^[\s0-9+\-*/().%^]+$")
+CHECKPOINT_RE = re.compile(
+    r"\b(check ?point|save (?:the |my |a )?model|snapshot (?:the )?model)\b", re.I)
+TRAIN_RE = re.compile(r"\btrain\b", re.I)
 
 
 class Brain:
@@ -80,6 +85,15 @@ class Brain:
         self.trainer.dream_source = self._dream_text
         self.improver = SelfImprovement(self)
         self.cortex = CortexClient(os.path.join(data_dir, "cortex.json"))
+        self.ollama = OllamaClient(os.path.join(data_dir, "ollama.json"))
+        # checkpoints live in <project root>/_model_trained (next to data/)
+        self.checkpoints = CheckpointManager(
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "_model_trained"))
+        # which engine answers open chat questions (brain/cortex/ollama/auto)
+        self.chat_backend = "auto"
+        self.chat_model = ""
+        self._backends_path = os.path.join(data_dir, "backends.json")
 
         self._seed_path = seed_path
         self._load()
@@ -120,6 +134,112 @@ class Brain:
         elif self.corpus:
             for line in self.corpus:
                 self.lm.observe(line)
+
+        # chat-backend selection (brain/cortex/ollama/auto)
+        if os.path.exists(self._backends_path):
+            try:
+                with open(self._backends_path, encoding="utf-8") as f:
+                    bc = json.load(f)
+                if bc.get("chat_backend") in ("brain", "cortex", "ollama", "auto"):
+                    self.chat_backend = bc["chat_backend"]
+                if isinstance(bc.get("chat_model"), str):
+                    self.chat_model = bc["chat_model"]
+            except (OSError, ValueError):
+                pass
+
+    # ------------------------------------------------- backends & checkpoints
+    def set_chat_backend(self, backend: str, model: str = "") -> dict:
+        backend = (backend or "auto").strip().lower()
+        if backend not in ("brain", "cortex", "ollama", "auto"):
+            return {"ok": False, "error": "backend must be brain, cortex, ollama or auto"}
+        self.chat_backend = backend
+        self.chat_model = (model or "").strip()
+        self._write("backends.json", {"chat_backend": self.chat_backend,
+                                       "chat_model": self.chat_model})
+        self._log(f"chat backend set to {self.chat_backend}"
+                  + (f" ({self.chat_model})" if self.chat_model else ""))
+        return {"ok": True, "chat_backend": self.chat_backend,
+                "chat_model": self.chat_model}
+
+    def backends(self) -> dict:
+        """Everything the WebUI needs to render the model picker."""
+        return {
+            "chat_backend": self.chat_backend,
+            "chat_model": self.chat_model,
+            "options": {
+                "brain": {"label": "MyGPT self-trained brain"},
+                "cortex": self.cortex.probe(),
+                "ollama": self.ollama.probe(),
+            },
+            "checkpoints": self.checkpoints.list(),
+        }
+
+    def checkpoint(self, label: str = "", note: str = "") -> dict:
+        """Snapshot the current trained weights into _model_trained/."""
+        from . import __version__
+        loss = self.loss_history[-1]["loss"] if self.loss_history else None
+        meta = self.checkpoints.save(
+            self.lm, note=note, mygpt_version=__version__, loss=loss,
+            epochs=self.counters.get("train_rounds"),
+            corpus_lines=len(self.corpus), label=label)
+        self._log(f"model checkpoint saved: {meta['name']}")
+        self.save()
+        return meta
+
+    def load_checkpoint(self, name: str) -> dict:
+        meta = self.checkpoints.load(name, self.lm)
+        if not meta:
+            return {"ok": False, "error": f"checkpoint '{name}' not found"}
+        self._log(f"loaded model checkpoint: {name}")
+        self.save()                      # make the checkpoint the live weights
+        return {"ok": True, **meta}
+
+    def delete_checkpoint(self, name: str) -> dict:
+        if not self.checkpoints.delete(name):
+            return {"ok": False, "error": f"checkpoint '{name}' not found"}
+        self._log(f"deleted model checkpoint: {name}")
+        return {"ok": True, "name": name}
+
+    def _maybe_checkpoint_command(self, text: str) -> str | None:
+        """'checkpoint the model' / 'train and save the model' → snapshot."""
+        if not CHECKPOINT_RE.search(text):
+            return None
+        if TRAIN_RE.search(text):
+            self.train(epochs=AUTO_TRAIN_EPOCHS, reason="checkpoint request")
+        meta = self.checkpoint(note=text[:120])
+        return (f"✅ Saved a trained-model checkpoint to "
+                f"`_model_trained/{meta['name']}/` "
+                f"(vocab {meta['vocab']}, loss {meta['loss']}). "
+                f"You can load it back anytime from the Model checkpoints panel.")
+
+    def _backend_answer(self, text: str, qn: str):
+        """Ask the selected local LLM back end(s). Returns (answer, engine,
+        learned) or None. Deterministic routes always run first; this only
+        fills the gaps the self-trained brain can't."""
+        engines = []
+        if self.chat_backend in ("auto", "cortex"):
+            engines.append(("cortex", self.cortex))
+        if self.chat_backend in ("auto", "ollama"):
+            engines.append(("ollama", self.ollama))
+        if self.chat_backend == "brain" or not engines:
+            return None
+        history = [{"role": "user" if e["role"] == "user" else "assistant",
+                    "content": e["content"]}
+                   for e in self.episodes.recent_dialogue(k=6)]
+        for name, client in engines:
+            if not client.available():
+                continue
+            # a user-picked model applies to its own engine only
+            model = self.chat_model if self.chat_backend == name else None
+            answer = client.chat(text, history, model=model)
+            if answer:
+                if client.learn:
+                    # internalise the hosted answer so the self-trained brain
+                    # owns this knowledge next time
+                    self.memory.add(qn, answer[:600], replace_question=qn)
+                    self._ingest(f"user: {text} mygpt: {answer[:600]}")
+                return answer, name, bool(client.learn)
+        return None
 
     def save(self) -> None:
         self._write("memory.json", self.memory.to_list())
@@ -218,6 +338,12 @@ class Brain:
                       + ("" if found else " (no template matched)"))
             return self._after_turn(record, extract=False)
 
+        # 3b) model commands → checkpoint / train-and-checkpoint ---------------
+        ckpt_reply = self._maybe_checkpoint_command(text)
+        if ckpt_reply:
+            record.update(mode="skill", confidence=1.0, reply=ckpt_reply)
+            return self._after_turn(record, extract=False)
+
         # 4) new facts about the user ------------------------------------------
         extracted = self.store.extract_from_user(text)
         if extracted:
@@ -249,22 +375,16 @@ class Brain:
                               confidence=score, reply=pair["a"])
                 return self._after_turn(record)
 
-        # 6b) Cortex LLMHoster — a locally hosted model fills knowledge gaps ---
-        if self.cortex.available():
-            history = [{"role": "user" if e["role"] == "user" else "assistant",
-                        "content": e["content"]}
-                       for e in self.episodes.recent_dialogue(k=6)]
-            answer = self.cortex.chat(text, history)
-            if answer:
-                if self.cortex.learn:
-                    # internalise the hosted model's answer so the self-trained
-                    # brain owns this knowledge next time
-                    self.memory.add(qn, answer[:600], replace_question=qn)
-                    self._ingest(f"user: {text} mygpt: {answer[:600]}")
-                record.update(mode="cortex", confidence=0.8, reply=answer)
-                self._log("open question answered by Cortex LLMHoster"
-                          + ("" if self.cortex.learn else " (not learned)"))
-                return self._after_turn(record)
+        # 6b) selected local LLM back end fills knowledge gaps -----------------
+        #     (Cortex LLMHoster and/or Ollama — both are inference/hosting
+        #      runtimes; MyGPT's own brain answers when backend == "brain")
+        hosted = self._backend_answer(text, qn)
+        if hosted:
+            answer, engine, learned = hosted
+            record.update(mode=engine, confidence=0.8, reply=answer)
+            self._log(f"open question answered by {engine}"
+                      + ("" if learned else " (not learned)"))
+            return self._after_turn(record)
 
         if matches:
             pair, score = matches[0]
@@ -495,6 +615,9 @@ class Brain:
             "goals": self.goals.snapshot(),
             "github": codegen.GITHUB_URL,
             "cortex": self.cortex.probe(),
+            "ollama": self.ollama.probe(),
+            "backends": self.backends(),
+            "checkpoints": self.checkpoints.list(),
             "mind": {
                 "facts": [{"subject": f.subject, "predicate": f.predicate,
                             "object": f.obj, "confidence": f.confidence}
