@@ -204,6 +204,23 @@ class SelfImprovement:
                 hits += 1
         return hits / max(len(SELF_TESTS), 1)
 
+    def self_eval_report(self) -> dict:
+        """Run the self-evaluation battery and return per-question detail."""
+        results = []
+        hits = 0
+        for q, needles in SELF_TESTS:
+            try:
+                ans = self.brain.quick_answer(q)
+            except Exception:
+                ans = ""
+            passed = _contains_any(ans, needles)
+            hits += int(passed)
+            results.append({"q": q, "passed": passed,
+                            "answer": (ans or "")[:180]})
+        score = hits / max(len(SELF_TESTS), 1)
+        return {"score": round(score, 3), "hits": hits,
+                "total": len(SELF_TESTS), "results": results}
+
     # --------------------------------------------------------- corpus builder
     def _training_corpus(self) -> str:
         brain = self.brain

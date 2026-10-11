@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 
 from flask import Flask, jsonify, render_template, request
 
@@ -87,6 +88,27 @@ def improve():
     with _lock:
         events = brain.improve_cycle(reason="manual")
     return jsonify({"ok": True, "events": events})
+
+
+@app.post("/api/eval")
+def evaluate():
+    """Run the self-evaluation battery now (math, identity, knowledge,
+    principles) and return the per-question results."""
+    with _lock:
+        report = brain.run_self_eval()
+    return jsonify({"ok": True, **report})
+
+
+@app.get("/api/export")
+def export_chat():
+    """Download the conversation history as a Markdown transcript."""
+    from flask import Response
+    with _lock:
+        text = brain.export_transcript()
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    return Response(text, mimetype="text/markdown", headers={
+        "Content-Disposition":
+            f'attachment; filename="mygpt-transcript-{stamp}.md"'})
 
 
 @app.post("/api/forget")
