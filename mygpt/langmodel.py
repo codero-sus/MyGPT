@@ -47,6 +47,10 @@ class NeuralLM:
         self._adam_t = 0
         # Guards weight updates against concurrent inference (background trainer).
         self.lock = threading.RLock()
+        # Corpus lines are append-only, so their token-id encodings are cached
+        # across training rounds instead of re-tokenising the whole corpus.
+        # Cleared whenever the vocabulary (and thus the ids) changes.
+        self._enc_cache: dict[str, list[int]] = {}
 
         self.rebuild_vocab()
 
@@ -87,6 +91,8 @@ class NeuralLM:
             self.b1 = np.zeros(self.hidden, dtype=np.float32)
         # Output layer may have changed size -> Adam state no longer valid.
         self._adam, self._adam_t = {}, 0
+        # Word ids may have shifted -> cached encodings no longer valid.
+        self._enc_cache.clear()
 
     def encode(self, tokens: list[str]) -> list[int]:
         unk = self.word2idx[UNK]
@@ -98,7 +104,12 @@ class NeuralLM:
         bos = self.word2idx[BOS]
         eos = self.word2idx[EOS]
         for text in texts:
-            ids = self.encode(tokenize(text))
+            ids = self._enc_cache.get(text)
+            if ids is None:
+                ids = self.encode(tokenize(text))
+                if len(self._enc_cache) > 6000:
+                    self._enc_cache.clear()
+                self._enc_cache[text] = ids
             if not ids:
                 continue
             ids = [bos] * self.ctx + ids + [eos]
@@ -266,4 +277,5 @@ class NeuralLM:
             self.word2idx = {w: i for i, w in enumerate(self.idx2word)}
             self.word_counts = Counter(json.loads(str(d["counts"])))
         self._adam, self._adam_t = {}, 0
+        self._enc_cache.clear()      # new vocabulary -> ids changed
         return True
