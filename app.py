@@ -38,15 +38,60 @@ def index():
     return render_template("index.html")
 
 
+MAX_CHAT_CHARS = 4000
+MAX_TEACH_Q = 500
+MAX_TEACH_A = 4000
+
+
 @app.post("/api/chat")
 def chat():
     message = (request.get_json(silent=True) or {}).get("message", "")
-    if not message.strip():
+    if not isinstance(message, str) or not message.strip():
         return jsonify({"ok": False, "error": "empty message"}), 400
+    if len(message) > MAX_CHAT_CHARS:
+        return jsonify({"ok": False,
+                        "error": f"message too long (max {MAX_CHAT_CHARS} chars)"}), 400
     with _lock:
         result = brain.reply(message)
         brain.save()
     return jsonify({"ok": True, **result})
+
+
+@app.get("/api/health")
+def health():
+    """Lightweight liveness probe (no locks beyond quick cached reads)."""
+    return jsonify({
+        "ok": True,
+        "version": __version__,
+        "uptime_s": int(time.time() - brain.started),
+        "cortex": brain.cortex.probe().get("reachable", False),
+        "ollama": brain.ollama.probe().get("reachable", False),
+    })
+
+
+@app.get("/api/ping")
+def ping():
+    return jsonify({"ok": True, "pong": int(time.time())})
+
+
+@app.errorhandler(404)
+def err_404(_exc):
+    return jsonify({"ok": False, "error": "not found"}), 404
+
+
+@app.errorhandler(405)
+def err_405(_exc):
+    return jsonify({"ok": False, "error": "method not allowed"}), 405
+
+
+@app.errorhandler(413)
+def err_413(_exc):
+    return jsonify({"ok": False, "error": "payload too large"}), 413
+
+
+@app.errorhandler(500)
+def err_500(_exc):
+    return jsonify({"ok": False, "error": "internal server error"}), 500
 
 
 @app.post("/api/feedback")
@@ -62,8 +107,16 @@ def feedback():
 @app.post("/api/teach")
 def teach():
     body = request.get_json(silent=True) or {}
+    q = body.get("question", "")
+    a = body.get("answer", "")
+    if not isinstance(q, str) or not isinstance(a, str):
+        return jsonify({"ok": False, "error": "question and answer must be text"}), 400
+    if len(q) > MAX_TEACH_Q or len(a) > MAX_TEACH_A:
+        return jsonify({"ok": False,
+                        "error": f"too long (question max {MAX_TEACH_Q}, "
+                                 f"answer max {MAX_TEACH_A} chars)"}), 400
     with _lock:
-        result = brain.teach(body.get("question", ""), body.get("answer", ""))
+        result = brain.teach(q, a)
     return jsonify(result), (200 if result.get("ok") else 400)
 
 

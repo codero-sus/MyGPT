@@ -6,7 +6,7 @@ sublicensing, modification and commercial use are not permitted without
 separate written permission from the author.
 """
 
-__version__ = "1.7.0"
+__version__ = "1.8.0"
 
 # Author & credits — all credit goes to codero-sus.
 __author__ = "codero-sus"

@@ -300,10 +300,303 @@ def _perfect_square(m, goal):
             "print(r * r == n)\n")
 
 
+@family("bubble sort", r"bubble ?sort|sort(?:ing)? (?:a )?(?:list|array)(?: of)?(?: numbers)?\b(?!.{0,20}(?:file|csv))")
+def _bubble_sort(m, goal):
+    return (
+        "nums = [5, 2, 9, 1, 7]\n"
+        "n = len(nums)\n"
+        "for i in range(n):\n"
+        "    for j in range(n - 1 - i):\n"
+        "        if nums[j] > nums[j + 1]:\n"
+        "            nums[j], nums[j + 1] = nums[j + 1], nums[j]\n"
+        "print(nums)\n"
+    )
+
+
+@family("binary search", r"binary ?search")
+def _binary_search(m, goal):
+    return (
+        "def binary_search(arr, target):\n"
+        "    lo, hi = 0, len(arr) - 1\n"
+        "    while lo <= hi:\n"
+        "        mid = (lo + hi) // 2\n"
+        "        if arr[mid] == target:\n"
+        "            return mid\n"
+        "        if arr[mid] < target:\n"
+        "            lo = mid + 1\n"
+        "        else:\n"
+        "            hi = mid - 1\n"
+        "    return -1\n\n"
+        "print(binary_search([1, 3, 5, 7, 9], 7))\n"
+    )
+
+
+@family("fizzbuzz", r"fizz ?buzz")
+def _fizzbuzz(m, goal):
+    return (
+        "for i in range(1, 101):\n"
+        "    print('Fizz' * (i % 3 == 0) + 'Buzz' * (i % 5 == 0) or i)\n"
+    )
+
+
+@family("prime check (single number)", r"(?:check )?(?:is|whether) (\d+) (?:a )?prime|prime check")
+def _is_prime(m, goal):
+    return (
+        f"n = {m.group(1) or 29}\n"
+        "if n < 2:\n"
+        "    print(False)\n"
+        "else:\n"
+        "    print(all(n % i for i in range(2, int(n ** 0.5) + 1)))\n"
+    )
+
+
+@family("even or odd", r"even or odd|odd or even|(?:check )?(?:is|whether) (\d+) even")
+def _even_odd(m, goal):
+    return f"n = {m.group(1) or 7}\nprint('even' if n % 2 == 0 else 'odd')\n"
+
+
+@family("read a file", r"read (?:a |the )?(?:text )?file|open (?:a )?file for reading")
+def _file_read(m, goal):
+    return (
+        "path = 'notes.txt'\n"
+        "with open(path, encoding='utf-8') as f:\n"
+        "    for i, line in enumerate(f, 1):\n"
+        "        print(i, line.rstrip())\n"
+    )
+
+
+@family("write a file", r"write (?:to )?(?:a |the )?(?:text )?file|append to (?:a )?file")
+def _file_write(m, goal):
+    mode = "a" if "append" in goal.lower() else "w"
+    return (
+        "path = 'notes.txt'\n"
+        f"with open(path, '{mode}', encoding='utf-8') as f:\n"
+        "    f.write('hello from MyGPT\\n')\n"
+        "print('written:', path)\n"
+    )
+
+
+@family("word frequency (dict)", r"word (?:frequency|counts?)|count (?:the )?word(?: occurrence)?s?|most common words")
+def _word_freq(m, goal):
+    return (
+        "from collections import Counter\n"
+        "text = 'the quick brown fox jumps over the lazy dog the end'\n"
+        "print(Counter(text.lower().split()).most_common(5))\n"
+    )
+
+
+@family("remove duplicates", r"remove duplicates|unique (?:values|elements|items)")
+def _dedupe(m, goal):
+    return (
+        "items = [3, 1, 3, 2, 1, 5]\n"
+        "print(list(dict.fromkeys(items)))   # keeps order\n"
+    )
+
+
+@family("class template", r"(?:a )?class (?:template|example|in python)|write (?:a )?class\b|code for (?:a )?class|__init__")
+def _class_template(m, goal):
+    return (
+        "class Greeter:\n"
+        "    def __init__(self, name: str) -> None:\n"
+        "        self.name = name\n\n"
+        "    def greet(self) -> str:\n"
+        "        return f'Hello, {self.name}!'\n\n"
+        "print(Greeter('world').greet())\n"
+    )
+
+
+@family("http GET request", r"http (?:get )?request|fetch (?:a )?(?:url|page|api)|download (?:a )?(?:url|page)")
+def _http_get(m, goal):
+    return (
+        "import urllib.request\n"
+        "url = 'https://api.github.com/users/codero-sus'\n"
+        "req = urllib.request.Request(url, headers={'User-Agent': 'mygpt-demo'})\n"
+        "with urllib.request.urlopen(req, timeout=10) as resp:\n"
+        "    print(resp.status, resp.read()[:200])\n"
+    )
+
+
+@family("regex match", r"regex|regular expression")
+def _regex_demo(m, goal):
+    return (
+        "import re\n"
+        "text = 'Order #4521 shipped on 2026-03-14'\n"
+        "print(re.search(r'#(\\d+)', text).group(1))\n"
+        "print(re.findall(r'\\d{4}-\\d{2}-\\d{2}', text))\n"
+    )
+
+
+@family("read CSV", r"(?:read|parse|open) (?:a )?csv|csv file")
+def _csv_read(m, goal):
+    return (
+        "import csv\n"
+        "with open('data.csv', newline='', encoding='utf-8') as f:\n"
+        "    for row in csv.DictReader(f):\n"
+        "        print(row)\n"
+    )
+
+
+@family("json roundtrip", r"(?:read|write|parse|dump|load) json|json (?:file|roundtrip|code|example)")
+def _json_demo(m, goal):
+    return (
+        "import json\n"
+        "data = {'name': 'MyGPT', 'learns': True}\n"
+        "text = json.dumps(data, indent=2)\n"
+        "print(json.loads(text) == data)\n"
+    )
+
+
+@family("timer / context manager", r"timer|time (?:a )?(?:function|block|code)|measure (?:execution )?time|context manager")
+def _timer_cm(m, goal):
+    return (
+        "import time\n"
+        "from contextlib import contextmanager\n\n"
+        "@contextmanager\n"
+        "def timer(label='block'):\n"
+        "    t0 = time.perf_counter()\n"
+        "    yield\n"
+        "    print(f'{label}: {time.perf_counter() - t0:.4f}s')\n\n"
+        "with timer('demo'):\n"
+        "    sum(range(1_000_000))\n"
+    )
+
+
+@family("random choice / dice", r"random (?:choice|pick|number|item)|roll (?:a )?(?:dice|die)|shuffle")
+def _random_pick(m, goal):
+    if re.search(r"dice|die", goal, re.I):
+        return "import random\nprint(random.randint(1, 6))\n"
+    if re.search(r"shuffle", goal, re.I):
+        return ("import random\nitems = [1, 2, 3, 4, 5]\n"
+                "random.shuffle(items)\nprint(items)\n")
+    return ("import random\nitems = ['red', 'green', 'blue']\n"
+            "print(random.choice(items))\n")
+
+
+@family("multiplication table", r"multiplication table(?: of)?(?: (\d+))?|times table(?: of)?(?: (\d+))?")
+def _mult_table(m, goal):
+    n = m.group(1) or m.group(2) or "7"
+    return (
+        f"n = {n}\n"
+        "for i in range(1, 11):\n"
+        "    print(f'{n} x {i} = {n * i}')\n"
+    )
+
+
+@family("caesar cipher", r"caesar ?cipher|rot13|encrypt (?:a )?(?:string|message|text)")
+def _caesar(m, goal):
+    shift = 13 if re.search(r"rot ?13", goal, re.I) else 3
+    return (
+        f"shift = {shift}\n"
+        "text = 'hello mygpt'\n"
+        "out = ''.join(chr((ord(c) - 97 + shift) % 26 + 97) if c.isalpha() else c\n"
+        "            for c in text.lower())\n"
+        "print(out)\n"
+    )
+
+
+@family("password generator", r"(?:generate |random )?password(?: generator)?|strong password")
+def _password_gen(m, goal):
+    return (
+        "import secrets, string\n"
+        "alphabet = string.ascii_letters + string.digits + string.punctuation\n"
+        "print(''.join(secrets.choice(alphabet) for _ in range(16)))\n"
+    )
+
+
+@family("countdown", r"countdown(?: (?:from|of) (\d+))?|count down")
+def _countdown(m, goal):
+    return (
+        "import time\n"
+        f"for i in range({m.group(1) or 5}, 0, -1):\n"
+        "    print(i, flush=True)\n"
+        "    time.sleep(1)\n"
+        "print('liftoff!')\n"
+    )
+
+
+@family("matrix transpose", r"transpose (?:a )?(?:matrix|list of lists)|matrix transpose")
+def _transpose(m, goal):
+    return (
+        "matrix = [[1, 2, 3], [4, 5, 6]]\n"
+        "print([list(row) for row in zip(*matrix)])\n"
+    )
+
+
+@family("leap year check", r"leap year")
+def _leap_year(m, goal):
+    return (
+        "year = 2026\n"
+        "print(year % 4 == 0 and (year % 100 != 0 or year % 400 == 0))\n"
+    )
+
+
+@family("digit count", r"(?:count|how many) digits(?: in| of)? (\d+)|digit count")
+def _digit_count(m, goal):
+    return f"print(len(str({m.group(1) or 123456})))\n"
+
+
+@family("flatten a nested list", r"flatten (?:a )?(?:nested )?list|nested list")
+def _flatten(m, goal):
+    return (
+        "nested = [[1, 2], [3, [4, 5]], [6]]\n"
+        "def flatten(xs):\n"
+        "    for x in xs:\n"
+        "        if isinstance(x, list):\n"
+        "            yield from flatten(x)\n"
+        "        else:\n"
+        "            yield x\n"
+        "print(list(flatten(nested)))\n"
+    )
+
+
+@family("merge dictionaries", r"merge (?:two )?dict(?:ionaries)?|combine dicts")
+def _dict_merge(m, goal):
+    return (
+        "a = {'x': 1, 'y': 2}\n"
+        "b = {'y': 20, 'z': 30}\n"
+        "print(a | b)          # Python 3.9+\n"
+        "print({**a, **b})     # works everywhere\n"
+    )
+
+
+@family("zip two lists", r"zip (?:two )?lists|pair (?:up )?(?:two )?lists")
+def _zip_lists(m, goal):
+    return (
+        "names = ['ada', 'grace', 'alan']\n"
+        "scores = [95, 88, 91]\n"
+        "print(dict(zip(names, scores)))\n"
+    )
+
+
+@family("f-string formatting", r"f-?string|format (?:a )?string|string formatting")
+def _fstring(m, goal):
+    return (
+        "name, score = 'MyGPT', 0.9876\n"
+        "print(f'{name} scored {score:.2%} on {2026:>4}')\n"
+        "print(f'{name:=^20}')   # centred, padded\n"
+    )
+
+
+@family("set operations", r"set (?:operations|union|intersection|difference)|union|intersection")
+def _set_ops(m, goal):
+    return (
+        "a = {1, 2, 3, 4}\n"
+        "b = {3, 4, 5, 6}\n"
+        "print('union       ', a | b)\n"
+        "print('intersect  ', a & b)\n"
+        "print('difference ', a - b)\n"
+        "print('symmetric  ', a ^ b)\n"
+    )
+
+
 TEMPLATE_HINT = ("primes, fibonacci, factorials, digit sums, palindromes, "
                  "anagrams, statistics (mean/median/std), gcd/lcm, base "
                  "conversion, dates & weekdays, circle/sphere/triangle geometry, "
-                 "armstrong numbers, powers of two, unit conversion and word counts")
+                 "armstrong numbers, powers of two, unit conversion, word counts, "
+                 "sorting, binary search, fizzbuzz, file/CSV/JSON I/O, classes, "
+                 "HTTP requests, regex, timers, randomness, caesar cipher, "
+                 "passwords, countdowns, matrices, leap years, flattening, "
+                 "dict merging, zipping, f-strings and set operations")
 
 
 def wants_code(text: str) -> bool:
