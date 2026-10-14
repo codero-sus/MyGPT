@@ -87,11 +87,57 @@ function addMessage(role, text, opts = {}) {
   if (role === "bot" && text.includes("```")) renderFenced(bubble, text);
   else bubble.textContent = text;
   wrap.appendChild(bubble);
+  wrap.title = new Date().toLocaleTimeString();   // hover any message for its time
   msg.append(avatar, wrap);
   chatEl.appendChild(msg);
   scrollDown(!!opts.force);
+  updateScrollButton();
   return wrap;
 }
+
+/* ---------------- composer: textarea behaviour, drafts, scroll button ---- */
+
+const DRAFT_KEY = "mygpt.draft";
+const inputEl = () => $("input");
+
+function autoGrow() {
+  const el = inputEl();
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 150) + "px";
+}
+
+function saveDraft() {
+  try { localStorage.setItem(DRAFT_KEY, inputEl().value); } catch (e) { /* private mode */ }
+}
+
+function restoreDraft() {
+  try {
+    const d = localStorage.getItem(DRAFT_KEY);
+    if (d) { inputEl().value = d; autoGrow(); }
+  } catch (e) { /* ignore */ }
+}
+
+function updateScrollButton() {
+  const btn = $("scroll-bottom");
+  if (!btn) return;
+  const away =
+    chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight > 200;
+  btn.classList.toggle("hidden", !away);
+}
+
+function updateOnlineStatus() {
+  const dot = $("status-dot"), txt = $("status-text");
+  if (!dot || !txt) return;
+  if (navigator.onLine) {
+    dot.classList.remove("off");
+    txt.textContent = "online & learning";
+  } else {
+    dot.classList.add("off");
+    txt.textContent = "offline — reconnecting…";
+  }
+}
+window.addEventListener("online", updateOnlineStatus);
+window.addEventListener("offline", updateOnlineStatus);
 
 /* Render plain text segments plus ``` fenced blocks as real <pre><code>. */
 function renderFenced(bubble, text) {
@@ -223,6 +269,8 @@ async function send() {
   busy = true;
   lastUserText = text;
   input.value = "";
+  input.style.height = "auto";
+  saveDraft();
   $("send").disabled = true;
 
   addMessage("user", text, { force: true });
@@ -231,14 +279,27 @@ async function send() {
     '<span class="typing"><span></span><span></span><span></span></span>';
 
   const t0 = Date.now();
-  const data = await api("/api/chat", { message: text });
+  let data;
+  try {
+    data = await api("/api/chat", { message: text });
+  } catch (err) {
+    data = { ok: false, error: String(err) };
+  }
   const wait = 420 - (Date.now() - t0);
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
 
   typingWrap.closest(".msg").remove();
   const elapsed = Date.now() - t0;
-  if (data.ok) addBotReply(data, elapsed);
-  else addMessage("bot", "⚠️ " + (data.error || "something went wrong"));
+  if (data.ok) {
+    addBotReply(data, elapsed);
+  } else {
+    const wrap = addMessage("bot", "⚠️ " + (data.error || "something went wrong"));
+    const retry = document.createElement("button");
+    retry.className = "teach-chip";
+    retry.textContent = "↻ Retry";
+    retry.onclick = () => { wrap.closest(".msg").remove(); input.value = text; send(); };
+    wrap.appendChild(retry);
+  }
 
   busy = false;
   $("send").disabled = false;
@@ -451,12 +512,15 @@ function renderBackendPicker(b) {
   if (b.chat_backend === "brain") {
     pill.textContent = "self-trained brain";
     pill.classList.add("mb-brain");
+    pill.title = "Open questions answered by MyGPT's own NumPy brain";
   } else if (b.chat_backend === "auto") {
     pill.textContent = "auto routing";
     pill.classList.add("mb-auto");
+    pill.title = "Brain first, then Cortex LLMHoster, then Ollama";
   } else {
     pill.textContent = b.chat_model || `${b.chat_backend} default`;
     pill.classList.add("mb-hosted");
+    pill.title = `Open questions answered by ${b.chat_backend}`;
   }
 }
 
@@ -851,6 +915,33 @@ $("composer").addEventListener("submit", (e) => {
   send();
 });
 
+/* textarea: Enter sends, Shift+Enter inserts a newline */
+$("input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+  if (e.key === "Escape") {
+    $("input").value = "";
+    saveDraft();
+    autoGrow();
+  }
+});
+$("input").addEventListener("input", () => { autoGrow(); saveDraft(); });
+chatEl.addEventListener("scroll", updateScrollButton);
+$("scroll-bottom").addEventListener("click", () => {
+  scrollDown(true);
+  updateScrollButton();
+});
+
+/* "/" focuses the composer (vim/chat style), unless you're already typing */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    $("input").focus();
+  }
+});
+
 document.querySelectorAll(".tab").forEach((t) =>
   t.addEventListener("click", () => switchTab(t.dataset.tab)));
 
@@ -867,6 +958,12 @@ $("teach-btn").addEventListener("click", async () => {
   toast("Learned! That's part of me now. 🧠");
   refreshSidebars();
 });
+
+/* Ctrl/Cmd+Enter in the teach form submits it */
+["teach-q", "teach-a"].forEach((id) =>
+  $(id).addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) $("teach-btn").click();
+  }));
 
 $("train-btn").addEventListener("click", async () => {
   const btn = $("train-btn");
@@ -1210,11 +1307,13 @@ async function restoreHistory() {
 }
 
 (async function boot() {
+  updateOnlineStatus();
   const hadHistory = await restoreHistory();
   if (!hadHistory) {
     addMessage("bot", GREETING);
     addChips();
   }
+  restoreDraft();
   refreshSidebars();
   refreshBackends();
   $("input").focus();

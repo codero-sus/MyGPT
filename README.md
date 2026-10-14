@@ -4,7 +4,8 @@
 
 Made with ❤️ by **[codero-sus](https://github.com/codero-sus)** — all credits to them.
 🌐 Website: [the-codero.web.app](https://the-codero.web.app/) ·
-⭐ GitHub: [github.com/codero-sus](https://github.com/codero-sus)
+⭐ GitHub: [github.com/codero-sus](https://github.com/codero-sus) ·
+📜 What's new: [CHANGELOG.md](CHANGELOG.md)
 
 MyGPT is a tiny GPT-style assistant you can talk to, teach, and correct. Everything
 you do becomes training data: its memory grows, its neural language model retrains,
@@ -256,6 +257,11 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
   button on every reply, quick-start suggestion chips, **conversation restore
   after page reload**, and a **⬇️ export** button that downloads the whole
   conversation as Markdown
+* **Composer** — multi-line textarea: **Enter sends, Shift+Enter newlines,
+  Escape clears, `/` focuses**; drafts survive reloads (localStorage); a
+  floating **jump-to-latest** button appears when you scroll up; failed sends
+  get a **↻ retry** chip; hover any message for its timestamp; the top-bar dot
+  shows online/offline state
 * **Model picker** — a dropdown right next to the send button picks which
   engine answers (Auto / brain / a specific Cortex or Ollama model); the
   status bar shows the active engine and the auto-probe state
@@ -282,6 +288,20 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
   checkpoints — flush immediately, anything pending flushes on shutdown)
 * The WebUI dedupes `/api/stats` polling and only auto-scrolls when you're
   already near the bottom
+
+## Tests
+
+47 smoke tests cover the tokenizer, memory, code templates, word-form math, the
+language model, checkpoints (including path-traversal guards), episodes, the
+backend clients (safe against dead ports), the full Brain pipeline, and every
+API endpoint (including validation and JSON error handlers):
+
+```bash
+.venv/bin/python -m unittest discover -s tests    # .venv\Scripts\python on Windows
+```
+
+No extra dependencies — stdlib `unittest` only. Every test boots a throwaway
+Brain in a temp dir, so your real `data/` is never touched.
 
 ## Architecture
 
@@ -315,7 +335,9 @@ templates/ static/      the WebUI
 
 | Method | Path            | Body                                  |
 |--------|-----------------|----------------------------------------|
-| POST   | `/api/chat`     | `{"message": "…"}`                     |
+| GET    | `/api/health`   | — (version, uptime, backend reachability) |
+| GET    | `/api/ping`     | — (minimal round-trip probe)           |
+| POST   | `/api/chat`     | `{"message": "…"}` (≤ 4000 chars)      |
 | POST   | `/api/feedback` | `{"msg_id", "verdict": "up"\|"down", "correction"?}` |
 | POST   | `/api/teach`    | `{"question", "answer"}`               |
 | POST   | `/api/train`    | `{"epochs": 10}`                       |

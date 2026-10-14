@@ -408,7 +408,8 @@ class Brain:
 
     # ------------------------------------------------------------------ chat
     def reply(self, user_text: str) -> dict:
-        text = user_text.strip()
+        # hard cap: pathological inputs shouldn't blow up tokenizer/training
+        text = user_text.strip()[:4000]
         qn = normalize(text)
         self.counters["messages"] += 1
         intent = classify_intent(text)
@@ -583,10 +584,20 @@ class Brain:
         return ("From what you told me earlier — " + "; ".join(parts) +
                 ". (semantic facts, extracted and stored automatically)")
 
+    _NUM_WORDS = {
+        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+        "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+        "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40,
+        "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
+        "hundred": 100,
+    }
+
     @staticmethod
     def _word_math(text: str) -> str:
-        """Rewrite spoken operators ('6 times 7', '12 divided by 4') into
-        symbols so the numeric evaluator can handle them."""
+        """Rewrite spoken arithmetic ('6 times 7', 'seven plus eight',
+        'square root of 144', '20 percent of 150') into symbols."""
         low = " " + text.lower() + " "
         rules = (
             (r" times ", " * "), (r" multiplied by ", " * "),
@@ -595,15 +606,27 @@ class Brain:
             (r" divided by ", " / "), (r" over ", " / "),
             (r" to the power of ", " ^ "), (r" squared ", " ^ 2 "),
             (r" mod ", " % "),
+            (r" square root of ", " sqrt "), (r" sqrt of ", " sqrt "),
+            (r" percent of ", " %of "),
         )
         for pat, repl in rules:
             low = re.sub(pat, repl, low)
+        # number words -> digits ("seven times eight" handled after operators)
+        for word, val in Brain._NUM_WORDS.items():
+            low = re.sub(rf"\b{word}\b", f" {val} ", low)
+        low = re.sub(r"\s+", " ", low)
         return low
 
     @staticmethod
     def _find_math(text: str) -> str | None:
         """Find an arithmetic expression: either the whole message or embedded."""
         text = Brain._word_math(text)
+        m = re.search(r"sqrt\s*(\d+(?:\.\d+)?)", text)
+        if m:
+            return f"({m.group(1)}) ** 0.5"
+        m = re.search(r"(\d+(?:\.\d+)?)\s*%of\s*(\d+(?:\.\d+)?)", text)
+        if m:
+            return f"{m.group(1)} / 100 * {m.group(2)}"
         if MATH_RE.match(text) and re.search(r"[+\-*/%^]", text):
             return text
         m = re.search(r"[(]*\d[\d\s+\-*/().%^]*[+\-*/%^][\d\s().]*\d", text)
@@ -614,6 +637,11 @@ class Brain:
         expr = text.replace("^", "**").replace(",", ".")
         try:
             value = eval(expr, {"__builtins__": {}}, {})  # digits/operators only
+        except ZeroDivisionError:
+            return "undefined — division by zero"
+        except Exception:
+            return None
+        try:
             if isinstance(value, complex) or value != value:
                 return None
             if abs(value) > 1e15:

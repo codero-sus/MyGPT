@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MyGPT — self-training chatbot</title>
+  <meta name="description" content="MyGPT — a self-training chatbot in pure Python + NumPy with a Flask WebUI. Made with ❤️ by codero-sus." />
+  <meta name="theme-color" content="#0b0e14" />
+  <meta name="author" content="codero-sus — https://github.com/codero-sus" />
+  <title>MyGPT — self-training chatbot by codero-sus</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%237c5cff'/></svg>" />
 </head>
@@ -18,7 +21,7 @@
             <a href="https://github.com/codero-sus" target="_blank" rel="noopener">codero-sus</a></p>
         </div>
       </div>
-      <div class="status"><span class="dot"></span> online &amp; learning</div>
+      <div class="status"><span class="dot" id="status-dot"></span> <span id="status-text">online &amp; learning</span></div>
     </header>
 
     <main class="layout">
@@ -36,14 +39,18 @@
           <button id="install-hint-x" title="dismiss">✕</button>
         </div>
         <div class="chat-scroll" id="chat"></div>
+        <button type="button" class="scroll-bottom hidden" id="scroll-bottom"
+                title="Jump to latest message" aria-label="Jump to latest message">⌄</button>
         <form class="composer" id="composer">
-          <input id="input" type="text" autocomplete="off"
-                 placeholder="Message MyGPT…  (try: who are you? · 23*47 · why does rain happen?)" />
-          <select id="backend-select" title="Choose which model answers open questions">
+          <textarea id="input" rows="1" autocomplete="off" maxlength="4000"
+                    aria-label="Message MyGPT"
+                    placeholder="Message MyGPT…  (Enter to send · Shift+Enter for a new line)"></textarea>
+          <select id="backend-select" aria-label="Choose the answering model"
+                  title="Choose which model answers open questions">
             <option value="auto">⚡ Auto</option>
             <option value="brain">🧠 Brain</option>
           </select>
-          <button type="submit" id="send" title="Send">➤</button>
+          <button type="submit" id="send" title="Send" aria-label="Send message">➤</button>
         </form>
       </section>
 
@@ -281,7 +288,13 @@
     </main>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript>
+    <div style="padding:20px;text-align:center;color:#e7ecf5">
+      MyGPT's WebUI needs JavaScript. The JSON API still works without it —
+      see the README. Made with ❤️ by codero-sus (github.com/codero-sus).
+    </div>
+  </noscript>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
