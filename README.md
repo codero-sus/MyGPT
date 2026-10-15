@@ -147,7 +147,7 @@ short trace. Compare questions always deliberate — both sides get characterize
 ## Code requests → code blocks in chat
 
 There is **no agentic coding and no code execution**. When the user asks for
-code, MyGPT composes a snippet from a built-in template library of **218 code
+code, MyGPT composes a snippet from a built-in template library of **247 code
 families** (primes, fibonacci, factorials, digit sums, palindromes, anagrams,
 statistics, gcd/lcm, base conversion, dates & weekdays, geometry, armstrong
 numbers, powers of two, unit conversion, word counts, sorting/searching,
@@ -157,7 +157,7 @@ idioms such as decorators, generators, dataclasses, enums, comprehensions,
 argparse CLIs and unittest skeletons) and returns it in a
 **fenced code block inside the chat reply** — nothing is ever run and nothing
 is ever written to files. The library is split in two: **84 families** authored
-in `mygpt/codegen.py` and a **134-family data pack** in
+in `mygpt/codegen.py` and a **163-family data pack** in
 `mygpt/snippets_more.py` (algorithms, data structures, string/date/JSON
 tooling, maths, files, classes, testing, CLI, security helpers) that registers
 itself at import time. If no template matches, MyGPT says so honestly and
@@ -335,7 +335,7 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 
 ## Tests
 
-**422 tests** — 116 smoke tests plus 306 in `tests/test_v110.py`. A generator
+**451 tests** — 116 smoke tests plus 335 in `tests/test_v110.py`. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11
