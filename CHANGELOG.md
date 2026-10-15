@@ -680,7 +680,7 @@ Every item below is verifiable in the repository: templates in
 657. Text rule: split to list
 658. Text rule: join list
 
-### Brain wiring (6)
+### Brain wiring (7)
 
 659. Maths pack runs in `reply()` before arithmetic (confidence 1.0, mode `math`)
 660. Text pack runs in `reply()` and tags replies as `skill: text:<rule>`
@@ -688,419 +688,424 @@ Every item below is verifiable in the repository: templates in
 662. `quick_answer()` consults the text pack
 663. Both packs return `None` on no match so normal chat continues
 664. Rule handlers are exception-guarded — a broken rule can never 500 chat
+665. Seed loading is **additive and idempotent** — a later boot merges only the pairs/texts an update added, instead of skipping the seed because memory is no longer empty
 
 ### API (16)
 
-665. GET /api/math — evaluate a maths expression, falls back to arithmetic
-666. GET /api/text — run a text transform; 404 lists every available rule
-667. GET /api/rules — machine-readable inventory of maths, text and code rules
-668. GET /api/convert — unit/temperature conversion only
-669. GET /api/roman — roman numerals both directions
-670. GET /api/echo — echo with length + server time, for client debugging
-671. GET /api/uptime — uptime seconds plus human form
-672. GET /api/endpoints — self-describing route list
-673. GET /api/metrics — Prometheus-style text metrics
-674. POST /api/chat/batch — up to 10 messages in one round-trip, `results` array
-675. GET /api/quote — a random constitution principle
-676. X-Request-Id — per-request id, echoed when the client supplies one
-677. Server-Timing — per-request duration header for profiling
-678. before_request stamp — records the monotonic start used by `Server-Timing`
-679. X-MyGPT-Version — version header on every response
-680. uptime baseline — restored `_started_monotonic` used by the new endpoints
+666. GET /api/math — evaluate a maths expression, falls back to arithmetic
+667. GET /api/text — run a text transform; 404 lists every available rule
+668. GET /api/rules — machine-readable inventory of maths, text and code rules
+669. GET /api/convert — unit/temperature conversion only
+670. GET /api/roman — roman numerals both directions
+671. GET /api/echo — echo with length + server time, for client debugging
+672. GET /api/uptime — uptime seconds plus human form
+673. GET /api/endpoints — self-describing route list
+674. GET /api/metrics — Prometheus-style text metrics
+675. POST /api/chat/batch — up to 10 messages in one round-trip, `results` array
+676. GET /api/quote — a random constitution principle
+677. X-Request-Id — per-request id, echoed when the client supplies one
+678. Server-Timing — per-request duration header for profiling
+679. before_request stamp — records the monotonic start used by `Server-Timing`
+680. X-MyGPT-Version — version header on every response
+681. uptime baseline — restored `_started_monotonic` used by the new endpoints
 
 ### WebUI (56)
 
-681. 📐 density toggle switches compact ⇄ comfortable
-682. Density preference persisted in localStorage
-683. Compact CSS pack (tighter bubbles, cards and message gaps)
-684. ◐ high-contrast toggle with strengthened borders and muted text
-685. High-contrast CSS via `html[data-contrast=high]`
-686. 🎞 reduced-motion toggle that shortens all animations
-687. Reduced-motion CSS enforcement in one block
-688. `prefers-reduced-motion` media query honoured automatically
-689. `prefers-contrast: more` media query honoured automatically
-690. ◧ sidebar collapse button hides the panel and widens the chat
-691. Ctrl+B toggles the sidebar
-692. Sidebar state persisted in localStorage
-693. 🔔 sound toggle with a WebAudio chime — no audio assets
-694. 🖥 desktop-notification toggle with permission request
-695. Notification + title-badge flash when a reply lands while hidden
-696. Pinned-messages strip above the composer
-697. 📌 pin action on every message
-698. Click a pin chip to jump; right-click to unpin
-699. Pins persisted in localStorage (max 8, oldest evicted)
-700. ⧉ copy action on every message
-701. ❝ quote action drops the first line into the composer
-702. Hover/focus reveal for the message action row
-703. ✏️ edit-last button reloads the previous message
-704. ⧉ copy-all button collects the whole transcript as text
-705. ⤒ first button jumps to the top and flashes the message
-706. 🔗 share button uses the Web Share API
-707. Share falls back to the clipboard with a clear toast
-708. 🖨 print button plus print-stylesheet rules for the new chrome
-709. ⌘ help dialog listing every shortcut
-710. `?` on the keyboard opens the help dialog
-711. About dialog showing live version and endpoint count
-712. Offline queue stores messages typed with no connection
-713. Queue flushes automatically on `online`
-714. Offline styling on the composer
-715. Idle detection (5 quiet minutes) pauses polling
-716. Welcome-back toast when activity resumes
-717. Round-trip ping measured every 45 s
-718. Ping time + quality shown in the status tooltip
-719. Toggle on/off visual states for all seven prefs
-720. Modal styling with backdrop, kbd chips and focus return
-721. `.msg-actions`, `.pins-bar` and `.chat-actions` CSS
-722. Skip-to-composer link (keyboard users)
-723. `role="log"` + `aria-live` on the transcript
-724. `aria-busy` set while a reply is pending
-725. `:focus-visible` outlines on every interactive control
-726. `.sr-only` utility class added
-727. `aria-label` on the pins bar
-728. Icon-only buttons all carry `aria-label`/`title`
-729. Flash highlight on the message jumped to
-730. Composer anchor for the skip-link target
-731. v1.10 print rules hide action rows, pins and dialogs
-732. Prefs persisted as one JSON key (`mygpt.prefs`)
-733. Toast feedback for every new toggle
-734. LocalStorage guarded in try/catch (private-mode safe)
-735. Density/contrast/motion applied through `data-*` attributes
-736. Deduped prefs bootstrap (one read, one write)
+682. 📐 density toggle switches compact ⇄ comfortable
+683. Density preference persisted in localStorage
+684. Compact CSS pack (tighter bubbles, cards and message gaps)
+685. ◐ high-contrast toggle with strengthened borders and muted text
+686. High-contrast CSS via `html[data-contrast=high]`
+687. 🎞 reduced-motion toggle that shortens all animations
+688. Reduced-motion CSS enforcement in one block
+689. `prefers-reduced-motion` media query honoured automatically
+690. `prefers-contrast: more` media query honoured automatically
+691. ◧ sidebar collapse button hides the panel and widens the chat
+692. Ctrl+B toggles the sidebar
+693. Sidebar state persisted in localStorage
+694. 🔔 sound toggle with a WebAudio chime — no audio assets
+695. 🖥 desktop-notification toggle with permission request
+696. Notification + title-badge flash when a reply lands while hidden
+697. Pinned-messages strip above the composer
+698. 📌 pin action on every message
+699. Click a pin chip to jump; right-click to unpin
+700. Pins persisted in localStorage (max 8, oldest evicted)
+701. ⧉ copy action on every message
+702. ❝ quote action drops the first line into the composer
+703. Hover/focus reveal for the message action row
+704. ✏️ edit-last button reloads the previous message
+705. ⧉ copy-all button collects the whole transcript as text
+706. ⤒ first button jumps to the top and flashes the message
+707. 🔗 share button uses the Web Share API
+708. Share falls back to the clipboard with a clear toast
+709. 🖨 print button plus print-stylesheet rules for the new chrome
+710. ⌘ help dialog listing every shortcut
+711. `?` on the keyboard opens the help dialog
+712. About dialog showing live version and endpoint count
+713. Offline queue stores messages typed with no connection
+714. Queue flushes automatically on `online`
+715. Offline styling on the composer
+716. Idle detection (5 quiet minutes) pauses polling
+717. Welcome-back toast when activity resumes
+718. Round-trip ping measured every 45 s
+719. Ping time + quality shown in the status tooltip
+720. Toggle on/off visual states for all seven prefs
+721. Modal styling with backdrop, kbd chips and focus return
+722. `.msg-actions`, `.pins-bar` and `.chat-actions` CSS
+723. Skip-to-composer link (keyboard users)
+724. `role="log"` + `aria-live` on the transcript
+725. `aria-busy` set while a reply is pending
+726. `:focus-visible` outlines on every interactive control
+727. `.sr-only` utility class added
+728. `aria-label` on the pins bar
+729. Icon-only buttons all carry `aria-label`/`title`
+730. Flash highlight on the message jumped to
+731. Composer anchor for the skip-link target
+732. v1.10 print rules hide action rows, pins and dialogs
+733. Prefs persisted as one JSON key (`mygpt.prefs`)
+734. Toast feedback for every new toggle
+735. LocalStorage guarded in try/catch (private-mode safe)
+736. Density/contrast/motion applied through `data-*` attributes
+737. Deduped prefs bootstrap (one read, one write)
 
-### Tests (304)
+### Tests (306)
 
-737. Test: ApiPackTests.test_chat_batch
-738. Test: ApiPackTests.test_chat_batch_cap
-739. Test: ApiPackTests.test_chat_batch_validation
-740. Test: ApiPackTests.test_convert_endpoint
-741. Test: ApiPackTests.test_convert_endpoint_404
-742. Test: ApiPackTests.test_echo_endpoint
-743. Test: ApiPackTests.test_endpoints_listing
-744. Test: ApiPackTests.test_math_endpoint
-745. Test: ApiPackTests.test_math_endpoint_400
-746. Test: ApiPackTests.test_math_endpoint_404
-747. Test: ApiPackTests.test_metrics_endpoint
-748. Test: ApiPackTests.test_page_has_v110_controls
-749. Test: ApiPackTests.test_quote_endpoint
-750. Test: ApiPackTests.test_request_id_echoed
-751. Test: ApiPackTests.test_request_id_header
-752. Test: ApiPackTests.test_roman_endpoint_number
-753. Test: ApiPackTests.test_roman_endpoint_roman
-754. Test: ApiPackTests.test_rules_endpoint
-755. Test: ApiPackTests.test_server_timing_header
-756. Test: ApiPackTests.test_text_endpoint
-757. Test: ApiPackTests.test_text_endpoint_404_lists_rules
-758. Test: ApiPackTests.test_uptime_endpoint
-759. Test: ApiPackTests.test_version_header
-760. Test: BrainPackTests.test_code_still_wins_for_code_asks
-761. Test: BrainPackTests.test_counter_grows
-762. Test: BrainPackTests.test_maths_pack_answer
-763. Test: BrainPackTests.test_quick_answer_uses_mathx
-764. Test: BrainPackTests.test_quick_answer_uses_textfx
-765. Test: BrainPackTests.test_seed_knowledge_reachable
-766. Test: BrainPackTests.test_text_pack_answer
-767. Test: BrainPackTests.test_text_pack_skill_tag
-768. Test: MathPackTests.test_math_001_factorial
-769. Test: MathPackTests.test_math_002_fibonacci
-770. Test: MathPackTests.test_math_003_is_prime_yes
-771. Test: MathPackTests.test_math_004_is_prime_no
-772. Test: MathPackTests.test_math_005_nth_prime
-773. Test: MathPackTests.test_math_006_gcd
-774. Test: MathPackTests.test_math_007_lcm
-775. Test: MathPackTests.test_math_008_prime_factors
-776. Test: MathPackTests.test_math_009_divisors
-777. Test: MathPackTests.test_math_010_digit_sum
-778. Test: MathPackTests.test_math_011_digital_root
-779. Test: MathPackTests.test_math_012_perfect_square
-780. Test: MathPackTests.test_math_013_palindrome_number
-781. Test: MathPackTests.test_math_014_leap_year
-782. Test: MathPackTests.test_math_015_divisible
-783. Test: MathPackTests.test_math_016_even_odd
-784. Test: MathPackTests.test_math_017_cube_root
-785. Test: MathPackTests.test_math_018_log10
-786. Test: MathPackTests.test_math_019_log2
-787. Test: MathPackTests.test_math_020_natural_log
-788. Test: MathPackTests.test_math_021_trig
-789. Test: MathPackTests.test_math_022_absolute
-790. Test: MathPackTests.test_math_023_floor
-791. Test: MathPackTests.test_math_024_ceiling
-792. Test: MathPackTests.test_math_025_round_decimals
-793. Test: MathPackTests.test_math_026_remainder
-794. Test: MathPackTests.test_math_027_percent_increase
-795. Test: MathPackTests.test_math_028_percent_decrease
-796. Test: MathPackTests.test_math_029_tip
-797. Test: MathPackTests.test_math_030_simple_interest
-798. Test: MathPackTests.test_math_031_compound_interest
-799. Test: MathPackTests.test_math_032_grade
-800. Test: MathPackTests.test_math_033_circle
-801. Test: MathPackTests.test_math_034_rectangle
-802. Test: MathPackTests.test_math_035_triangle
-803. Test: MathPackTests.test_math_036_sphere
-804. Test: MathPackTests.test_math_037_cylinder
-805. Test: MathPackTests.test_math_038_pythagoras
-806. Test: MathPackTests.test_math_039_distance
-807. Test: MathPackTests.test_math_040_midpoint
-808. Test: MathPackTests.test_math_041_slope
-809. Test: MathPackTests.test_math_042_speed
-810. Test: MathPackTests.test_math_043_travel_time
-811. Test: MathPackTests.test_math_044_bmi
-812. Test: MathPackTests.test_math_045_sum_range
-813. Test: MathPackTests.test_math_046_sum_squares
-814. Test: MathPackTests.test_math_047_triangular
-815. Test: MathPackTests.test_math_048_median
-816. Test: MathPackTests.test_math_049_mode
-817. Test: MathPackTests.test_math_050_range
-818. Test: MathPackTests.test_math_051_variance
-819. Test: MathPackTests.test_math_052_stddev
-820. Test: MathPackTests.test_math_053_geometric_mean
-821. Test: MathPackTests.test_math_054_harmonic_mean
-822. Test: MathPackTests.test_math_055_decimal_to_fraction
-823. Test: MathPackTests.test_math_056_fraction_to_decimal
-824. Test: MathPackTests.test_math_057_simplify_fraction
-825. Test: MathPackTests.test_math_058_add_fractions
-826. Test: MathPackTests.test_math_059_multiply_fractions
-827. Test: MathPackTests.test_math_060_ratio
-828. Test: MathPackTests.test_math_061_independent_probability
-829. Test: MathPackTests.test_math_062_coin_run
-830. Test: MathPackTests.test_math_063_dice_double
-831. Test: MathPackTests.test_math_064_hex_to_rgb
-832. Test: MathPackTests.test_math_065_rgb_to_hex
-833. Test: MathPackTests.test_math_066_quadratic
-834. Test: MathPackTests.test_math_067_percent_of
-835. Test: MathPackTests.test_math_068_what_percent_of
-836. Test: MathPackTests.test_math_069_percent_off
-837. Test: MathPackTests.test_rule_count
-838. Test: MathPackTests.test_rule_names_unique
-839. Test: MathPackTests.test_unrelated_text_no_match
-840. Test: SeedPackTests.test_answer_length_sane
-841. Test: SeedPackTests.test_every_pair_has_content
-842. Test: SeedPackTests.test_no_duplicate_questions
-843. Test: SeedPackTests.test_no_markup_in_answers
-844. Test: SeedPackTests.test_pair_count
-845. Test: SeedPackTests.test_texts_present
-846. Test: TemplatePackTests.test_all_extra_snippets_distinct
-847. Test: TemplatePackTests.test_every_snippet_compiles
-848. Test: TemplatePackTests.test_family_001_linear_search
-849. Test: TemplatePackTests.test_family_002_selection_sort
-850. Test: TemplatePackTests.test_family_003_insertion_sort
-851. Test: TemplatePackTests.test_family_004_merge_sort
-852. Test: TemplatePackTests.test_family_005_quick_sort
-853. Test: TemplatePackTests.test_family_006_heap_sort
-854. Test: TemplatePackTests.test_family_007_counting_sort
-855. Test: TemplatePackTests.test_family_008_binary_search_recursive
-856. Test: TemplatePackTests.test_family_009_two_sum_problem
-857. Test: TemplatePackTests.test_family_010_maximum_subarray
-858. Test: TemplatePackTests.test_family_011_longest_common_prefix
-859. Test: TemplatePackTests.test_family_012_longest_common_subsequence
-860. Test: TemplatePackTests.test_family_013_edit_distance
-861. Test: TemplatePackTests.test_family_014_knapsack_0_1
-862. Test: TemplatePackTests.test_family_015_coin_change
-863. Test: TemplatePackTests.test_family_016_fibonacci_memoized
-864. Test: TemplatePackTests.test_family_017_pascal_triangle
-865. Test: TemplatePackTests.test_family_018_catalan_numbers
-866. Test: TemplatePackTests.test_family_019_prime_factorization
-867. Test: TemplatePackTests.test_family_020_sieve_of_eratosthenes
-868. Test: TemplatePackTests.test_family_021_nth_prime
-869. Test: TemplatePackTests.test_family_022_twin_primes
-870. Test: TemplatePackTests.test_family_023_perfect_numbers
-871. Test: TemplatePackTests.test_family_024_amicable_numbers
-872. Test: TemplatePackTests.test_family_025_happy_numbers
-873. Test: TemplatePackTests.test_family_026_kaprekar_number
-874. Test: TemplatePackTests.test_family_027_automorphic_number
-875. Test: TemplatePackTests.test_family_028_sum_of_divisors
-876. Test: TemplatePackTests.test_family_029_count_divisors
-877. Test: TemplatePackTests.test_family_030_euler_totient
-878. Test: TemplatePackTests.test_family_031_trailing_zeros_factorial
-879. Test: TemplatePackTests.test_family_032_binomial_coefficient
-880. Test: TemplatePackTests.test_family_033_permutations_and_combinations
-881. Test: TemplatePackTests.test_family_034_power_set
-882. Test: TemplatePackTests.test_family_035_cartesian_product
-883. Test: TemplatePackTests.test_family_036_rotate_a_list
-884. Test: TemplatePackTests.test_family_037_chunk_a_list
-885. Test: TemplatePackTests.test_family_038_partition_list
-886. Test: TemplatePackTests.test_family_039_group_by_key
-887. Test: TemplatePackTests.test_family_040_invert_a_dictionary
-888. Test: TemplatePackTests.test_family_041_sort_dict_by_value
-889. Test: TemplatePackTests.test_family_042_dict_from_two_lists
-890. Test: TemplatePackTests.test_family_043_deep_merge_dicts
-891. Test: TemplatePackTests.test_family_044_flatten_a_dict
-892. Test: TemplatePackTests.test_family_045_count_occurrences
-893. Test: TemplatePackTests.test_family_046_find_duplicates_in_list
-894. Test: TemplatePackTests.test_family_047_remove_falsy_values
-895. Test: TemplatePackTests.test_family_048_zip_longest
-896. Test: TemplatePackTests.test_family_049_pairwise_iteration
-897. Test: TemplatePackTests.test_family_050_matrix_multiplication
-898. Test: TemplatePackTests.test_family_051_matrix_addition
-899. Test: TemplatePackTests.test_family_052_identity_matrix
-900. Test: TemplatePackTests.test_family_053_determinant
-901. Test: TemplatePackTests.test_family_054_rotate_matrix
-902. Test: TemplatePackTests.test_family_055_spiral_matrix
-903. Test: TemplatePackTests.test_family_056_diagonal_sum
-904. Test: TemplatePackTests.test_family_057_string_to_int
-905. Test: TemplatePackTests.test_family_058_int_to_string
-906. Test: TemplatePackTests.test_family_059_vigenere_cipher
-907. Test: TemplatePackTests.test_family_060_morse_code
-908. Test: TemplatePackTests.test_family_061_atbash_cipher
-909. Test: TemplatePackTests.test_family_062_base64_encode_decode
-910. Test: TemplatePackTests.test_family_063_hash_a_string
-911. Test: TemplatePackTests.test_family_064_uuid_generation
-912. Test: TemplatePackTests.test_family_065_random_shuffle
-913. Test: TemplatePackTests.test_family_066_weighted_choice
-914. Test: TemplatePackTests.test_family_067_roll_dice_statistics
-915. Test: TemplatePackTests.test_family_068_deck_of_cards
-916. Test: TemplatePackTests.test_family_069_memoize_decorator
-917. Test: TemplatePackTests.test_family_070_retry_decorator
-918. Test: TemplatePackTests.test_family_071_singleton_pattern
-919. Test: TemplatePackTests.test_family_072_factory_pattern
-920. Test: TemplatePackTests.test_family_073_observer_pattern
-921. Test: TemplatePackTests.test_family_074_strategy_pattern
-922. Test: TemplatePackTests.test_family_075_namedtuple_example
-923. Test: TemplatePackTests.test_family_076_defaultdict_example
-924. Test: TemplatePackTests.test_family_077_heapq_example
-925. Test: TemplatePackTests.test_family_078_bisect_example
-926. Test: TemplatePackTests.test_family_079_itertools_example
-927. Test: TemplatePackTests.test_family_080_functools_reduce
-928. Test: TemplatePackTests.test_family_081_functools_partial
-929. Test: TemplatePackTests.test_family_082_context_manager_class
-930. Test: TemplatePackTests.test_family_083_contextmanager_decorator
-931. Test: TemplatePackTests.test_family_084_property_decorator
-932. Test: TemplatePackTests.test_family_085_classmethod_staticmethod
-933. Test: TemplatePackTests.test_family_086_frozen_dataclass
-934. Test: TemplatePackTests.test_family_087_dataclass_with_slots
-935. Test: TemplatePackTests.test_family_088_abc_abstract_class
-936. Test: TemplatePackTests.test_family_089_typeddict_example
-937. Test: TemplatePackTests.test_family_090_mro_multiple_inheritance
-938. Test: TemplatePackTests.test_family_091_counter_example
-939. Test: TemplatePackTests.test_family_092_chainmap_example
-940. Test: TemplatePackTests.test_family_093_csv_dict_reader
-941. Test: TemplatePackTests.test_family_094_csv_dict_writer
-942. Test: TemplatePackTests.test_family_095_json_pretty_print
-943. Test: TemplatePackTests.test_family_096_json_to_csv
-944. Test: TemplatePackTests.test_family_097_csv_to_json
-945. Test: TemplatePackTests.test_family_098_ini_config_parser
-946. Test: TemplatePackTests.test_family_099_xml_parse_example
-947. Test: TemplatePackTests.test_family_100_sqlite_basics
-948. Test: TemplatePackTests.test_family_101_sqlite_parameterized_query
-949. Test: TemplatePackTests.test_family_102_sqlite_context_manager
-950. Test: TemplatePackTests.test_family_103_copy_a_file
-951. Test: TemplatePackTests.test_family_104_move_or_rename_a_file
-952. Test: TemplatePackTests.test_family_105_delete_files_by_pattern
-953. Test: TemplatePackTests.test_family_106_make_directory_tree
-954. Test: TemplatePackTests.test_family_107_zip_files_into_archive
-955. Test: TemplatePackTests.test_family_108_unzip_archive
-956. Test: TemplatePackTests.test_family_109_human_readable_file_size
-957. Test: TemplatePackTests.test_family_110_check_if_file_exists
-958. Test: TemplatePackTests.test_family_111_temp_file_usage
-959. Test: TemplatePackTests.test_family_112_pathlib_tour
-960. Test: TemplatePackTests.test_family_113_read_file_in_chunks
-961. Test: TemplatePackTests.test_family_114_tail_a_file
-962. Test: TemplatePackTests.test_family_115_word_frequency_from_file
-963. Test: TemplatePackTests.test_family_116_grep_text_in_files
-964. Test: TemplatePackTests.test_family_117_bulk_rename_files
-965. Test: TemplatePackTests.test_family_118_deduplicate_files_by_hash
-966. Test: TemplatePackTests.test_family_119_download_a_file
-967. Test: TemplatePackTests.test_family_120_progress_bar
-968. Test: TemplatePackTests.test_family_121_text_spinner
-969. Test: TemplatePackTests.test_family_122_ansi_colors
-970. Test: TemplatePackTests.test_family_123_clear_the_screen
-971. Test: TemplatePackTests.test_family_124_terminal_menu
-972. Test: TemplatePackTests.test_family_125_stopwatch
-973. Test: TemplatePackTests.test_family_126_beep_sound
-974. Test: TemplatePackTests.test_family_127_rotating_log_files
-975. Test: TemplatePackTests.test_family_128_serve_a_directory
-976. Test: TemplatePackTests.test_family_129_http_client_with_retries
-977. Test: TemplatePackTests.test_family_130_url_parsing
-978. Test: TemplatePackTests.test_family_131_build_a_query_string
-979. Test: TemplatePackTests.test_family_132_json_http_post
-980. Test: TemplatePackTests.test_family_133_basic_auth_header
-981. Test: TemplatePackTests.test_family_134_rate_limiter
-982. Test: TemplatePackTests.test_total_family_count
-983. Test: TextPackTests.test_questions_not_hijacked
-984. Test: TextPackTests.test_rule_count
-985. Test: TextPackTests.test_rule_names_unique
-986. Test: TextPackTests.test_text_001_uppercase
-987. Test: TextPackTests.test_text_002_lowercase
-988. Test: TextPackTests.test_text_003_title_case
-989. Test: TextPackTests.test_text_004_capitalize
-990. Test: TextPackTests.test_text_005_swap_case
-991. Test: TextPackTests.test_text_006_reverse_text
-992. Test: TextPackTests.test_text_007_reverse_words
-993. Test: TextPackTests.test_text_008_count_words
-994. Test: TextPackTests.test_text_009_count_characters
-995. Test: TextPackTests.test_text_010_count_vowels
-996. Test: TextPackTests.test_text_011_count_consonants
-997. Test: TextPackTests.test_text_012_count_sentences
-998. Test: TextPackTests.test_text_013_reading_time
-999. Test: TextPackTests.test_text_014_word_frequency
-1000. Test: TextPackTests.test_text_015_slugify
-1001. Test: TextPackTests.test_text_016_snake_case
-1002. Test: TextPackTests.test_text_017_kebab_case
-1003. Test: TextPackTests.test_text_018_camel_case
-1004. Test: TextPackTests.test_text_019_initials
-1005. Test: TextPackTests.test_text_020_acronym
-1006. Test: TextPackTests.test_text_021_base64_encode
-1007. Test: TextPackTests.test_text_022_base64_decode
-1008. Test: TextPackTests.test_text_023_rot13
-1009. Test: TextPackTests.test_text_024_url_encode
-1010. Test: TextPackTests.test_text_025_binary_of_text
-1011. Test: TextPackTests.test_text_026_hex_of_text
-1012. Test: TextPackTests.test_text_027_sha256
-1013. Test: TextPackTests.test_text_028_md5
-1014. Test: TextPackTests.test_text_029_crc32
-1015. Test: TextPackTests.test_text_030_dedupe_lines
-1016. Test: TextPackTests.test_text_031_sort_lines
-1017. Test: TextPackTests.test_text_032_number_lines
-1018. Test: TextPackTests.test_text_033_strip_empty
-1019. Test: TextPackTests.test_text_034_collapse_spaces
-1020. Test: TextPackTests.test_text_035_trim
-1021. Test: TextPackTests.test_text_036_shuffle_lines
-1022. Test: TextPackTests.test_text_037_extract_emails
-1023. Test: TextPackTests.test_text_038_extract_urls
-1024. Test: TextPackTests.test_text_039_extract_numbers
-1025. Test: TextPackTests.test_text_040_extract_hashtags
-1026. Test: TextPackTests.test_text_041_extract_mentions
-1027. Test: TextPackTests.test_text_042_json_pretty
-1028. Test: TextPackTests.test_text_043_json_minify
-1029. Test: TextPackTests.test_text_044_csv_to_markdown
-1030. Test: TextPackTests.test_text_045_markdown_to_text
-1031. Test: TextPackTests.test_text_046_pig_latin
-1032. Test: TextPackTests.test_text_047_is_palindrome
-1033. Test: TextPackTests.test_text_048_is_isogram
-1034. Test: TextPackTests.test_text_049_anagrams
-1035. Test: TextPackTests.test_text_050_repeat_text
-1036. Test: TextPackTests.test_text_051_truncate
-1037. Test: TextPackTests.test_text_052_pad_text
-1038. Test: TextPackTests.test_text_053_replace_text
-1039. Test: TextPackTests.test_text_054_split_to_list
-1040. Test: TextPackTests.test_text_055_join_list
+738. Test: TemplatePackTests.test_all_extra_snippets_distinct
+739. Test: SeedPackTests.test_answer_length_sane
+740. Test: ApiPackTests.test_chat_batch
+741. Test: ApiPackTests.test_chat_batch_cap
+742. Test: ApiPackTests.test_chat_batch_validation
+743. Test: BrainPackTests.test_code_still_wins_for_code_asks
+744. Test: ApiPackTests.test_convert_endpoint
+745. Test: ApiPackTests.test_convert_endpoint_404
+746. Test: BrainPackTests.test_counter_grows
+747. Test: ApiPackTests.test_echo_endpoint
+748. Test: ApiPackTests.test_endpoints_listing
+749. Test: SeedPackTests.test_every_pair_has_content
+750. Test: TemplatePackTests.test_every_snippet_compiles
+751. Test: TemplatePackTests.test_family_001_linear_search
+752. Test: TemplatePackTests.test_family_002_selection_sort
+753. Test: TemplatePackTests.test_family_003_insertion_sort
+754. Test: TemplatePackTests.test_family_004_merge_sort
+755. Test: TemplatePackTests.test_family_005_quick_sort
+756. Test: TemplatePackTests.test_family_006_heap_sort
+757. Test: TemplatePackTests.test_family_007_counting_sort
+758. Test: TemplatePackTests.test_family_008_binary_search_recursive
+759. Test: TemplatePackTests.test_family_009_two_sum_problem
+760. Test: TemplatePackTests.test_family_010_maximum_subarray
+761. Test: TemplatePackTests.test_family_011_longest_common_prefix
+762. Test: TemplatePackTests.test_family_012_longest_common_subsequence
+763. Test: TemplatePackTests.test_family_013_edit_distance
+764. Test: TemplatePackTests.test_family_014_knapsack_0_1
+765. Test: TemplatePackTests.test_family_015_coin_change
+766. Test: TemplatePackTests.test_family_016_fibonacci_memoized
+767. Test: TemplatePackTests.test_family_017_pascal_triangle
+768. Test: TemplatePackTests.test_family_018_catalan_numbers
+769. Test: TemplatePackTests.test_family_019_prime_factorization
+770. Test: TemplatePackTests.test_family_020_sieve_of_eratosthenes
+771. Test: TemplatePackTests.test_family_021_nth_prime
+772. Test: TemplatePackTests.test_family_022_twin_primes
+773. Test: TemplatePackTests.test_family_023_perfect_numbers
+774. Test: TemplatePackTests.test_family_024_amicable_numbers
+775. Test: TemplatePackTests.test_family_025_happy_numbers
+776. Test: TemplatePackTests.test_family_026_kaprekar_number
+777. Test: TemplatePackTests.test_family_027_automorphic_number
+778. Test: TemplatePackTests.test_family_028_sum_of_divisors
+779. Test: TemplatePackTests.test_family_029_count_divisors
+780. Test: TemplatePackTests.test_family_030_euler_totient
+781. Test: TemplatePackTests.test_family_031_trailing_zeros_factorial
+782. Test: TemplatePackTests.test_family_032_binomial_coefficient
+783. Test: TemplatePackTests.test_family_033_permutations_and_combinations
+784. Test: TemplatePackTests.test_family_034_power_set
+785. Test: TemplatePackTests.test_family_035_cartesian_product
+786. Test: TemplatePackTests.test_family_036_rotate_a_list
+787. Test: TemplatePackTests.test_family_037_chunk_a_list
+788. Test: TemplatePackTests.test_family_038_partition_list
+789. Test: TemplatePackTests.test_family_039_group_by_key
+790. Test: TemplatePackTests.test_family_040_invert_a_dictionary
+791. Test: TemplatePackTests.test_family_041_sort_dict_by_value
+792. Test: TemplatePackTests.test_family_042_dict_from_two_lists
+793. Test: TemplatePackTests.test_family_043_deep_merge_dicts
+794. Test: TemplatePackTests.test_family_044_flatten_a_dict
+795. Test: TemplatePackTests.test_family_045_count_occurrences
+796. Test: TemplatePackTests.test_family_046_find_duplicates_in_list
+797. Test: TemplatePackTests.test_family_047_remove_falsy_values
+798. Test: TemplatePackTests.test_family_048_zip_longest
+799. Test: TemplatePackTests.test_family_049_pairwise_iteration
+800. Test: TemplatePackTests.test_family_050_matrix_multiplication
+801. Test: TemplatePackTests.test_family_051_matrix_addition
+802. Test: TemplatePackTests.test_family_052_identity_matrix
+803. Test: TemplatePackTests.test_family_053_determinant
+804. Test: TemplatePackTests.test_family_054_rotate_matrix
+805. Test: TemplatePackTests.test_family_055_spiral_matrix
+806. Test: TemplatePackTests.test_family_056_diagonal_sum
+807. Test: TemplatePackTests.test_family_057_string_to_int
+808. Test: TemplatePackTests.test_family_058_int_to_string
+809. Test: TemplatePackTests.test_family_059_vigenere_cipher
+810. Test: TemplatePackTests.test_family_060_morse_code
+811. Test: TemplatePackTests.test_family_061_atbash_cipher
+812. Test: TemplatePackTests.test_family_062_base64_encode_decode
+813. Test: TemplatePackTests.test_family_063_hash_a_string
+814. Test: TemplatePackTests.test_family_064_uuid_generation
+815. Test: TemplatePackTests.test_family_065_random_shuffle
+816. Test: TemplatePackTests.test_family_066_weighted_choice
+817. Test: TemplatePackTests.test_family_067_roll_dice_statistics
+818. Test: TemplatePackTests.test_family_068_deck_of_cards
+819. Test: TemplatePackTests.test_family_069_memoize_decorator
+820. Test: TemplatePackTests.test_family_070_retry_decorator
+821. Test: TemplatePackTests.test_family_071_singleton_pattern
+822. Test: TemplatePackTests.test_family_072_factory_pattern
+823. Test: TemplatePackTests.test_family_073_observer_pattern
+824. Test: TemplatePackTests.test_family_074_strategy_pattern
+825. Test: TemplatePackTests.test_family_075_namedtuple_example
+826. Test: TemplatePackTests.test_family_076_defaultdict_example
+827. Test: TemplatePackTests.test_family_077_heapq_example
+828. Test: TemplatePackTests.test_family_078_bisect_example
+829. Test: TemplatePackTests.test_family_079_itertools_example
+830. Test: TemplatePackTests.test_family_080_functools_reduce
+831. Test: TemplatePackTests.test_family_081_functools_partial
+832. Test: TemplatePackTests.test_family_082_context_manager_class
+833. Test: TemplatePackTests.test_family_083_contextmanager_decorator
+834. Test: TemplatePackTests.test_family_084_property_decorator
+835. Test: TemplatePackTests.test_family_085_classmethod_staticmethod
+836. Test: TemplatePackTests.test_family_086_frozen_dataclass
+837. Test: TemplatePackTests.test_family_087_dataclass_with_slots
+838. Test: TemplatePackTests.test_family_088_abc_abstract_class
+839. Test: TemplatePackTests.test_family_089_typeddict_example
+840. Test: TemplatePackTests.test_family_090_mro_multiple_inheritance
+841. Test: TemplatePackTests.test_family_091_counter_example
+842. Test: TemplatePackTests.test_family_092_chainmap_example
+843. Test: TemplatePackTests.test_family_093_csv_dict_reader
+844. Test: TemplatePackTests.test_family_094_csv_dict_writer
+845. Test: TemplatePackTests.test_family_095_json_pretty_print
+846. Test: TemplatePackTests.test_family_096_json_to_csv
+847. Test: TemplatePackTests.test_family_097_csv_to_json
+848. Test: TemplatePackTests.test_family_098_ini_config_parser
+849. Test: TemplatePackTests.test_family_099_xml_parse_example
+850. Test: TemplatePackTests.test_family_100_sqlite_basics
+851. Test: TemplatePackTests.test_family_101_sqlite_parameterized_query
+852. Test: TemplatePackTests.test_family_102_sqlite_context_manager
+853. Test: TemplatePackTests.test_family_103_copy_a_file
+854. Test: TemplatePackTests.test_family_104_move_or_rename_a_file
+855. Test: TemplatePackTests.test_family_105_delete_files_by_pattern
+856. Test: TemplatePackTests.test_family_106_make_directory_tree
+857. Test: TemplatePackTests.test_family_107_zip_files_into_archive
+858. Test: TemplatePackTests.test_family_108_unzip_archive
+859. Test: TemplatePackTests.test_family_109_human_readable_file_size
+860. Test: TemplatePackTests.test_family_110_check_if_file_exists
+861. Test: TemplatePackTests.test_family_111_temp_file_usage
+862. Test: TemplatePackTests.test_family_112_pathlib_tour
+863. Test: TemplatePackTests.test_family_113_read_file_in_chunks
+864. Test: TemplatePackTests.test_family_114_tail_a_file
+865. Test: TemplatePackTests.test_family_115_word_frequency_from_file
+866. Test: TemplatePackTests.test_family_116_grep_text_in_files
+867. Test: TemplatePackTests.test_family_117_bulk_rename_files
+868. Test: TemplatePackTests.test_family_118_deduplicate_files_by_hash
+869. Test: TemplatePackTests.test_family_119_download_a_file
+870. Test: TemplatePackTests.test_family_120_progress_bar
+871. Test: TemplatePackTests.test_family_121_text_spinner
+872. Test: TemplatePackTests.test_family_122_ansi_colors
+873. Test: TemplatePackTests.test_family_123_clear_the_screen
+874. Test: TemplatePackTests.test_family_124_terminal_menu
+875. Test: TemplatePackTests.test_family_125_stopwatch
+876. Test: TemplatePackTests.test_family_126_beep_sound
+877. Test: TemplatePackTests.test_family_127_rotating_log_files
+878. Test: TemplatePackTests.test_family_128_serve_a_directory
+879. Test: TemplatePackTests.test_family_129_http_client_with_retries
+880. Test: TemplatePackTests.test_family_130_url_parsing
+881. Test: TemplatePackTests.test_family_131_build_a_query_string
+882. Test: TemplatePackTests.test_family_132_json_http_post
+883. Test: TemplatePackTests.test_family_133_basic_auth_header
+884. Test: TemplatePackTests.test_family_134_rate_limiter
+885. Test: MathPackTests.test_math_001_factorial
+886. Test: MathPackTests.test_math_002_fibonacci
+887. Test: MathPackTests.test_math_003_is_prime_yes
+888. Test: MathPackTests.test_math_004_is_prime_no
+889. Test: MathPackTests.test_math_005_nth_prime
+890. Test: MathPackTests.test_math_006_gcd
+891. Test: MathPackTests.test_math_007_lcm
+892. Test: MathPackTests.test_math_008_prime_factors
+893. Test: MathPackTests.test_math_009_divisors
+894. Test: MathPackTests.test_math_010_digit_sum
+895. Test: MathPackTests.test_math_011_digital_root
+896. Test: MathPackTests.test_math_012_perfect_square
+897. Test: MathPackTests.test_math_013_palindrome_number
+898. Test: MathPackTests.test_math_014_leap_year
+899. Test: MathPackTests.test_math_015_divisible
+900. Test: MathPackTests.test_math_016_even_odd
+901. Test: MathPackTests.test_math_017_cube_root
+902. Test: MathPackTests.test_math_018_log10
+903. Test: MathPackTests.test_math_019_log2
+904. Test: MathPackTests.test_math_020_natural_log
+905. Test: MathPackTests.test_math_021_trig
+906. Test: MathPackTests.test_math_022_absolute
+907. Test: MathPackTests.test_math_023_floor
+908. Test: MathPackTests.test_math_024_ceiling
+909. Test: MathPackTests.test_math_025_round_decimals
+910. Test: MathPackTests.test_math_026_remainder
+911. Test: MathPackTests.test_math_027_percent_increase
+912. Test: MathPackTests.test_math_028_percent_decrease
+913. Test: MathPackTests.test_math_029_tip
+914. Test: MathPackTests.test_math_030_simple_interest
+915. Test: MathPackTests.test_math_031_compound_interest
+916. Test: MathPackTests.test_math_032_grade
+917. Test: MathPackTests.test_math_033_circle
+918. Test: MathPackTests.test_math_034_rectangle
+919. Test: MathPackTests.test_math_035_triangle
+920. Test: MathPackTests.test_math_036_sphere
+921. Test: MathPackTests.test_math_037_cylinder
+922. Test: MathPackTests.test_math_038_pythagoras
+923. Test: MathPackTests.test_math_039_distance
+924. Test: MathPackTests.test_math_040_midpoint
+925. Test: MathPackTests.test_math_041_slope
+926. Test: MathPackTests.test_math_042_speed
+927. Test: MathPackTests.test_math_043_travel_time
+928. Test: MathPackTests.test_math_044_bmi
+929. Test: MathPackTests.test_math_045_sum_range
+930. Test: MathPackTests.test_math_046_sum_squares
+931. Test: MathPackTests.test_math_047_triangular
+932. Test: MathPackTests.test_math_048_median
+933. Test: MathPackTests.test_math_049_mode
+934. Test: MathPackTests.test_math_050_range
+935. Test: MathPackTests.test_math_051_variance
+936. Test: MathPackTests.test_math_052_stddev
+937. Test: MathPackTests.test_math_053_geometric_mean
+938. Test: MathPackTests.test_math_054_harmonic_mean
+939. Test: MathPackTests.test_math_055_decimal_to_fraction
+940. Test: MathPackTests.test_math_056_fraction_to_decimal
+941. Test: MathPackTests.test_math_057_simplify_fraction
+942. Test: MathPackTests.test_math_058_add_fractions
+943. Test: MathPackTests.test_math_059_multiply_fractions
+944. Test: MathPackTests.test_math_060_ratio
+945. Test: MathPackTests.test_math_061_independent_probability
+946. Test: MathPackTests.test_math_062_coin_run
+947. Test: MathPackTests.test_math_063_dice_double
+948. Test: MathPackTests.test_math_064_hex_to_rgb
+949. Test: MathPackTests.test_math_065_rgb_to_hex
+950. Test: MathPackTests.test_math_066_quadratic
+951. Test: MathPackTests.test_math_067_percent_of
+952. Test: MathPackTests.test_math_068_what_percent_of
+953. Test: MathPackTests.test_math_069_percent_off
+954. Test: ApiPackTests.test_math_endpoint
+955. Test: ApiPackTests.test_math_endpoint_400
+956. Test: ApiPackTests.test_math_endpoint_404
+957. Test: BrainPackTests.test_maths_pack_answer
+958. Test: ApiPackTests.test_metrics_endpoint
+959. Test: SeedPackTests.test_no_duplicate_questions
+960. Test: SeedPackTests.test_no_markup_in_answers
+961. Test: ApiPackTests.test_page_has_v110_controls
+962. Test: SeedPackTests.test_pair_count
+963. Test: TextPackTests.test_questions_not_hijacked
+964. Test: BrainPackTests.test_quick_answer_uses_mathx
+965. Test: BrainPackTests.test_quick_answer_uses_textfx
+966. Test: ApiPackTests.test_quote_endpoint
+967. Test: ApiPackTests.test_request_id_echoed
+968. Test: ApiPackTests.test_request_id_header
+969. Test: ApiPackTests.test_roman_endpoint_number
+970. Test: ApiPackTests.test_roman_endpoint_roman
+971. Test: MathPackTests.test_rule_count
+972. Test: TextPackTests.test_rule_count
+973. Test: MathPackTests.test_rule_names_unique
+974. Test: TextPackTests.test_rule_names_unique
+975. Test: ApiPackTests.test_rules_endpoint
+976. Test: BrainPackTests.test_seed_knowledge_reachable
+977. Test: SeedPackTests.test_seed_merge_is_additive
+978. Test: SeedPackTests.test_seed_topic_is_answerable
+979. Test: ApiPackTests.test_server_timing_header
+980. Test: TextPackTests.test_text_001_uppercase
+981. Test: TextPackTests.test_text_002_lowercase
+982. Test: TextPackTests.test_text_003_title_case
+983. Test: TextPackTests.test_text_004_capitalize
+984. Test: TextPackTests.test_text_005_swap_case
+985. Test: TextPackTests.test_text_006_reverse_text
+986. Test: TextPackTests.test_text_007_reverse_words
+987. Test: TextPackTests.test_text_008_count_words
+988. Test: TextPackTests.test_text_009_count_characters
+989. Test: TextPackTests.test_text_010_count_vowels
+990. Test: TextPackTests.test_text_011_count_consonants
+991. Test: TextPackTests.test_text_012_count_sentences
+992. Test: TextPackTests.test_text_013_reading_time
+993. Test: TextPackTests.test_text_014_word_frequency
+994. Test: TextPackTests.test_text_015_slugify
+995. Test: TextPackTests.test_text_016_snake_case
+996. Test: TextPackTests.test_text_017_kebab_case
+997. Test: TextPackTests.test_text_018_camel_case
+998. Test: TextPackTests.test_text_019_initials
+999. Test: TextPackTests.test_text_020_acronym
+1000. Test: TextPackTests.test_text_021_base64_encode
+1001. Test: TextPackTests.test_text_022_base64_decode
+1002. Test: TextPackTests.test_text_023_rot13
+1003. Test: TextPackTests.test_text_024_url_encode
+1004. Test: TextPackTests.test_text_025_binary_of_text
+1005. Test: TextPackTests.test_text_026_hex_of_text
+1006. Test: TextPackTests.test_text_027_sha256
+1007. Test: TextPackTests.test_text_028_md5
+1008. Test: TextPackTests.test_text_029_crc32
+1009. Test: TextPackTests.test_text_030_dedupe_lines
+1010. Test: TextPackTests.test_text_031_sort_lines
+1011. Test: TextPackTests.test_text_032_number_lines
+1012. Test: TextPackTests.test_text_033_strip_empty
+1013. Test: TextPackTests.test_text_034_collapse_spaces
+1014. Test: TextPackTests.test_text_035_trim
+1015. Test: TextPackTests.test_text_036_shuffle_lines
+1016. Test: TextPackTests.test_text_037_extract_emails
+1017. Test: TextPackTests.test_text_038_extract_urls
+1018. Test: TextPackTests.test_text_039_extract_numbers
+1019. Test: TextPackTests.test_text_040_extract_hashtags
+1020. Test: TextPackTests.test_text_041_extract_mentions
+1021. Test: TextPackTests.test_text_042_json_pretty
+1022. Test: TextPackTests.test_text_043_json_minify
+1023. Test: TextPackTests.test_text_044_csv_to_markdown
+1024. Test: TextPackTests.test_text_045_markdown_to_text
+1025. Test: TextPackTests.test_text_046_pig_latin
+1026. Test: TextPackTests.test_text_047_is_palindrome
+1027. Test: TextPackTests.test_text_048_is_isogram
+1028. Test: TextPackTests.test_text_049_anagrams
+1029. Test: TextPackTests.test_text_050_repeat_text
+1030. Test: TextPackTests.test_text_051_truncate
+1031. Test: TextPackTests.test_text_052_pad_text
+1032. Test: TextPackTests.test_text_053_replace_text
+1033. Test: TextPackTests.test_text_054_split_to_list
+1034. Test: TextPackTests.test_text_055_join_list
+1035. Test: ApiPackTests.test_text_endpoint
+1036. Test: ApiPackTests.test_text_endpoint_404_lists_rules
+1037. Test: BrainPackTests.test_text_pack_answer
+1038. Test: BrainPackTests.test_text_pack_skill_tag
+1039. Test: SeedPackTests.test_texts_present
+1040. Test: TemplatePackTests.test_total_family_count
+1041. Test: MathPackTests.test_unrelated_text_no_match
+1042. Test: ApiPackTests.test_uptime_endpoint
+1043. Test: ApiPackTests.test_version_header
 
-### Efficiency (4)
+### Efficiency (5)
 
-1041. `codegen.has_template` memoised with lru_cache (hot path, pure)
-1042. `mathx.solve` memoised with lru_cache
-1043. `textfx.solve` memoised with lru_cache
-1044. Seed texts deduplicated on load (`dict.fromkeys`)
+1044. `codegen.has_template` memoised with lru_cache (hot path, pure)
+1045. `mathx.solve` memoised with lru_cache
+1046. `textfx.solve` memoised with lru_cache
+1047. Seed texts deduplicated on load (`dict.fromkeys`)
+1048. Seed merge hashes normalised questions once per boot (`O(n)` set lookups, not a nested scan) and re-trains briefly (4 epochs) only when it actually added something
 
-### Bugs fixed (9)
+### Bugs fixed (10)
 
-1045. `/api/uptime` and `/api/metrics` referenced `_started_monotonic`, which v1.9 had removed — restored
-1046. `rgb_to_hex` never matched: the pattern demanded a separator that callers omit
-1047. `reverse words:` was swallowed by the reverse-text rule — rule tightened
-1048. `json pretty:` was swallowed by the pretty-print-json rule — pattern extended
-1049. 28 new template asks did not match their own regex — `_broaden()` now guarantees it
-1050. 28 generated per-family tests assumed first-match identity — made match-aware, exposing real overlaps
-1051. "what is 17% of 250" fell through to the curiosity fallback — percent-of/off/what-percent rules added
-1052. `Brain._find_math` understood "20 percent of 150" but not "17% of 250" — `% of` now normalised
-1053. Docstring counts drifted from reality (130→134 families, 48→62 maths rules, 45→55 text rules) — corrected
+1049. `/api/uptime` and `/api/metrics` referenced `_started_monotonic`, which v1.9 had removed — restored
+1050. `rgb_to_hex` never matched: the pattern demanded a separator that callers omit
+1051. `reverse words:` was swallowed by the reverse-text rule — rule tightened
+1052. `json pretty:` was swallowed by the pretty-print-json rule — pattern extended
+1053. 28 new template asks did not match their own regex — `_broaden()` now guarantees it
+1054. 28 generated per-family tests assumed first-match identity — made match-aware, exposing real overlaps
+1055. "what is 17% of 250" fell through to the curiosity fallback — percent-of/off/what-percent rules added
+1056. `Brain._find_math` understood "20 percent of 150" but not "17% of 250" — `% of` now normalised
+1057. Docstring counts drifted from reality (130→134 families, 48→62 maths rules, 45→55 text rules) — corrected
+1058. New seed knowledge never reached an existing `data/` folder — the `not self.memory.pairs` guard meant updates shipped knowledge that returned "curious" forever (found live: *what is a trie*)
 
 ### Docs (4)
 
-1054. Version bumped to 1.10.0
-1055. README: 218 template families, both new packs, 11 endpoints, 420 tests, new WebUI blocks
-1056. CHANGELOG: this release, numbered end to end
-1057. Both pack docstrings reconciled with the real rule counts
+1059. Version bumped to 1.10.0
+1060. README: 218 template families, both new packs, 11 endpoints, 420 tests, new WebUI blocks
+1061. CHANGELOG: this release, numbered end to end
+1062. Both pack docstrings reconciled with the real rule counts
 
-**Total: 1057 numbered items.** Counting convention matches v1.8/v1.9:
+**Total: 1062 numbered items.** Counting convention matches v1.8/v1.9:
 one item per template family, seed pair or text, maths/text rule,
 endpoint, UI behaviour, test method and fix — so the same underlying
 capability is counted at each layer where it ships (code, brain, API,

@@ -335,7 +335,7 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 
 ## Tests
 
-**420 tests** — 116 smoke tests plus 304 in `tests/test_v110.py`. A generator
+**422 tests** — 116 smoke tests plus 306 in `tests/test_v110.py`. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11

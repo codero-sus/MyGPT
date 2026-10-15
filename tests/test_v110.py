@@ -295,6 +295,33 @@ class SeedPackTests(unittest.TestCase):
     def test_pair_count(self):
         self.assertGreaterEqual(len(self.data["pairs"]), 400)
 
+    def test_seed_merge_is_additive(self):
+        """A later boot must merge *new* seed entries into existing memory."""
+        import tempfile
+        from mygpt.brain import Brain
+        d = tempfile.mkdtemp()
+        b1 = Brain(d, None)                       # boot with no seed
+        before = len(b1.memory.pairs)
+        b2 = Brain(d, os.path.join(ROOT, "seed_corpus.json"))
+        self.assertGreater(len(b2.memory.pairs), before,
+                           "seed pairs were ignored because memory was not empty")
+        # and it is idempotent: a third boot adds nothing new
+        b3 = Brain(d, os.path.join(ROOT, "seed_corpus.json"))
+        self.assertEqual(len(b3.memory.pairs), len(b2.memory.pairs))
+
+    def test_seed_topic_is_answerable(self):
+        """A v1.10 seed topic must come back as knowledge, not curiosity."""
+        import tempfile
+        from mygpt.brain import Brain
+        b = Brain(tempfile.mkdtemp(), os.path.join(ROOT, "seed_corpus.json"))
+        for q, expect in (("what is a trie", "prefix tree"),
+                          ("what is a bloom filter", "probabilistic"),
+                          ("what is tf-idf", "document frequency")):
+            got = b.reply(q)
+            got = got if isinstance(got, dict) else got.__dict__
+            self.assertEqual(got["mode"], "memory", f"{q!r} -> {got['mode']}")
+            self.assertIn(expect, got["reply"].lower())
+
     def test_no_duplicate_questions(self):
         qs = [p["q"].lower().strip() for p in self.data["pairs"]]
         self.assertEqual(len(qs), len(set(qs)))

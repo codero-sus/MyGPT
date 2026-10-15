@@ -150,17 +150,37 @@ class Brain:
                 self.loss_history = meta.get("loss_history", [])
                 self.events = meta.get("events", [])
 
-        if (not self.memory.pairs and self._seed_path
-                and os.path.exists(self._seed_path)):
+        # Seeding is additive and idempotent: first boot imports the whole
+        # starter corpus, and every later boot merges only the pairs/texts an
+        # update added — so new seed knowledge reaches existing data/ folders
+        # instead of being ignored because memory is no longer empty.
+        first_boot = not self.memory.pairs
+        if self._seed_path and os.path.exists(self._seed_path):
             with open(self._seed_path, encoding="utf-8") as f:
                 seed = json.load(f)
+            known = {normalize(p["q"]) for p in self.memory.pairs}
+            added = 0
             for item in seed.get("pairs", []):
+                key = normalize(item["q"])
+                if key in known:
+                    continue
+                known.add(key)
                 self.memory.add(item["q"], item["a"])
-            for line in seed.get("texts", []):
+                added += 1
+            seen = {normalize(c) for c in self.corpus}
+            fresh = [ln for ln in seed.get("texts", [])
+                     if normalize(ln) not in seen]
+            for line in fresh:
                 self._ingest(line, train=False)
-            self._log("seeded with starter knowledge")
-            self.train(epochs=12, reason="initial training")
-        elif self.corpus:
+                seen.add(normalize(line))
+            if added or fresh:
+                self._log(f"seeded with starter knowledge "
+                          f"(+{added} pairs, +{len(fresh)} texts)")
+            if first_boot:
+                self.train(epochs=12, reason="initial training")
+            elif added:
+                self.train(epochs=4, reason="seed update training")
+        if not first_boot and self.corpus:
             for line in self.corpus:
                 self.lm.observe(line)
 
