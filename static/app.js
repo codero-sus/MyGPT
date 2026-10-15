@@ -361,7 +361,9 @@ function addChain(chain, wrap) {
 }
 
 function addBotReply(data, elapsedMs) {
+  if (document.hidden) flashTitle(1);
   const wrap = addMessage("bot", data.reply);
+  addMessageActions(wrap, data.reply);
   addChain(data.chain, wrap);
 
   const meta = document.createElement("div");
@@ -475,14 +477,25 @@ async function send() {
   const input = $("input");
   const text = input.value.trim();
   if (!text || busy) return;
+  if (!navigator.onLine) {
+    queueMessage(text);
+    input.value = "";
+    autoGrow();
+    updateCharCount();
+    saveDraft();
+    toast("📴 queued — it will send when you're back online");
+    return;
+  }
   busy = true;
+  chatEl.setAttribute("aria-busy", "true");   // screen readers: reply pending
   lastUserText = text;
   input.value = "";
   input.style.height = "auto";
   saveDraft();
   $("send").disabled = true;
 
-  addMessage("user", text, { force: true });
+  const userWrap = addMessage("user", text, { force: true });
+  addMessageActions(userWrap, text);
   const typingWrap = addMessage("bot", "", { force: true });
   typingWrap.querySelector(".bubble").innerHTML =
     '<span class="typing"><span></span><span></span><span></span></span>';
@@ -510,6 +523,8 @@ async function send() {
   typingWrap.closest(".msg").remove();
   const elapsed = Date.now() - t0;
   if (data.ok) {
+    if (prefs.sound === "on") chime();
+    maybeNotify(data.reply || "");
     addBotReply(data, elapsed);
   } else {
     const wrap = addMessage("bot", "⚠️ " + (data.error || "something went wrong"));
@@ -521,6 +536,7 @@ async function send() {
   }
 
   busy = false;
+  chatEl.removeAttribute("aria-busy");
   $("send").disabled = false;
   input.focus();
   refreshSidebars();
@@ -1688,6 +1704,357 @@ function updateCharCount() {
   }
 }
 
+
+/* ======================================================================
+   v1.10 UI pack — density, contrast, motion, sidebar, sound, pins,
+   share/print/help/about, first/copy-all/edit-last, idle pause, offline
+   queue, chat-batch helpers, notification + title badge.
+   ====================================================================== */
+
+const PREFS_KEY = "mygpt.prefs";
+const prefs = {
+  density: "comfortable", contrast: "normal", motion: "full",
+  sidebar: "open", sound: "off", notify: "off", pins: [],
+};
+
+function loadPrefs() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+    Object.assign(prefs, saved);
+    if (!Array.isArray(prefs.pins)) prefs.pins = [];
+  } catch (e) { /* ignore */ }
+}
+
+function savePrefs() {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* ignore */ }
+}
+
+function applyPrefs() {
+  document.documentElement.dataset.density = prefs.density;
+  document.documentElement.dataset.contrast = prefs.contrast;
+  document.documentElement.dataset.motion = prefs.motion;
+  document.body.classList.toggle("sidebar-collapsed", prefs.sidebar === "closed");
+  $("density-btn").classList.toggle("on", prefs.density === "compact");
+  $("contrast-btn").classList.toggle("on", prefs.contrast === "high");
+  $("motion-btn").classList.toggle("on", prefs.motion === "reduced");
+  $("sidebar-btn").classList.toggle("on", prefs.sidebar === "closed");
+  $("sound-btn").classList.toggle("on", prefs.sound === "on");
+  $("notify-btn").classList.toggle("on", prefs.notify === "on");
+  renderPins();
+}
+
+/* ---- audible chime (WebAudio, no asset files) ---- */
+function chime() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.26);
+    setTimeout(() => ctx.close(), 500);
+  } catch (e) { /* audio unavailable */ }
+}
+
+/* ---- desktop notification + title badge when the tab is hidden ---- */
+let _titleTimer = null;
+
+function flashTitle(count) {
+  if (!document.hidden) return;
+  const base = document.title.replace(/^\(\d+\)\s*/, "");
+  document.title = `(${count}) ${base}`;
+  clearInterval(_titleTimer);
+  let on = false;
+  _titleTimer = setInterval(() => {
+    on = !on;
+    document.title = on ? `🔔 ${base}` : `(${count}) ${base}`;
+    if (!document.hidden) {
+      clearInterval(_titleTimer);
+      document.title = base;
+    }
+  }, 900);
+}
+
+function maybeNotify(text) {
+  if (prefs.notify !== "on" || !document.hidden) return;
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    try { new Notification("MyGPT", { body: text.slice(0, 120) }); } catch (e) { /* ignore */ }
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+}
+
+/* ---- pinned messages strip ---- */
+function renderPins() {
+  const bar = $("pins-bar");
+  if (!bar) return;
+  bar.innerHTML = "";
+  bar.classList.toggle("hidden", !prefs.pins.length);
+  prefs.pins.forEach((pin, i) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "pin-chip";
+    chip.title = "Click to copy · right-click to unpin";
+    chip.textContent = "📌 " + pin.slice(0, 34) + (pin.length > 34 ? "…" : "");
+    chip.onclick = async () => {
+      try { await navigator.clipboard.writeText(pin); toast("Pinned text copied ⧉"); }
+      catch (e) { toast("⚠️ clipboard unavailable"); }
+    };
+    chip.oncontextmenu = (e) => {
+      e.preventDefault();
+      prefs.pins.splice(i, 1);
+      savePrefs();
+      renderPins();
+      toast("Unpinned");
+    };
+    bar.appendChild(chip);
+  });
+}
+
+function pinText(text) {
+  const clean = text.trim().slice(0, 200);
+  if (!clean) return;
+  if (prefs.pins.includes(clean)) return toast("Already pinned");
+  if (prefs.pins.length >= 8) prefs.pins.shift();
+  prefs.pins.push(clean);
+  savePrefs();
+  renderPins();
+  toast("📌 Pinned");
+}
+
+/* ---- offline queue: messages typed while disconnected ---- */
+const QUEUE_KEY = "mygpt.queue";
+
+function queueMessage(text) {
+  try {
+    const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+    q.push(text);
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-20)));
+  } catch (e) { /* ignore */ }
+}
+
+async function flushQueue() {
+  let q = [];
+  try { q = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch (e) { return; }
+  if (!q.length) return;
+  localStorage.setItem(QUEUE_KEY, "[]");
+  toast(`📤 sending ${q.length} queued message(s)`);
+  for (const text of q) {
+    $("input").value = text;
+    await send();
+  }
+}
+
+window.addEventListener("online", () => {
+  updateOnlineStatus();
+  toast("🌐 back online");
+  flushQueue();
+});
+window.addEventListener("offline", () => {
+  updateOnlineStatus();
+  toast("📴 offline — messages will queue");
+});
+
+/* ---- idle detection: pause polling after 5 quiet minutes ---- */
+let _lastActivity = Date.now();
+let _idle = false;
+["pointerdown", "keydown", "wheel"].forEach((ev) =>
+  window.addEventListener(ev, () => {
+    _lastActivity = Date.now();
+    if (_idle) { _idle = false; toast("👋 welcome back"); }
+  }, { passive: true }));
+setInterval(() => {
+  _idle = Date.now() - _lastActivity > 5 * 60 * 1000;
+}, 30000);
+
+/* ---- actions bar: first message, copy all, edit last ---- */
+$("first-btn").addEventListener("click", () => {
+  const first = chatEl.querySelector(".msg");
+  if (!first) return toast("Nothing here yet.");
+  first.scrollIntoView({ behavior: "smooth", block: "start" });
+  first.classList.add("flash");
+  setTimeout(() => first.classList.remove("flash"), 900);
+});
+
+$("copy-all-btn").addEventListener("click", async () => {
+  const lines = [];
+  chatEl.querySelectorAll(".msg").forEach((m) => {
+    const who = m.classList.contains("user") ? "You" : "MyGPT";
+    const bubble = m.querySelector(".bubble");
+    if (bubble && bubble.innerText.trim()) lines.push(`${who}: ${bubble.innerText.trim()}`);
+  });
+  if (!lines.length) return toast("Nothing to copy yet.");
+  const text = `MyGPT transcript — ${new Date().toLocaleString()}\n\n` + lines.join("\n\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(`⧉ copied ${lines.length} message(s)`);
+  } catch (e) { toast("⚠️ clipboard unavailable"); }
+});
+
+$("edit-last-btn").addEventListener("click", () => {
+  if (!lastUserText) return toast("Nothing to edit yet.");
+  $("input").value = lastUserText;
+  autoGrow();
+  updateCharCount();
+  $("input").focus();
+  toast("✏️ last message loaded");
+});
+
+/* ---- header toggles ---- */
+$("density-btn").addEventListener("click", () => {
+  prefs.density = prefs.density === "compact" ? "comfortable" : "compact";
+  savePrefs();
+  applyPrefs();
+  toast(prefs.density === "compact" ? "📐 compact" : "📐 comfortable");
+});
+
+$("contrast-btn").addEventListener("click", () => {
+  prefs.contrast = prefs.contrast === "high" ? "normal" : "high";
+  savePrefs();
+  applyPrefs();
+  toast(prefs.contrast === "high" ? "◐ high contrast" : "◐ normal contrast");
+});
+
+$("motion-btn").addEventListener("click", () => {
+  prefs.motion = prefs.motion === "reduced" ? "full" : "reduced";
+  savePrefs();
+  applyPrefs();
+  toast(prefs.motion === "reduced" ? "🎞 animations reduced" : "🎞 animations on");
+});
+
+$("sidebar-btn").addEventListener("click", toggleSidebar);
+
+function toggleSidebar() {
+  prefs.sidebar = prefs.sidebar === "closed" ? "open" : "closed";
+  savePrefs();
+  applyPrefs();
+}
+
+$("sound-btn").addEventListener("click", () => {
+  prefs.sound = prefs.sound === "on" ? "off" : "on";
+  savePrefs();
+  applyPrefs();
+  if (prefs.sound === "on") { chime(); toast("🔔 chime on"); }
+  else toast("🔔 chime off");
+});
+
+$("notify-btn").addEventListener("click", async () => {
+  prefs.notify = prefs.notify === "on" ? "off" : "on";
+  savePrefs();
+  applyPrefs();
+  if (prefs.notify === "on" && "Notification" in window &&
+      Notification.permission !== "granted") {
+    try { await Notification.requestPermission(); } catch (e) { /* ignore */ }
+  }
+  toast(prefs.notify === "on" ? "🖥 notifications on" : "🖥 notifications off");
+});
+
+$("share-btn").addEventListener("click", async () => {
+  const lines = [];
+  chatEl.querySelectorAll(".msg").forEach((m) => {
+    const bubble = m.querySelector(".bubble");
+    if (bubble && bubble.innerText.trim()) {
+      lines.push((m.classList.contains("user") ? "You: " : "MyGPT: ") + bubble.innerText.trim());
+    }
+  });
+  const text = lines.join("\n\n") || "MyGPT — self-training chatbot by codero-sus";
+  if (navigator.share) {
+    try { await navigator.share({ title: "MyGPT conversation", text }); return; }
+    catch (e) { /* fall through to clipboard */ }
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("🔗 conversation copied — paste it anywhere");
+  } catch (e) { toast("⚠️ sharing unavailable"); }
+});
+
+$("print-btn").addEventListener("click", () => window.print());
+
+$("help-btn").addEventListener("click", () => $("help-modal").showModal());
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "?" && !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+    e.preventDefault();
+    $("help-modal").showModal();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+    e.preventDefault();
+    toggleSidebar();
+  }
+});
+
+/* About dialog gets live version info */
+(async function fillAbout() {
+  try {
+    const v = await api("/api/version");
+    $("about-version").textContent =
+      `version ${v.version} · ${(await api("/api/endpoints")).count} endpoints`;
+  } catch (e) { /* offline is fine */ }
+})();
+
+/* ---- message action bar (copy / pin / quote) ---- */
+function addMessageActions(wrap, text) {
+  const row = document.createElement("div");
+  row.className = "msg-actions";
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.textContent = "⧉";
+  copy.title = "Copy this message";
+  copy.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); toast("Copied ⧉"); }
+    catch (e) { toast("⚠️ clipboard unavailable"); }
+  };
+  const pin = document.createElement("button");
+  pin.type = "button";
+  pin.textContent = "📌";
+  pin.title = "Pin this message";
+  pin.onclick = () => pinText(text);
+  const quote = document.createElement("button");
+  quote.type = "button";
+  quote.textContent = "❝";
+  quote.title = "Quote in the composer";
+  quote.onclick = () => {
+    const snippet = text.split("\n")[0].slice(0, 80);
+    $("input").value = `> ${snippet}\n` + $("input").value;
+    autoGrow();
+    updateCharCount();
+    $("input").focus();
+  };
+  row.append(copy, pin, quote);
+  wrap.appendChild(row);
+  return row;
+}
+
+/* ---- connection quality (ping latency in the status text) ---- */
+async function measurePing() {
+  const t0 = Date.now();
+  try {
+    await fetch("/api/ping", { cache: "no-store" });
+    return Date.now() - t0;
+  } catch (e) {
+    return null;
+  }
+}
+
+setInterval(async () => {
+  if (_idle || document.hidden) return;
+  const ms = await measurePing();
+  const el = $("status-text");
+  if (!el) return;
+  const quality = ms == null ? "offline" :
+    ms < 60 ? "fast" : ms < 250 ? "steady" : "slow";
+  el.dataset.ping = ms == null ? "" : String(ms);
+  el.title = ms == null ? "no connection" : `round-trip ${ms} ms (${quality})`;
+}, 45000);
+
 /* ---------------- boot ---------------- */
 
 const GREETING =
@@ -1738,8 +2105,10 @@ async function restoreHistory() {
 }
 
 (async function boot() {
+  loadPrefs();
   initTheme();
   initZoom();
+  applyPrefs();
   updateOnlineStatus();
   const hadHistory = await restoreHistory();
   if (!hadHistory) {
@@ -1754,5 +2123,9 @@ async function restoreHistory() {
   $("font-dec").addEventListener("click", () => bumpZoom(-1));
   refreshSidebars();
   refreshBackends();
+  measurePing().then((ms) => {
+    if (ms != null) $("status-text").title = `round-trip ${ms} ms`;
+  });
+  if (localStorage.getItem("mygpt.queue")) flushQueue();
   $("input").focus();
 })();

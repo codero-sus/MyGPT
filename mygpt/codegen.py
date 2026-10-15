@@ -8,6 +8,7 @@ then points the user to codero-sus on GitHub for more.
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 AUTHOR = "codero-sus"
 GITHUB_URL = "https://github.com/codero-sus"
@@ -1015,19 +1016,37 @@ def _num_words_code(m, goal):
     )
 
 
-TEMPLATE_HINT = ("primes, fibonacci, factorials, digit sums, palindromes, "
-                 "anagrams, statistics (mean/median/std), gcd/lcm, base "
-                 "conversion, dates & weekdays, circle/sphere/triangle geometry, "
-                 "armstrong numbers, powers of two, unit conversion, word counts, "
-                 "sorting, binary search, fizzbuzz, file/CSV/JSON I/O, classes, "
-                 "HTTP requests, regex, timers, randomness, caesar cipher, "
-                 "passwords, countdowns, matrices, leap years, flattening, "
-                 "dict merging, zipping, f-strings, set operations, games "
-                 "(guessing/RPS/hangman), todo & contacts apps, BMI/age, "
-                 "stacks, linked lists, decorators, generators, dataclasses, "
-                 "enums, exceptions, comprehensions, argparse, logging, "
-                 "unittest, directory walking, scraping, env vars, config "
-                 "loaders, collatz, pangrams, pyramids and number-to-words")
+TEMPLATE_HINT = (
+    "primes, fibonacci, factorials, digit sums, palindromes, anagrams, "
+    "statistics (mean/median/std), gcd/lcm, base conversion, dates & "
+    "weekdays, circle/sphere/triangle geometry, armstrong numbers, powers of "
+    "two, unit conversion, word counts, sorting, binary search, fizzbuzz, "
+    "file/CSV/JSON I/O, classes, HTTP requests, regex, timers, randomness, "
+    "caesar cipher, passwords, countdowns, matrices, leap years, flattening, "
+    "dict merging, zipping, f-strings, set operations, games (guessing/RPS/"
+    "hangman), todo & contacts apps, BMI/age, stacks, linked lists, mutable "
+    "vs immutable, decorators, generators, dataclasses, enums, exceptions, "
+    "comprehensions, argparse, logging, unittest, directory walking, "
+    "scraping, env vars, config files, "
+    # ---- v1.10 pack: 134 extra families ----
+    "data structures (stacks, queues, trees, heaps, tries, graphs, bloom "
+    "filters), sorting variants, dynamic programming, bit tricks, caching, "
+    "batching, retries, rate limits, hashing, encoding (base64/hex/url/rot13), "
+    "csv/tsv/json/yaml/toml round-trips, sqlite, pathlib, tempfiles, zipping, "
+    "logging setup, pytest/unittest skeletons, argparse CLIs, type hints, "
+    "async/await, threads, multiprocessing, itertools, functools, context "
+    "managers, properties, slots, protocols, ABCs, decorators with args, "
+    "coroutines, benchmarking, memoisation, LIS/LCS/edit distance, knapsack, "
+    "dijkstra, BFS/DFS, topological sort, union-find, sliding window, two "
+    "pointers, string similarity, validation (email, phone, ISBN, card), "
+    "sanitising, JWT/HS256, differences, HTML escaping, markdown tables, "
+    "pagination, retry decorators, circuit breakers, feature flags, event "
+    "emitters, pub/sub, state machines, LRU/TTL caches, rate limiters, "
+    "backoff, chunking, streaming, word counts, dates & times, timezones, "
+    "cron parsing, UUIDs, ULIDs, secrets, tokens, checksums, loaders, collatz, "
+    "pangrams, pyramids, number-to-words, design patterns, grep, progress "
+    "bars, terminal UIs and more"
+)
 
 
 # A templated ask counts as a code request even without the literal word
@@ -1039,8 +1058,33 @@ CODE_VERB = re.compile(
     r"validate|reverse|split|join|remove|dedupe|read|sample)\b", re.I)
 
 
+def register_family(name: str, pattern: str, code: str) -> None:
+    """Register a template from data (used by the v1.10 snippets pack)."""
+    def compose(_m, _goal, _code=code):
+        return _code
+
+    FAMILIES.append({"name": name, "re": re.compile(pattern, re.I),
+                     "compose": compose})
+
+
+@lru_cache(maxsize=1024)
 def has_template(text: str) -> bool:
+    """True when any family regex matches (memoised — pure and hot)."""
     return any(fam["re"].search(text) for fam in FAMILIES)
+
+
+# ---- v1.10: register the extra snippets pack (130 more families) ---------
+def _register_extras() -> None:
+    """Register the v1.10 snippets pack (134 families) after the originals."""
+    from .snippets_more import EXTRA
+    known = {f["name"] for f in FAMILIES}
+    for name, pattern, _ask, code in EXTRA:
+        if name not in known:
+            register_family(name, pattern, code)
+
+
+_register_extras()
+# -------------------------------------------------------------------------
 
 
 def wants_code(text: str) -> bool:

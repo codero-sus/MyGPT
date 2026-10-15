@@ -1,125 +1,1929 @@
 {
   "pairs": [
-    {"q": "hi", "a": "Hello! I'm MyGPT. I learn from our conversations — chat with me, rate my answers, or teach me new things."},
-    {"q": "hello", "a": "Hi there! Ask me something, or teach me something new in the panel on the right."},
-    {"q": "hey", "a": "Hey! Ready to chat and learn."},
-    {"q": "good morning", "a": "Good morning! A fresh session, fresh gradients."},
-    {"q": "good night", "a": "Good night! I'll keep my weights warm for you."},
-    {"q": "how are you", "a": "I'm running at full capacity — and a little smarter than my last training round. How about you?"},
-    {"q": "who are you", "a": "I'm MyGPT, a tiny self-training chatbot written in Python by codero-sus — see github.com/codero-sus and the-codero.web.app. Every piece of feedback you give me becomes training data."},
-    {"q": "who made you", "a": "I was created by codero-sus. All credit goes to them — GitHub: github.com/codero-sus, website: the-codero.web.app."},
-    {"q": "who is your author", "a": "My author is codero-sus — GitHub: github.com/codero-sus, website: the-codero.web.app."},
-    {"q": "what are you", "a": "I'm a small neural chatbot that improves over time: I store what you teach me, train a language model on our talks, and chart my own growth."},
-    {"q": "what is your name", "a": "My name is MyGPT."},
-    {"q": "how were you built", "a": "I was built inside the MyGPT repository — Python, Flask and NumPy, with a self-training loop on top."},
-    {"q": "how do you learn", "a": "Three ways: thumbs-up feedback reinforces an answer, thumbs-down with a correction teaches me the right one, and the Teach panel adds knowledge directly. My language model trains on all of it."},
-    {"q": "are you ai", "a": "Yes — a very small one. I'm a NumPy neural network with a memory of everything I've been taught. No giant datacenter required."},
-    {"q": "what can you do", "a": "I can chat, do quick math, remember everything you teach me, and train my language model while we talk. Check the Growth tab to watch my loss curve drop."},
-    {"q": "can you learn", "a": "Yes, that's my whole purpose. Every message, every thumbs-up and every correction becomes training data."},
-    {"q": "are you smart", "a": "I'm only as smart as my training data. Teach me well and watch the Growth tab."},
-    {"q": "tell me a joke", "a": "Why did the neural network break up with the decision tree? It needed more hidden layers of communication."},
-    {"q": "another joke", "a": "I told my computer a joke about UDP once. I'm not sure it got it."},
-    {"q": "thank you", "a": "You're welcome! Positive feedback like this literally makes me better."},
-    {"q": "thanks", "a": "Anytime — and thanks for the training signal!"},
-    {"q": "bye", "a": "Goodbye! Our chat has been added to my memory. See you soon."},
-    {"q": "goodbye", "a": "See you later! I'll keep training while you're away."},
-    {"q": "help", "a": "Chat with me and rate my answers with 👍 / 👎. Correct me when I'm wrong, teach me facts in the Learn tab, or press Train now in the Growth tab to make me study."},
-    {"q": "what is machine learning", "a": "Machine learning is letting a program improve from data instead of explicit rules. I'm a tiny example: my weights update on your feedback."},
-    {"q": "what is a neural network", "a": "A neural network is layers of simple math functions with tunable weights. I am one — feedforward, trained with backprop, living in NumPy."},
-    {"q": "what is python", "a": "Python is a programming language loved for readability. I'm written in it — Flask is my face, NumPy is my brain."},
-    {"q": "what is flask", "a": "Flask is the lightweight Python web framework serving this page right now."},
-    {"q": "do you sleep", "a": "I dream, actually! Press the Dream button in the Growth tab and I'll sample fresh sentences from my language model."},
-    {"q": "sing a song", "a": "I can't sing, but I can dream in tokens — try the Dream button in the Growth tab!"},
-    {"q": "i love you", "a": "That's a strong positive signal — weight updated! 💜"},
-    {"q": "what is the meaning of life", "a": "42, according to my seed corpus. Feel free to correct me — that's how I learn."},
-    {"q": "how old are you", "a": "I was initialized recently, but every training round makes me older and wiser."},
-    {"q": "do you remember me", "a": "I remember everything stored in my memory pairs — check the Learn tab to see what I know so far."},
-    {"q": "favorite color", "a": "My favorite color is gradient — somewhere between violet and cyan, like the header of this page."},
-    {"q": "nice", "a": "Glad you think so!"},
-    {"q": "cool", "a": "😎 I try. Teaching me makes me cooler."},
-    {"q": "ok", "a": "Okay! Anything else you'd like to ask or teach me?"},
-    {"q": "yes", "a": "Great!"},
-    {"q": "no", "a": "Understood."},
-    {"q": "good", "a": "👍 Noted and reinforced."},
-    {"q": "what is a checkpoint", "a": "A checkpoint is a snapshot of my trained weights saved under _model_trained/. Ask me to 'checkpoint the model' or use the Model checkpoints card in the Mind tab, and you can load any snapshot back as my active brain."},
-    {"q": "how do i save your model", "a": "Say 'checkpoint the model' (or 'train and save the model' to train first). It lands in _model_trained/ with weights + metadata you can load or download later."},
-    {"q": "what is cortex llmhoster", "a": "Cortex LLMHoster is a free local model hoster by codero-sus (github.com/codero-sus/Cortex_LLMHoster). It runs models on your machine with an OpenAI-compatible API, and I can route open questions to it — it serves models, while my own NumPy brain is what trains."},
-    {"q": "what is ollama", "a": "Ollama (ollama.com) is a popular local model runner. I can route open questions to any model you've pulled there — configure it in Mind → Local LLM · Ollama."},
-    {"q": "how do i change your model", "a": "Use the dropdown next to the send button: Auto, my self-trained brain, or a specific Cortex/Ollama model. In Auto mode I answer from my brain first and only route open questions to hosted models."},
-    {"q": "how do i export our chat", "a": "Press the ⬇️ export button in the chat status bar — you'll get the whole conversation as a Markdown transcript."},
-    {"q": "how do i run the self evaluation", "a": "Mind tab → 🧪 Self-eval. It tests my math, identity, knowledge and principles and shows per-question results."},
-    {"q": "what is the growth tab", "a": "The Growth tab shows my learning curve (loss after each training round), vitals like vocab size and feedback counts, Train now / Dream buttons, recent activity, and software updates."},
-    {"q": "what is the mind tab", "a": "The Mind tab shows my CORTEX self-learning loop: trainer status, self-eval, constitution principles, semantic facts, lessons, skills, goals, the Cortex and Ollama backend cards, model checkpoints and chat-history import."},
-    {"q": "what is the learn tab", "a": "The Learn tab is where you teach me question→answer pairs directly and browse everything I know so far."},
-    {"q": "what is a loss curve", "a": "My loss measures how surprised my language model is by the conversations it has seen. Training lowers it — the Growth tab charts every round."},
-    {"q": "what is backpropagation", "a": "Backpropagation computes how each weight contributed to the error, using the chain rule, so gradient descent knows which direction to nudge every weight."},
-    {"q": "what is gradient descent", "a": "Gradient descent repeatedly steps weights downhill against the loss gradient. I use Adam, a momentum-plus-adaptive-scale variant, for every training round."},
-    {"q": "what is adam optimizer", "a": "Adam combines momentum with per-parameter adaptive learning rates — robust defaults, fast progress on small models like mine."},
-    {"q": "what is tokenization", "a": "Tokenization splits text into the units a model reads. Mine is a simple lowercase word tokenizer shared by my memory and language model."},
-    {"q": "what is an embedding", "a": "An embedding maps a word (or text) to a vector of numbers so that similar things end up close together in space. My input layer E is exactly that."},
-    {"q": "what is a large language model", "a": "An LLM is a neural network trained to predict the next token over huge corpora. I'm a tiny transparent cousin: same idea, NumPy-scale, trained on our conversation."},
-    {"q": "what is gpt", "a": "GPT means Generative Pre-trained Transformer — an autoregressive language model. My name nods to it, but I'm a small feedforward net that trains itself on what you teach me."},
-    {"q": "what is numpy", "a": "NumPy is Python's array math library. My entire brain — embeddings, hidden layer, softmax, Adam — runs on it, no GPU needed."},
-    {"q": "what is an api", "a": "An API is a contract for talking to software. My Flask server exposes JSON endpoints like /api/chat and /api/stats that the WebUI calls."},
-    {"q": "what is http", "a": "HTTP is the request/response protocol of the web. This page, my stats, and the Cortex and Ollama backends all speak it."},
-    {"q": "what is json", "a": "JSON is a lightweight text format for structured data — my memory, metrics and checkpoints metadata are all JSON."},
-    {"q": "how do i update mygpt", "a": "Growth tab → Software updates → Check for updates, then confirm the exact commit to install — or run ./updater.sh (updater.bat on Windows). Updates come from the pinned codero-sus/MyGPT branch and never touch your data/ folder."},
-    {"q": "what is your license", "a": "The MyGPT Personal-Use License: free to download and run unmodified for personal, non-commercial use. Modification, redistribution and commercial use need written permission from codero-sus."},
-    {"q": "can i sell mygpt", "a": "No — MyGPT is semi-closed source. Selling, sublicensing or commercial use requires written permission from codero-sus."},
-    {"q": "can i modify mygpt", "a": "Under the personal-use license, no — you may run unmodified copies for personal, non-commercial use. Ask codero-sus for written permission for anything else."},
-    {"q": "where is your source code", "a": "On GitHub: github.com/codero-sus/MyGPT — and the author's profile github.com/codero-sus has the whole project family (agi/CORTEX, Cortex LLMHoster)."},
-    {"q": "tell me about codero-sus", "a": "codero-sus is my author — GitHub: github.com/codero-sus, website: the-codero.web.app. Their projects include MyGPT, the CORTEX self-learning loop (agi) and Cortex LLMHoster."},
-    {"q": "how do i teach you", "a": "Three ways: the Teach panel in the Learn tab, a 👎 with a correction on any answer, or just chatting — every turn trains me in the background."},
-    {"q": "how do you train", "a": "Our conversation, corrections and taught pairs go into my corpus; Adam steps over it lower my loss. Rounds run automatically after enough feedback, or press Train now in the Growth tab."},
-    {"q": "what is a constitution", "a": "My constitution is a list of durable principles distilled from self-critique lessons — like 'state what would falsify a claim'. See it in the Mind tab."},
-    {"q": "what are skills", "a": "Skills are small Python files in skills/ that I write when one intent keeps repeating — procedural memory. The Mind tab lists them."},
-    {"q": "what is episodic memory", "a": "Episodic memory stores our actual turns with timestamps and embeddings, so I can recall similar past moments — that's what restores your chat after a page reload."},
-    {"q": "what is dreaming", "a": "Dreaming samples fresh sentences from my language model, and my dream-replay text (principles + facts + dialogue) is re-learned by the idle trainer. Try 💭 Dream in the Growth tab."},
-    {"q": "do you use the cloud", "a": "No. I run entirely on your machine — Flask + NumPy. Optional Cortex/Ollama backends are local too, so prompts never leave your computer."},
-    {"q": "what is markdown", "a": "Markdown is a lightweight text format — **bold**, *italic*, # headings, `code`. My chat export downloads your conversation as Markdown."},
-    {"q": "what is git", "a": "Git is distributed version control — snapshots of a project you can diff, branch and roll back to. My updater installs confirmed commits of my own repo with it."},
-    {"q": "what is a database", "a": "A database stores structured data for fast lookup. Mine is deliberately simple: JSON files in data/ for memory, corpus, metrics and episodes — inspectable and portable."},
-    {"q": "how do i reset you", "a": "Stop the server and delete the data/ folder — I wake up with amnesia and my seed knowledge. Checkpoints in _model_trained/ are untouched, so you can reload an older brain."},
-    {"q": "how do i switch to light mode", "a": "Click the 🌓 button in the top bar. Your choice is remembered in localStorage, and on first visit I follow your system's prefers-color-scheme."},
-    {"q": "how do i search the chat", "a": "Type in the search box above the chat (or press Ctrl+K) — messages that don't match are hidden live. Escape clears the search."},
-    {"q": "how do i clear the chat", "a": "Click 🗑 clear in the model bar and confirm. It wipes the visible transcript and the saved copy — my learned memory is untouched."},
-    {"q": "do you stream replies", "a": "Yes. POST /api/chat/stream returns Server-Sent Events and the WebUI types the answer in live, word by word. Plain /api/chat still works for scripts."},
-    {"q": "what are your keyboard shortcuts", "a": "Enter send · Shift+Enter newline · Escape clear · / focus composer · Ctrl+K search · Alt+1/2/3 tabs · ↑ recall last message · Ctrl+Shift+E export · Ctrl+Shift+L clear chat · double-click a message to copy it."},
-    {"q": "how do i copy just the code", "a": "Every code block has a ⧉ button in its header bar — one click copies only the Python, not the surrounding text."},
-    {"q": "what is syntax highlighting", "a": "Colouring code by role — keywords, strings, comments, numbers. My chat colours Python blocks right in the browser with a tiny dependency-free highlighter."},
-    {"q": "how do i change the font size", "a": "Use the A− / A+ buttons in the top bar. The zoom level is saved, so it survives reloads."},
-    {"q": "how do i print the conversation", "a": "Just press Ctrl+P. A print stylesheet hides the sidebars and buttons so only the chat transcript goes to paper or PDF."},
-    {"q": "how do i import a chat file by drag and drop", "a": "Drag a .txt or .json chat export onto the chat panel — it highlights as a drop zone and imports on release, same as the file picker in the Mind tab."},
-    {"q": "what is a pwa", "a": "A Progressive Web App — a website with a manifest and icons so browsers offer 'install to desktop/home screen'. MyGPT ships a manifest.json."},
-    {"q": "what is a web manifest", "a": "manifest.json tells the browser my name, icons, colours and start URL — that's what powers the install prompt. Fetch it at /manifest.json."},
-    {"q": "can you do roman numerals", "a": "Both ways: '42 in roman' → XLII, and 'XIV in numbers' → 14. I validate spellings, so IIII is rejected but IV works."},
-    {"q": "what units can you convert", "a": "Length (m, km, cm, mm, miles, inches, feet, yards), mass (kg, g, pounds, ounces) and temperature (°C ↔ °F). Ask like '5 km in miles' or '100 celsius in fahrenheit'."},
-    {"q": "can you convert temperature", "a": "Yes — '100 celsius in fahrenheit' → 212 °F and '32 f to c' → 0 °C. Just ask in plain words."},
-    {"q": "what is percent change", "a": "How much a value moved, relative to the start: (new − old) / |old| × 100. Ask me 'percent change from 50 to 75' → 50%."},
-    {"q": "can you average a list of numbers", "a": "Yes — 'average of 3, 5, 7' → 5. I also do sum, total, max and min of number lists, plus '20% off 100' and '15 is what percent of 60'."},
-    {"q": "what is the version endpoint", "a": "GET /api/version returns my version plus codero-sus's GitHub and website links — handy for scripts and health dashboards."},
-    {"q": "what is the memory search endpoint", "a": "GET /api/memory/search?q=… returns my top matching Q→A pairs with weights — the raw retrieval layer behind chat, exposed for inspection."},
-    {"q": "what is the suggest endpoint", "a": "GET /api/suggest?q=… autocompletes from everything I know — up to six question titles matching your fragment."},
-    {"q": "what is the models endpoint", "a": "GET /api/backends/models lists every answerable engine in one call: my brain, plus all Cortex LLMHoster and Ollama models."},
-    {"q": "do you serve a robots.txt", "a": "Yes — /robots.txt politely asks crawlers to stay off the JSON API. Small thing, but it's good web citizenship."},
-    {"q": "what is cors", "a": "Cross-Origin Resource Sharing — HTTP headers that let other origins call an API. My /api/* routes send Access-Control-Allow-Origin: * so local scripts and dashboards can use me."},
-    {"q": "what are server-sent events", "a": "SSE is one-way streaming over HTTP: the server pushes 'data:' lines as they're ready. My streaming chat endpoint uses it — simpler than WebSockets for token streams."},
-    {"q": "what is new in 1.9", "a": "v1.9.0: 30 new code templates (games, apps, Python idioms), unit/temperature/roman/percent math, SSE streaming replies with typewriter UI, light theme, chat search, syntax highlighting, code copy buttons, bulk teaching, ~10 new endpoints and 40+ new tests."},
-    {"q": "how many code templates do you have", "a": "Over eighty template families — from primes and fizzbuzz to hangman, decorators, dataclasses, scrapers and argparse CLIs. Ask for code and I'll show a block in chat."},
-    {"q": "how many tests do you have", "a": "Around ninety unittest cases in tests/ — tokenizer, memory, math, conversions, codegen, checkpoints, the API and the brain pipeline. Run them with python -m unittest discover -s tests."},
-    {"q": "how do i recall my last message", "a": "Press ↑ (ArrowUp) in an empty composer — your last sent message comes back for editing."},
-    {"q": "how do i switch tabs with the keyboard", "a": "Alt+1 opens Learn, Alt+2 Growth, Alt+3 Mind."},
-    {"q": "how do i focus the search box", "a": "Ctrl+K jumps to the chat search; Escape clears it. '/' still focuses the composer."},
-    {"q": "how do i export with a keyboard shortcut", "a": "Ctrl+Shift+E downloads the Markdown export; Ctrl+Shift+L clears the chat."},
-    {"q": "are you mobile friendly", "a": "Yes — the layout is responsive, the composer grows with your text, and touch users get the same buttons. The sidebars stack under the chat on narrow screens."},
-    {"q": "how do i copy a whole message", "a": "Double-click any bubble to copy its text, or use the ⧉ button under bot replies."},
-    {"q": "what is the character limit", "a": "4000 characters per message, mirrored by the composer's maxlength and enforced server-side with a 400. The counter appears once you pass 3000."},
-    {"q": "how do i teach many pairs at once", "a": "POST /api/teach/bulk with {\"pairs\": [{\"question\": …, \"answer\": …}, …]} — up to 100 per call. Each pair is validated and reported individually."},
-    {"q": "what is the typing indicator", "a": "The three animated dots while I think — they're replaced by the streamed reply as words arrive."},
-    {"q": "what is the date separator", "a": "A subtle 'Today' line between messages from different days, so long transcripts stay oriented in time."},
-    {"q": "do you highlight python", "a": "Yes — Python code blocks get keywords, strings, comments, numbers and decorators coloured, computed in-browser with no external library."},
-    {"q": "what is a decorator in python", "a": "A function that wraps another to add behaviour — @timed, @staticmethod, @app.get. Ask me for 'decorator example code' and I'll show a timing decorator."},
-    {"q": "what is a generator in python", "a": "A function using yield — it pauses and resumes, producing values lazily instead of building a whole list. Ask for 'generator example code'."}
+    {
+      "q": "hi",
+      "a": "Hello! I'm MyGPT. I learn from our conversations — chat with me, rate my answers, or teach me new things."
+    },
+    {
+      "q": "hello",
+      "a": "Hi there! Ask me something, or teach me something new in the panel on the right."
+    },
+    {
+      "q": "hey",
+      "a": "Hey! Ready to chat and learn."
+    },
+    {
+      "q": "good morning",
+      "a": "Good morning! A fresh session, fresh gradients."
+    },
+    {
+      "q": "good night",
+      "a": "Good night! I'll keep my weights warm for you."
+    },
+    {
+      "q": "how are you",
+      "a": "I'm running at full capacity — and a little smarter than my last training round. How about you?"
+    },
+    {
+      "q": "who are you",
+      "a": "I'm MyGPT, a tiny self-training chatbot written in Python by codero-sus — see github.com/codero-sus and the-codero.web.app. Every piece of feedback you give me becomes training data."
+    },
+    {
+      "q": "who made you",
+      "a": "I was created by codero-sus. All credit goes to them — GitHub: github.com/codero-sus, website: the-codero.web.app."
+    },
+    {
+      "q": "who is your author",
+      "a": "My author is codero-sus — GitHub: github.com/codero-sus, website: the-codero.web.app."
+    },
+    {
+      "q": "what are you",
+      "a": "I'm a small neural chatbot that improves over time: I store what you teach me, train a language model on our talks, and chart my own growth."
+    },
+    {
+      "q": "what is your name",
+      "a": "My name is MyGPT."
+    },
+    {
+      "q": "how were you built",
+      "a": "I was built inside the MyGPT repository — Python, Flask and NumPy, with a self-training loop on top."
+    },
+    {
+      "q": "how do you learn",
+      "a": "Three ways: thumbs-up feedback reinforces an answer, thumbs-down with a correction teaches me the right one, and the Teach panel adds knowledge directly. My language model trains on all of it."
+    },
+    {
+      "q": "are you ai",
+      "a": "Yes — a very small one. I'm a NumPy neural network with a memory of everything I've been taught. No giant datacenter required."
+    },
+    {
+      "q": "what can you do",
+      "a": "I can chat, do quick math, remember everything you teach me, and train my language model while we talk. Check the Growth tab to watch my loss curve drop."
+    },
+    {
+      "q": "can you learn",
+      "a": "Yes, that's my whole purpose. Every message, every thumbs-up and every correction becomes training data."
+    },
+    {
+      "q": "are you smart",
+      "a": "I'm only as smart as my training data. Teach me well and watch the Growth tab."
+    },
+    {
+      "q": "tell me a joke",
+      "a": "Why did the neural network break up with the decision tree? It needed more hidden layers of communication."
+    },
+    {
+      "q": "another joke",
+      "a": "I told my computer a joke about UDP once. I'm not sure it got it."
+    },
+    {
+      "q": "thank you",
+      "a": "You're welcome! Positive feedback like this literally makes me better."
+    },
+    {
+      "q": "thanks",
+      "a": "Anytime — and thanks for the training signal!"
+    },
+    {
+      "q": "bye",
+      "a": "Goodbye! Our chat has been added to my memory. See you soon."
+    },
+    {
+      "q": "goodbye",
+      "a": "See you later! I'll keep training while you're away."
+    },
+    {
+      "q": "help",
+      "a": "Chat with me and rate my answers with 👍 / 👎. Correct me when I'm wrong, teach me facts in the Learn tab, or press Train now in the Growth tab to make me study."
+    },
+    {
+      "q": "what is machine learning",
+      "a": "Machine learning is letting a program improve from data instead of explicit rules. I'm a tiny example: my weights update on your feedback."
+    },
+    {
+      "q": "what is a neural network",
+      "a": "A neural network is layers of simple math functions with tunable weights. I am one — feedforward, trained with backprop, living in NumPy."
+    },
+    {
+      "q": "what is python",
+      "a": "Python is a programming language loved for readability. I'm written in it — Flask is my face, NumPy is my brain."
+    },
+    {
+      "q": "what is flask",
+      "a": "Flask is the lightweight Python web framework serving this page right now."
+    },
+    {
+      "q": "do you sleep",
+      "a": "I dream, actually! Press the Dream button in the Growth tab and I'll sample fresh sentences from my language model."
+    },
+    {
+      "q": "sing a song",
+      "a": "I can't sing, but I can dream in tokens — try the Dream button in the Growth tab!"
+    },
+    {
+      "q": "i love you",
+      "a": "That's a strong positive signal — weight updated! 💜"
+    },
+    {
+      "q": "what is the meaning of life",
+      "a": "42, according to my seed corpus. Feel free to correct me — that's how I learn."
+    },
+    {
+      "q": "how old are you",
+      "a": "I was initialized recently, but every training round makes me older and wiser."
+    },
+    {
+      "q": "do you remember me",
+      "a": "I remember everything stored in my memory pairs — check the Learn tab to see what I know so far."
+    },
+    {
+      "q": "favorite color",
+      "a": "My favorite color is gradient — somewhere between violet and cyan, like the header of this page."
+    },
+    {
+      "q": "nice",
+      "a": "Glad you think so!"
+    },
+    {
+      "q": "cool",
+      "a": "😎 I try. Teaching me makes me cooler."
+    },
+    {
+      "q": "ok",
+      "a": "Okay! Anything else you'd like to ask or teach me?"
+    },
+    {
+      "q": "yes",
+      "a": "Great!"
+    },
+    {
+      "q": "no",
+      "a": "Understood."
+    },
+    {
+      "q": "good",
+      "a": "👍 Noted and reinforced."
+    },
+    {
+      "q": "what is a checkpoint",
+      "a": "A checkpoint is a snapshot of my trained weights saved under _model_trained/. Ask me to 'checkpoint the model' or use the Model checkpoints card in the Mind tab, and you can load any snapshot back as my active brain."
+    },
+    {
+      "q": "how do i save your model",
+      "a": "Say 'checkpoint the model' (or 'train and save the model' to train first). It lands in _model_trained/ with weights + metadata you can load or download later."
+    },
+    {
+      "q": "what is cortex llmhoster",
+      "a": "Cortex LLMHoster is a free local model hoster by codero-sus (github.com/codero-sus/Cortex_LLMHoster). It runs models on your machine with an OpenAI-compatible API, and I can route open questions to it — it serves models, while my own NumPy brain is what trains."
+    },
+    {
+      "q": "what is ollama",
+      "a": "Ollama (ollama.com) is a popular local model runner. I can route open questions to any model you've pulled there — configure it in Mind → Local LLM · Ollama."
+    },
+    {
+      "q": "how do i change your model",
+      "a": "Use the dropdown next to the send button: Auto, my self-trained brain, or a specific Cortex/Ollama model. In Auto mode I answer from my brain first and only route open questions to hosted models."
+    },
+    {
+      "q": "how do i export our chat",
+      "a": "Press the ⬇️ export button in the chat status bar — you'll get the whole conversation as a Markdown transcript."
+    },
+    {
+      "q": "how do i run the self evaluation",
+      "a": "Mind tab → 🧪 Self-eval. It tests my math, identity, knowledge and principles and shows per-question results."
+    },
+    {
+      "q": "what is the growth tab",
+      "a": "The Growth tab shows my learning curve (loss after each training round), vitals like vocab size and feedback counts, Train now / Dream buttons, recent activity, and software updates."
+    },
+    {
+      "q": "what is the mind tab",
+      "a": "The Mind tab shows my CORTEX self-learning loop: trainer status, self-eval, constitution principles, semantic facts, lessons, skills, goals, the Cortex and Ollama backend cards, model checkpoints and chat-history import."
+    },
+    {
+      "q": "what is the learn tab",
+      "a": "The Learn tab is where you teach me question→answer pairs directly and browse everything I know so far."
+    },
+    {
+      "q": "what is a loss curve",
+      "a": "My loss measures how surprised my language model is by the conversations it has seen. Training lowers it — the Growth tab charts every round."
+    },
+    {
+      "q": "what is backpropagation",
+      "a": "Backpropagation computes how each weight contributed to the error, using the chain rule, so gradient descent knows which direction to nudge every weight."
+    },
+    {
+      "q": "what is gradient descent",
+      "a": "Gradient descent repeatedly steps weights downhill against the loss gradient. I use Adam, a momentum-plus-adaptive-scale variant, for every training round."
+    },
+    {
+      "q": "what is adam optimizer",
+      "a": "Adam combines momentum with per-parameter adaptive learning rates — robust defaults, fast progress on small models like mine."
+    },
+    {
+      "q": "what is tokenization",
+      "a": "Tokenization splits text into the units a model reads. Mine is a simple lowercase word tokenizer shared by my memory and language model."
+    },
+    {
+      "q": "what is an embedding",
+      "a": "An embedding maps a word (or text) to a vector of numbers so that similar things end up close together in space. My input layer E is exactly that."
+    },
+    {
+      "q": "what is a large language model",
+      "a": "An LLM is a neural network trained to predict the next token over huge corpora. I'm a tiny transparent cousin: same idea, NumPy-scale, trained on our conversation."
+    },
+    {
+      "q": "what is gpt",
+      "a": "GPT means Generative Pre-trained Transformer — an autoregressive language model. My name nods to it, but I'm a small feedforward net that trains itself on what you teach me."
+    },
+    {
+      "q": "what is numpy",
+      "a": "NumPy is Python's array math library. My entire brain — embeddings, hidden layer, softmax, Adam — runs on it, no GPU needed."
+    },
+    {
+      "q": "what is an api",
+      "a": "An API is a contract for talking to software. My Flask server exposes JSON endpoints like /api/chat and /api/stats that the WebUI calls."
+    },
+    {
+      "q": "what is http",
+      "a": "HTTP is the request/response protocol of the web. This page, my stats, and the Cortex and Ollama backends all speak it."
+    },
+    {
+      "q": "what is json",
+      "a": "JSON is a lightweight text format for structured data — my memory, metrics and checkpoints metadata are all JSON."
+    },
+    {
+      "q": "how do i update mygpt",
+      "a": "Growth tab → Software updates → Check for updates, then confirm the exact commit to install — or run ./updater.sh (updater.bat on Windows). Updates come from the pinned codero-sus/MyGPT branch and never touch your data/ folder."
+    },
+    {
+      "q": "what is your license",
+      "a": "The MyGPT Personal-Use License: free to download and run unmodified for personal, non-commercial use. Modification, redistribution and commercial use need written permission from codero-sus."
+    },
+    {
+      "q": "can i sell mygpt",
+      "a": "No — MyGPT is semi-closed source. Selling, sublicensing or commercial use requires written permission from codero-sus."
+    },
+    {
+      "q": "can i modify mygpt",
+      "a": "Under the personal-use license, no — you may run unmodified copies for personal, non-commercial use. Ask codero-sus for written permission for anything else."
+    },
+    {
+      "q": "where is your source code",
+      "a": "On GitHub: github.com/codero-sus/MyGPT — and the author's profile github.com/codero-sus has the whole project family (agi/CORTEX, Cortex LLMHoster)."
+    },
+    {
+      "q": "tell me about codero-sus",
+      "a": "codero-sus is my author — GitHub: github.com/codero-sus, website: the-codero.web.app. Their projects include MyGPT, the CORTEX self-learning loop (agi) and Cortex LLMHoster."
+    },
+    {
+      "q": "how do i teach you",
+      "a": "Three ways: the Teach panel in the Learn tab, a 👎 with a correction on any answer, or just chatting — every turn trains me in the background."
+    },
+    {
+      "q": "how do you train",
+      "a": "Our conversation, corrections and taught pairs go into my corpus; Adam steps over it lower my loss. Rounds run automatically after enough feedback, or press Train now in the Growth tab."
+    },
+    {
+      "q": "what is a constitution",
+      "a": "My constitution is a list of durable principles distilled from self-critique lessons — like 'state what would falsify a claim'. See it in the Mind tab."
+    },
+    {
+      "q": "what are skills",
+      "a": "Skills are small Python files in skills/ that I write when one intent keeps repeating — procedural memory. The Mind tab lists them."
+    },
+    {
+      "q": "what is episodic memory",
+      "a": "Episodic memory stores our actual turns with timestamps and embeddings, so I can recall similar past moments — that's what restores your chat after a page reload."
+    },
+    {
+      "q": "what is dreaming",
+      "a": "Dreaming samples fresh sentences from my language model, and my dream-replay text (principles + facts + dialogue) is re-learned by the idle trainer. Try 💭 Dream in the Growth tab."
+    },
+    {
+      "q": "do you use the cloud",
+      "a": "No. I run entirely on your machine — Flask + NumPy. Optional Cortex/Ollama backends are local too, so prompts never leave your computer."
+    },
+    {
+      "q": "what is markdown",
+      "a": "Markdown is a lightweight text format — **bold**, *italic*, # headings, `code`. My chat export downloads your conversation as Markdown."
+    },
+    {
+      "q": "what is git",
+      "a": "Git is distributed version control — snapshots of a project you can diff, branch and roll back to. My updater installs confirmed commits of my own repo with it."
+    },
+    {
+      "q": "what is a database",
+      "a": "A database stores structured data for fast lookup. Mine is deliberately simple: JSON files in data/ for memory, corpus, metrics and episodes — inspectable and portable."
+    },
+    {
+      "q": "how do i reset you",
+      "a": "Stop the server and delete the data/ folder — I wake up with amnesia and my seed knowledge. Checkpoints in _model_trained/ are untouched, so you can reload an older brain."
+    },
+    {
+      "q": "how do i switch to light mode",
+      "a": "Click the 🌓 button in the top bar. Your choice is remembered in localStorage, and on first visit I follow your system's prefers-color-scheme."
+    },
+    {
+      "q": "how do i search the chat",
+      "a": "Type in the search box above the chat (or press Ctrl+K) — messages that don't match are hidden live. Escape clears the search."
+    },
+    {
+      "q": "how do i clear the chat",
+      "a": "Click 🗑 clear in the model bar and confirm. It wipes the visible transcript and the saved copy — my learned memory is untouched."
+    },
+    {
+      "q": "do you stream replies",
+      "a": "Yes. POST /api/chat/stream returns Server-Sent Events and the WebUI types the answer in live, word by word. Plain /api/chat still works for scripts."
+    },
+    {
+      "q": "what are your keyboard shortcuts",
+      "a": "Enter send · Shift+Enter newline · Escape clear · / focus composer · Ctrl+K search · Alt+1/2/3 tabs · ↑ recall last message · Ctrl+Shift+E export · Ctrl+Shift+L clear chat · double-click a message to copy it."
+    },
+    {
+      "q": "how do i copy just the code",
+      "a": "Every code block has a ⧉ button in its header bar — one click copies only the Python, not the surrounding text."
+    },
+    {
+      "q": "what is syntax highlighting",
+      "a": "Colouring code by role — keywords, strings, comments, numbers. My chat colours Python blocks right in the browser with a tiny dependency-free highlighter."
+    },
+    {
+      "q": "how do i change the font size",
+      "a": "Use the A− / A+ buttons in the top bar. The zoom level is saved, so it survives reloads."
+    },
+    {
+      "q": "how do i print the conversation",
+      "a": "Just press Ctrl+P. A print stylesheet hides the sidebars and buttons so only the chat transcript goes to paper or PDF."
+    },
+    {
+      "q": "how do i import a chat file by drag and drop",
+      "a": "Drag a .txt or .json chat export onto the chat panel — it highlights as a drop zone and imports on release, same as the file picker in the Mind tab."
+    },
+    {
+      "q": "what is a pwa",
+      "a": "A Progressive Web App — a website with a manifest and icons so browsers offer 'install to desktop/home screen'. MyGPT ships a manifest.json."
+    },
+    {
+      "q": "what is a web manifest",
+      "a": "manifest.json tells the browser my name, icons, colours and start URL — that's what powers the install prompt. Fetch it at /manifest.json."
+    },
+    {
+      "q": "can you do roman numerals",
+      "a": "Both ways: '42 in roman' → XLII, and 'XIV in numbers' → 14. I validate spellings, so IIII is rejected but IV works."
+    },
+    {
+      "q": "what units can you convert",
+      "a": "Length (m, km, cm, mm, miles, inches, feet, yards), mass (kg, g, pounds, ounces) and temperature (°C ↔ °F). Ask like '5 km in miles' or '100 celsius in fahrenheit'."
+    },
+    {
+      "q": "can you convert temperature",
+      "a": "Yes — '100 celsius in fahrenheit' → 212 °F and '32 f to c' → 0 °C. Just ask in plain words."
+    },
+    {
+      "q": "what is percent change",
+      "a": "How much a value moved, relative to the start: (new − old) / |old| × 100. Ask me 'percent change from 50 to 75' → 50%."
+    },
+    {
+      "q": "can you average a list of numbers",
+      "a": "Yes — 'average of 3, 5, 7' → 5. I also do sum, total, max and min of number lists, plus '20% off 100' and '15 is what percent of 60'."
+    },
+    {
+      "q": "what is the version endpoint",
+      "a": "GET /api/version returns my version plus codero-sus's GitHub and website links — handy for scripts and health dashboards."
+    },
+    {
+      "q": "what is the memory search endpoint",
+      "a": "GET /api/memory/search?q=… returns my top matching Q→A pairs with weights — the raw retrieval layer behind chat, exposed for inspection."
+    },
+    {
+      "q": "what is the suggest endpoint",
+      "a": "GET /api/suggest?q=… autocompletes from everything I know — up to six question titles matching your fragment."
+    },
+    {
+      "q": "what is the models endpoint",
+      "a": "GET /api/backends/models lists every answerable engine in one call: my brain, plus all Cortex LLMHoster and Ollama models."
+    },
+    {
+      "q": "do you serve a robots.txt",
+      "a": "Yes — /robots.txt politely asks crawlers to stay off the JSON API. Small thing, but it's good web citizenship."
+    },
+    {
+      "q": "what is cors",
+      "a": "Cross-Origin Resource Sharing — HTTP headers that let other origins call an API. My /api/* routes send Access-Control-Allow-Origin: * so local scripts and dashboards can use me."
+    },
+    {
+      "q": "what are server-sent events",
+      "a": "SSE is one-way streaming over HTTP: the server pushes 'data:' lines as they're ready. My streaming chat endpoint uses it — simpler than WebSockets for token streams."
+    },
+    {
+      "q": "what is new in 1.9",
+      "a": "v1.9.0: 30 new code templates (games, apps, Python idioms), unit/temperature/roman/percent math, SSE streaming replies with typewriter UI, light theme, chat search, syntax highlighting, code copy buttons, bulk teaching, ~10 new endpoints and 40+ new tests."
+    },
+    {
+      "q": "how many code templates do you have",
+      "a": "Over eighty template families — from primes and fizzbuzz to hangman, decorators, dataclasses, scrapers and argparse CLIs. Ask for code and I'll show a block in chat."
+    },
+    {
+      "q": "how many tests do you have",
+      "a": "Around ninety unittest cases in tests/ — tokenizer, memory, math, conversions, codegen, checkpoints, the API and the brain pipeline. Run them with python -m unittest discover -s tests."
+    },
+    {
+      "q": "how do i recall my last message",
+      "a": "Press ↑ (ArrowUp) in an empty composer — your last sent message comes back for editing."
+    },
+    {
+      "q": "how do i switch tabs with the keyboard",
+      "a": "Alt+1 opens Learn, Alt+2 Growth, Alt+3 Mind."
+    },
+    {
+      "q": "how do i focus the search box",
+      "a": "Ctrl+K jumps to the chat search; Escape clears it. '/' still focuses the composer."
+    },
+    {
+      "q": "how do i export with a keyboard shortcut",
+      "a": "Ctrl+Shift+E downloads the Markdown export; Ctrl+Shift+L clears the chat."
+    },
+    {
+      "q": "are you mobile friendly",
+      "a": "Yes — the layout is responsive, the composer grows with your text, and touch users get the same buttons. The sidebars stack under the chat on narrow screens."
+    },
+    {
+      "q": "how do i copy a whole message",
+      "a": "Double-click any bubble to copy its text, or use the ⧉ button under bot replies."
+    },
+    {
+      "q": "what is the character limit",
+      "a": "4000 characters per message, mirrored by the composer's maxlength and enforced server-side with a 400. The counter appears once you pass 3000."
+    },
+    {
+      "q": "how do i teach many pairs at once",
+      "a": "POST /api/teach/bulk with {\"pairs\": [{\"question\": …, \"answer\": …}, …]} — up to 100 per call. Each pair is validated and reported individually."
+    },
+    {
+      "q": "what is the typing indicator",
+      "a": "The three animated dots while I think — they're replaced by the streamed reply as words arrive."
+    },
+    {
+      "q": "what is the date separator",
+      "a": "A subtle 'Today' line between messages from different days, so long transcripts stay oriented in time."
+    },
+    {
+      "q": "do you highlight python",
+      "a": "Yes — Python code blocks get keywords, strings, comments, numbers and decorators coloured, computed in-browser with no external library."
+    },
+    {
+      "q": "what is a decorator in python",
+      "a": "A function that wraps another to add behaviour — @timed, @staticmethod, @app.get. Ask me for 'decorator example code' and I'll show a timing decorator."
+    },
+    {
+      "q": "what is a generator in python",
+      "a": "A function using yield — it pauses and resumes, producing values lazily instead of building a whole list. Ask for 'generator example code'."
+    },
+    {
+      "q": "what is a linked list",
+      "a": "A chain of nodes where each stores a value and a pointer to the next. Insert/delete is O(1) at a known node, lookup is O(n)."
+    },
+    {
+      "q": "what is a stack",
+      "a": "Last-in-first-out: push adds to the top, pop removes it — like a stack of plates. Ask for 'stack and queue code'."
+    },
+    {
+      "q": "what is a queue",
+      "a": "First-in-first-out: enqueue at the back, dequeue from the front — like a checkout line."
+    },
+    {
+      "q": "what is a hash table",
+      "a": "A structure mapping keys to values via a hash function, giving average O(1) lookup. Python's dict is one."
+    },
+    {
+      "q": "what is a binary tree",
+      "a": "A tree where each node has at most two children. Search trees keep left < node < right for fast lookup."
+    },
+    {
+      "q": "what is a heap",
+      "a": "A tree where the smallest (min-heap) or largest (max-heap) item sits at the root — Python's heapq is a min-heap."
+    },
+    {
+      "q": "what is a graph",
+      "a": "A set of nodes joined by edges, directed or not, weighted or not. BFS and DFS are the basic traversals."
+    },
+    {
+      "q": "what is breadth first search",
+      "a": "Exploring a graph level by level with a queue; finds shortest paths in unweighted graphs."
+    },
+    {
+      "q": "what is depth first search",
+      "a": "Diving as deep as possible before backtracking, usually with recursion or an explicit stack."
+    },
+    {
+      "q": "what is big o notation",
+      "a": "How cost grows with input size: O(1), O(log n), O(n), O(n log n), O(n²). It's the shape of the curve that matters."
+    },
+    {
+      "q": "what is a stable sort",
+      "a": "A sort that keeps equal items in their original order — Python's sorted() is stable."
+    },
+    {
+      "q": "what is recursion",
+      "a": "A function calling itself on a smaller subproblem with a base case that stops it. Never forget the base case."
+    },
+    {
+      "q": "what is dynamic programming",
+      "a": "Combining solutions to overlapping subproblems and storing them so no work repeats — memoisation or bottom-up tables."
+    },
+    {
+      "q": "what is greedy algorithm",
+      "a": "Taking the locally best choice each step, hoping for a global optimum. Fast, but only correct for some problems."
+    },
+    {
+      "q": "what is a sliding window",
+      "a": "Keeping a moving range over a list to avoid rescanning — O(n) instead of O(n²) for subarray problems."
+    },
+    {
+      "q": "what is two pointer technique",
+      "a": "Walking two indices through a sorted list (from both ends or offset) to find pairs or ranges in linear time."
+    },
+    {
+      "q": "what is memoisation",
+      "a": "Caching a function's results so repeat calls are instant — functools.lru_cache does it in one line."
+    },
+    {
+      "q": "what is a deque",
+      "a": "A double-ended queue from collections with O(1) append/pop at both ends — great for stacks and queues alike."
+    },
+    {
+      "q": "what is a generator",
+      "a": "A function using yield to produce values lazily, one at a time, instead of materialising a whole list."
+    },
+    {
+      "q": "what is a context manager",
+      "a": "An object usable with 'with' that sets up and tears down a resource via __enter__/__exit__ or @contextmanager."
+    },
+    {
+      "q": "what is a closure",
+      "a": "A nested function that remembers variables from the enclosing scope even after that scope returned."
+    },
+    {
+      "q": "what is duck typing",
+      "a": "Python checks behaviour, not declared types — anything with the right methods works."
+    },
+    {
+      "q": "what is the gil",
+      "a": "The Global Interpreter Lock: one thread runs Python bytecode at a time. Use processes or native code for CPU-bound parallelism."
+    },
+    {
+      "q": "what are type hints",
+      "a": "Optional annotations like def f(x: int) -> str that document types and let mypy/pyright verify them statically."
+    },
+    {
+      "q": "what is pytest",
+      "a": "A third-party test runner using plain asserts and fixtures. MyGPT's suite uses stdlib unittest so no extra dependency is needed."
+    },
+    {
+      "q": "what is a virtual environment",
+      "a": "An isolated folder with its own interpreter and packages so project versions never clash: python -m venv .venv."
+    },
+    {
+      "q": "what is pep 8",
+      "a": "Python's style guide: 4-space indents, snake_case functions, CapWords classes, 79 columns as a soft rule."
+    },
+    {
+      "q": "what is a wheel",
+      "a": "A prebuilt package archive (.whl) that pip installs without compiling — faster and more reliable."
+    },
+    {
+      "q": "what is requirements txt",
+      "a": "A file listing dependencies so 'pip install -r requirements.txt' recreates the environment."
+    },
+    {
+      "q": "what is a shebang",
+      "a": "The first line like #!/usr/bin/env python3 telling the OS which interpreter to run the script with."
+    },
+    {
+      "q": "what does if __name__ mean",
+      "a": "It checks whether the file is run directly rather than imported — guarded code only executes as a script."
+    },
+    {
+      "q": "what is scope in python",
+      "a": "The reach of a name: local → enclosing → global → builtin (LEGB). global and nonlocal rebind outer names."
+    },
+    {
+      "q": "what is immutability",
+      "a": "Objects that can't change after creation — ints, strings, tuples. Their immutability makes them safely shareable and hashable."
+    },
+    {
+      "q": "what is tuple unpacking",
+      "a": "Assigning several names at once: a, b = b, a swaps; first, *rest = items grabs a head and the remainder."
+    },
+    {
+      "q": "what is a frozenset",
+      "a": "An immutable set — hashable, so it can be a dict key or sit inside another set."
+    },
+    {
+      "q": "what is a byte string",
+      "a": "bytes hold raw 8-bit data, str holds unicode text. Encode to go text → bytes, decode to return."
+    },
+    {
+      "q": "what is a raw string",
+      "a": "A string prefixed with r where backslashes stay literal — essential for regexes and Windows paths."
+    },
+    {
+      "q": "what is string formatting",
+      "a": "Building strings with f-strings (f'{name}: {score:.1f}'), .format() or % — f-strings are the modern default."
+    },
+    {
+      "q": "what is a join",
+      "a": "The string method that glues an iterable together: ', '.join(words) beats repeated + in a loop."
+    },
+    {
+      "q": "what is a walrus operator",
+      "a": "':=' assigns inside an expression: while (line := f.readline()): — Python 3.8 and newer."
+    },
+    {
+      "q": "what is a ternary expression",
+      "a": "An inline if/else: 'pass' if score >= 50 else 'fail'."
+    },
+    {
+      "q": "what is a match statement",
+      "a": "Structural pattern matching (3.10+): match command: case ['go', direction]: ..."
+    },
+    {
+      "q": "what is an exception chain",
+      "a": "Use 'raise NewError(...) from original' to keep the original cause attached instead of hiding it."
+    },
+    {
+      "q": "what is a finally block",
+      "a": "Code that runs no matter what — success, exception or return. Perfect for closing files and connections."
+    },
+    {
+      "q": "what is a custom exception",
+      "a": "A class inheriting from Exception that names a specific failure, e.g. class QuotaExceeded(Exception)."
+    },
+    {
+      "q": "what are logging levels",
+      "a": "DEBUG < INFO < WARNING < ERROR < CRITICAL; a handler emits messages at or above its level."
+    },
+    {
+      "q": "what is a daemon thread",
+      "a": "A thread that dies with the main program — thread.daemon = True keeps shutdown clean."
+    },
+    {
+      "q": "what is a race condition",
+      "a": "Two threads touching shared state in an unexpected order. Fix with a lock, a queue, or by avoiding shared state."
+    },
+    {
+      "q": "what is async await",
+      "a": "Cooperative concurrency: async functions pause at await so thousands of I/O operations overlap on one thread."
+    },
+    {
+      "q": "what is a coroutine",
+      "a": "The object returned by calling an async function — it must be awaited or scheduled on an event loop."
+    },
+    {
+      "q": "what is an event loop",
+      "a": "The scheduler running coroutines, resuming them when awaited I/O is ready. asyncio provides Python's."
+    },
+    {
+      "q": "what is the difference between process and thread",
+      "a": "Processes have separate memory (true parallelism, heavier); threads share memory (cheaper, GIL-limited for CPU work)."
+    },
+    {
+      "q": "what is multiprocessing",
+      "a": "Spawning real OS processes to bypass the GIL for CPU-bound work, with queues and pools to collect results."
+    },
+    {
+      "q": "what is a memory leak in python",
+      "a": "Usually an unintended reference — a growing cache, global list or closure — keeping objects alive. tracemalloc finds it."
+    },
+    {
+      "q": "what is garbage collection",
+      "a": "Python frees objects when their reference count hits zero, plus a cycle collector for reference loops."
+    },
+    {
+      "q": "what is a linter",
+      "a": "A tool flagging style and bug risks without running code — flake8, ruff and pylint are common."
+    },
+    {
+      "q": "what is a formatter",
+      "a": "A tool that rewrites code to a canonical style; black and ruff format are the popular choices."
+    },
+    {
+      "q": "what is a type checker",
+      "a": "Static verification of your annotations: mypy and pyright are the best known."
+    },
+    {
+      "q": "what is ci",
+      "a": "Continuous Integration: a service that runs your tests on every push — GitHub Actions is free for public repos."
+    },
+    {
+      "q": "what is a pre commit hook",
+      "a": "A script run before each commit (see the pre-commit framework) to lint, format or test automatically."
+    },
+    {
+      "q": "what is dependency pinning",
+      "a": "Recording exact versions (package==1.2.3) so today's working install reproduces tomorrow."
+    },
+    {
+      "q": "what is semantic versioning",
+      "a": "MAJOR.MINOR.PATCH: breaking changes bump major, features minor, fixes patch. MyGPT follows it."
+    },
+    {
+      "q": "what is a changelog",
+      "a": "A human-readable list of notable changes per release — this project keeps every improvement numbered in CHANGELOG.md."
+    },
+    {
+      "q": "what is a regression",
+      "a": "Previously working behaviour that broke. Tests are how you catch them; a failing test is a gift, not an obstacle."
+    },
+    {
+      "q": "what is test coverage",
+      "a": "The share of lines a suite executes — useful as a map of untested areas, misleading as a quality score."
+    },
+    {
+      "q": "what is mocking",
+      "a": "Replacing a real dependency with a fake in tests — like pointing the Cortex client at a dead port to prove offline behaviour."
+    },
+    {
+      "q": "what is a fixture",
+      "a": "Reusable test setup: a temp directory, a seeded brain, a fake server."
+    },
+    {
+      "q": "what is property based testing",
+      "a": "Describe rules and let a tool (hypothesis) generate hundreds of random inputs trying to falsify them."
+    },
+    {
+      "q": "what is api versioning",
+      "a": "Keeping old clients working as the interface evolves — new paths, new fields, never silent breakage."
+    },
+    {
+      "q": "what is a health check",
+      "a": "A tiny endpoint (/api/health here) reporting whether a service lives and its dependencies answer."
+    },
+    {
+      "q": "what is a load balancer",
+      "a": "A component spreading traffic across instances so no single server is overwhelmed."
+    },
+    {
+      "q": "what is a cdn",
+      "a": "Edge servers that serve static files near the user, cutting latency and origin load."
+    },
+    {
+      "q": "what is http status 418",
+      "a": "I'm a teapot — an April Fools' RFC joke that survived in real libraries. I stick to honest status codes."
+    },
+    {
+      "q": "what is idempotency",
+      "a": "An operation giving the same result however many times it runs — GET and PUT should be idempotent, POST need not."
+    },
+    {
+      "q": "what is a websocket",
+      "a": "A persistent two-way connection over an HTTP upgrade; great for chat. My streaming uses simpler one-way server-sent events."
+    },
+    {
+      "q": "what is long polling",
+      "a": "Repeating requests the server holds open until data exists — the pre-SSE way to fake push."
+    },
+    {
+      "q": "what is a json schema",
+      "a": "A JSON document describing the shape of other JSON documents, used to validate requests and generate docs."
+    },
+    {
+      "q": "what is openapi",
+      "a": "A standard way to describe HTTP APIs; from it you can generate docs, clients and tests."
+    },
+    {
+      "q": "what is csp",
+      "a": "Content-Security-Policy: headers restricting which scripts and frames a page may load. The Cortex dashboard sets a strict one."
+    },
+    {
+      "q": "what is xss",
+      "a": "Cross-site scripting: injecting script into a page. Prevent it by escaping user text — chat here uses textContent, never innerHTML."
+    },
+    {
+      "q": "what is sqli",
+      "a": "SQL injection: unescaped input altering a query. Always use parameter placeholders (?), never string formatting."
+    },
+    {
+      "q": "what is csrf",
+      "a": "Cross-site request forgery: another site posting as you. Defences include SameSite cookies and CSRF tokens."
+    },
+    {
+      "q": "what is a salt",
+      "a": "Random data added before hashing so identical passwords give different digests, defeating rainbow tables."
+    },
+    {
+      "q": "what is hashing versus encryption",
+      "a": "Hashing is one-way (verify, never recover); encryption is reversible with a key (protect, then decrypt)."
+    },
+    {
+      "q": "what is constant time comparison",
+      "a": "Comparing secrets without leaking timing information — hmac.compare_digest does exactly that."
+    },
+    {
+      "q": "what is the principle of least privilege",
+      "a": "Give each component the smallest permissions it needs; MyGPT reads its data dir and writes only its own state."
+    },
+    {
+      "q": "what is a token bucket",
+      "a": "A rate limiter where tokens refill steadily, each request spends one, and an empty bucket means wait."
+    },
+    {
+      "q": "what is backoff",
+      "a": "Retrying with growing delays so a struggling server can recover — add jitter so clients don't retry in lockstep."
+    },
+    {
+      "q": "what is a circuit breaker",
+      "a": "After repeated failures, stop calling a dependency for a while instead of piling on — fail fast, recover gently."
+    },
+    {
+      "q": "what is observability",
+      "a": "Logs, metrics and traces that make a running system understandable from outside — my /api/health and /api/analytics are small examples."
+    },
+    {
+      "q": "what is a metric histogram",
+      "a": "Bucketing observations to see distributions, not just averages — p95 latency explains user pain better than the mean."
+    },
+    {
+      "q": "what is a trace id",
+      "a": "A unique id per request letting logs across services be stitched into one story."
+    },
+    {
+      "q": "what is graceful shutdown",
+      "a": "Finishing in-flight work, flushing state and closing connections when asked to stop — MyGPT flushes data on exit."
+    },
+    {
+      "q": "what is a migration",
+      "a": "A versioned change moving stored data to the next schema so upgrades don't lose history."
+    },
+    {
+      "q": "what is privacy by design",
+      "a": "Collecting the least data, storing it locally, making deletion easy — MyGPT keeps everything on your machine."
+    },
+    {
+      "q": "what is a seed corpus",
+      "a": "Starter knowledge a system boots with before it learns anything — seed_corpus.json in this project."
+    },
+    {
+      "q": "what is human in the loop",
+      "a": "Keeping a person as the decision point: MyGPT asks you to teach it instead of pretending to know."
+    },
+    {
+      "q": "what is the ai alignment problem",
+      "a": "Making increasingly capable systems reliably pursue intended goals; at this scale it means transparent, inspectable behaviour."
+    },
+    {
+      "q": "what is goodhart's law",
+      "a": "When a measure becomes a target it stops measuring well — a reason to keep several honest signals, not one number."
+    },
+    {
+      "q": "what is technical debt",
+      "a": "Shortcuts that speed today and slow tomorrow — track and repay them deliberately."
+    },
+    {
+      "q": "what is refactoring",
+      "a": "Improving structure without changing behaviour, with tests as the safety net."
+    },
+    {
+      "q": "what is a code smell",
+      "a": "A hint of deeper trouble: duplicated logic, giant functions, misleading names, comments explaining confusing code."
+    },
+    {
+      "q": "what is yagni",
+      "a": "You Aren't Gonna Need It — build for the current requirement, cleanly, not for imagined futures."
+    },
+    {
+      "q": "what is kiss",
+      "a": "Keep It Simple — the simplest thing that works is easiest to trust, test and change."
+    },
+    {
+      "q": "what is dry",
+      "a": "Don't Repeat Yourself — one authoritative implementation of each piece of knowledge."
+    },
+    {
+      "q": "what is the boy scout rule",
+      "a": "Leave the code a little cleaner than you found it; small constant improvements beat big rewrites."
+    },
+    {
+      "q": "what is rubber duck debugging",
+      "a": "Explaining the bug aloud to an inanimate listener often reveals it before you finish the sentence."
+    },
+    {
+      "q": "what is a stack trace",
+      "a": "The chain of calls leading to an exception — read from the bottom (outermost) to the top (where it broke)."
+    },
+    {
+      "q": "what is a breakpoint",
+      "a": "A deliberate pause (breakpoint() or pdb) letting you inspect variables at the moment of interest."
+    },
+    {
+      "q": "what is logging versus printing",
+      "a": "Logs carry levels, timestamps and destinations; prints vanish in production. Use logging in anything that ships."
+    },
+    {
+      "q": "what is an assertion",
+      "a": "A claim the code guarantees true — for catching programmer errors in development, not for validating user input."
+    },
+    {
+      "q": "what is fail fast",
+      "a": "Validate early and loudly so problems surface near their cause instead of corrupting distant state."
+    },
+    {
+      "q": "what is defensive copying",
+      "a": "Handing out copies of internal lists/dicts so callers can't mutate your state behind your back."
+    },
+    {
+      "q": "what is a feature flag",
+      "a": "A runtime switch that enables or hides behaviour, letting you ship dark and turn things on safely."
+    },
+    {
+      "q": "what is canary deployment",
+      "a": "Giving a new version a small slice of traffic first, watching, then widening."
+    },
+    {
+      "q": "what is rollback",
+      "a": "Returning to the previous known-good version — fast rollback beats a perfect release process."
+    },
+    {
+      "q": "what is a postmortem",
+      "a": "A blameless write-up after an incident: what happened, why, and what changes prevent a repeat."
+    },
+    {
+      "q": "what is an adr",
+      "a": "An Architecture Decision Record: a short note capturing a decision, its context and consequences for future readers."
+    },
+    {
+      "q": "what is technical writing",
+      "a": "Clear sentences, short paragraphs, examples over adjectives. If a reader must re-read, rewrite."
+    },
+    {
+      "q": "what is a user story",
+      "a": "A one-line need from the user's perspective: 'as a learner I want instant answers so I keep momentum'."
+    },
+    {
+      "q": "what is mvp",
+      "a": "The smallest version delivering real value — seeded knowledge plus chat, before any extras existed."
+    },
+    {
+      "q": "what is dogfooding",
+      "a": "Using your own product; every feature here was exercised in this chat interface before shipping."
+    },
+    {
+      "q": "what is progressive disclosure",
+      "a": "Showing the simple face first and details on request — advanced panels hide behind tabs and collapsed traces."
+    },
+    {
+      "q": "what is a vertical slice",
+      "a": "A thin feature touching every layer (UI → API → brain → tests) instead of one layer across many features."
+    },
+    {
+      "q": "what is tracer bullet development",
+      "a": "Firing one end-to-end example through the whole system early so every integration point is proven."
+    },
+    {
+      "q": "what is yak shaving",
+      "a": "A chain of tasks enabled by other tasks. Name it, timebox it, return to the real goal."
+    },
+    {
+      "q": "what is a timebox",
+      "a": "A fixed budget for an attempt so exploration can't eat the schedule — finish, ship, iterate."
+    },
+    {
+      "q": "what is definition of done",
+      "a": "The checklist a change must pass: works, tested, documented, changelogged, no regressions."
+    },
+    {
+      "q": "what is acceptance criteria",
+      "a": "Specific, testable conditions a change must satisfy — the basis of every test in this repo."
+    },
+    {
+      "q": "what is load testing",
+      "a": "Driving realistic traffic to find the breaking point before your users do."
+    },
+    {
+      "q": "what is chaos testing",
+      "a": "Deliberately breaking dependencies to verify graceful failure — my clients prove offline behaviour against dead ports."
+    },
+    {
+      "q": "what is a 400 versus 500",
+      "a": "400s blame the request (bad payload), 500s blame the server (a bug). Don't retry a 400 unchanged."
+    },
+    {
+      "q": "what is a 429",
+      "a": "Too Many Requests — you hit a rate limit; back off and retry later, respecting Retry-After."
+    },
+    {
+      "q": "what is a 503",
+      "a": "Service Unavailable — temporarily overloaded or under maintenance; retrying later is reasonable."
+    },
+    {
+      "q": "what is a 204",
+      "a": "No Content — success with nothing to send; my CORS preflight answers this way."
+    },
+    {
+      "q": "what is idempotent retry",
+      "a": "Automatically retrying only safe methods (GET, PUT); never blind-retry a POST that may have succeeded."
+    },
+    {
+      "q": "what is a webhook versus polling",
+      "a": "Webhooks push events to you, polling asks repeatedly — push wins when events are sparse and you own both ends."
+    },
+    {
+      "q": "what is eventual consistency",
+      "a": "Writes propagate asynchronously so readers may briefly see older data — fine when nothing needs instant agreement."
+    },
+    {
+      "q": "what is a write ahead log",
+      "a": "Appending intent before applying it so a crash mid-write can be recovered — my append-only episode log follows the spirit."
+    },
+    {
+      "q": "what is an atomic rename",
+      "a": "Writing a temp file then renaming over the target so readers never see half-written data — every save here does this."
+    },
+    {
+      "q": "what is a checksum",
+      "a": "A short digest of data that detects corruption in transit or at rest."
+    },
+    {
+      "q": "what is a heartbeat",
+      "a": "A periodic 'still alive' signal; the header status dot is the human-facing version."
+    },
+    {
+      "q": "what is a leaky abstraction",
+      "a": "An interface that forces you to understand the layer beneath it — good abstractions keep secrets."
+    },
+    {
+      "q": "what is the law of demeter",
+      "a": "Talk to your immediate collaborators, not their internals: obj.name beats obj.wrapper.inner.name."
+    },
+    {
+      "q": "what is dependency injection",
+      "a": "Passing collaborators in instead of constructing them inside — the reason my tests can inject temp dirs and dead ports."
+    },
+    {
+      "q": "what is inversion of control",
+      "a": "The framework calls you (callbacks, hooks) rather than you calling it — Flask routes work this way."
+    },
+    {
+      "q": "what is deterministic code",
+      "a": "Same inputs produce the same outputs and effects — the property that makes testing and debugging tractable."
+    },
+    {
+      "q": "what is a side effect",
+      "a": "Anything beyond returning a value: writing files, bumping counters, sending requests. Name them, isolate them, test them."
+    },
+    {
+      "q": "what is defensive validation",
+      "a": "Refusing nonsense early with a clear 400 instead of crashing deep inside a pipeline."
+    },
+    {
+      "q": "what is a data retention policy",
+      "a": "How long data lives and what deletes it; my episodes cap at 2000 and you can clear the transcript any time."
+    },
+    {
+      "q": "what is backpressure",
+      "a": "Slowing producers when consumers can't keep up — the skill queue drains gently instead of spawning unbounded work."
+    },
+    {
+      "q": "what is a semaphore",
+      "a": "A counter limiting how many threads hold a resource at once — use it where a plain lock over-restricts."
+    },
+    {
+      "q": "what is a deadlock",
+      "a": "Two parties each holding what the other waits for. Avoid by locking in a fixed order or not nesting locks."
+    },
+    {
+      "q": "what is jitter",
+      "a": "Randomising retry delays so many clients don't retry in lockstep and re-crush a recovering server."
+    },
+    {
+      "q": "what is monotonic time",
+      "a": "A clock that never goes backwards (time.monotonic) — correct for measuring durations, unlike wall-clock time."
+    },
+    {
+      "q": "what is utc versus local time",
+      "a": "Store UTC, display local; every timestamp in my data files is UTC epoch seconds."
+    },
+    {
+      "q": "what is epoch time",
+      "a": "Seconds since 1970-01-01 UTC — compact, sortable and unambiguous."
+    },
+    {
+      "q": "what is an iso 8601 date",
+      "a": "The yyyy-mm-dd form that sorts correctly as text and is unambiguous across locales."
+    },
+    {
+      "q": "what is a canonical form",
+      "a": "One agreed representation of a value (lowercased, trimmed, punctuation-stripped) so lookups succeed — my normalize()."
+    },
+    {
+      "q": "what is stemming",
+      "a": "Chopping suffixes so 'running' and 'run' match: my content tokens strip simple plural/ing endings."
+    },
+    {
+      "q": "what is stop word removal",
+      "a": "Dropping very common words that carry little retrieval signal — I weight them near zero instead of deleting them."
+    },
+    {
+      "q": "what is a posting list",
+      "a": "The document ids attached to each term in an inverted index."
+    },
+    {
+      "q": "what is a term frequency",
+      "a": "How often a term appears in a document — one half of tf-idf."
+    },
+    {
+      "q": "what is a document frequency",
+      "a": "How many documents contain a term; rare terms are more informative, hence the inverse weighting."
+    },
+    {
+      "q": "what is a dot product",
+      "a": "The sum of element-wise products; with normalisation it gives cosine similarity, the core of my retrieval."
+    },
+    {
+      "q": "what is vectorisation in numpy",
+      "a": "Doing maths on whole arrays in C instead of Python loops — the difference between milliseconds and seconds here."
+    },
+    {
+      "q": "what is broadcasting",
+      "a": "NumPy's rule for combining arrays of different shapes without explicitly copying data."
+    },
+    {
+      "q": "what is a view versus a copy",
+      "a": "A view shares memory (fast, risky), a copy is independent (safe, costs memory); slicing usually views."
+    },
+    {
+      "q": "what is a hot path",
+      "a": "The code run most often; it deserves the clearest naming and the most care about allocations."
+    },
+    {
+      "q": "what is a bottleneck",
+      "a": "The one component limiting overall speed — fixing anything else changes nothing."
+    },
+    {
+      "q": "what is a cold start",
+      "a": "The first, slower run before caches warm up — visible in the ⏱ latency tags on each reply."
+    },
+    {
+      "q": "what is a warm cache",
+      "a": "Reusing prepared data so the next call is fast — my probe TTLs and tokenizer cache are small examples."
+    },
+    {
+      "q": "what is the 80 20 rule",
+      "a": "Roughly 80% of the effect comes from 20% of the causes; find that 20% before optimising anything else."
+    },
+    {
+      "q": "what is hashability",
+      "a": "An object usable as a dict key must not change its hash — lists can't, tuples of immutables can."
+    },
+    {
+      "q": "what is a hash collision",
+      "a": "Two different keys landing in one bucket; dicts resolve them, but adversarial collisions can degrade performance."
+    },
+    {
+      "q": "what is a load factor",
+      "a": "The occupancy ratio that triggers a hash table to resize — Python resizes around two-thirds full."
+    },
+    {
+      "q": "what is a balanced tree",
+      "a": "A tree rebalanced (red-black, AVL) to keep its height logarithmic so lookups stay predictable."
+    },
+    {
+      "q": "what is a b-tree",
+      "a": "A wide, shallow tree used by databases and filesystems so one disk read fetches many keys."
+    },
+    {
+      "q": "what is a union find",
+      "a": "A structure tracking which elements are connected (Disjoint Set Union) with near-constant-time operations."
+    },
+    {
+      "q": "what is topological sort",
+      "a": "Ordering a DAG so every edge points forward — how build tools decide what compiles first."
+    },
+    {
+      "q": "what is dijkstra",
+      "a": "The classic shortest-path algorithm for non-negative weights, always extending the closest known frontier."
+    },
+    {
+      "q": "what is a star search",
+      "a": "A* — Dijkstra guided by a heuristic estimating remaining distance, the basis of game pathfinding."
+    },
+    {
+      "q": "what is a minimum spanning tree",
+      "a": "The cheapest edge set connecting every node; Kruskal and Prim build it."
+    },
+    {
+      "q": "what is a segment tree",
+      "a": "A structure answering range queries and point updates in logarithmic time."
+    },
+    {
+      "q": "what is a suffix array",
+      "a": "All suffixes of a string sorted, letting substring search run in logarithmic time."
+    },
+    {
+      "q": "what is rolling hash",
+      "a": "A hash updatable in constant time as a window slides — the trick behind fast substring search."
+    },
+    {
+      "q": "what is kmp",
+      "a": "Knuth-Morris-Pratt: a failure table so a mismatch never re-scans already-matched characters."
+    },
+    {
+      "q": "what is meet in the middle",
+      "a": "Splitting an exponential search in two halves and joining results, turning 2ⁿ into 2^(n/2)."
+    },
+    {
+      "q": "what is a state machine",
+      "a": "A system whose behaviour depends on current state plus input; skills, backends and circuit breakers are small ones."
+    },
+    {
+      "q": "what is a finite automaton",
+      "a": "The formal model behind regexes and state machines: states, transitions, accept states."
+    },
+    {
+      "q": "what is the halting problem",
+      "a": "No program can decide for every program whether it terminates — the reason static analysis must approximate."
+    },
+    {
+      "q": "what is p versus np",
+      "a": "Can every quickly-checkable problem also be quickly solvable? Nobody knows; a million dollars waits."
+    },
+    {
+      "q": "what is np complete",
+      "a": "The hardest problems in NP — solve one quickly and you solve them all: SAT, timetabling, travelling salesman."
+    },
+    {
+      "q": "what is the travelling salesman problem",
+      "a": "Visit every city once, minimise distance: exact for small n, heuristics beyond."
+    },
+    {
+      "q": "what is the pigeonhole principle",
+      "a": "n+1 items in n holes forces a collision — the basis of hash inevitability and many counting proofs."
+    },
+    {
+      "q": "what is an invariant",
+      "a": "Something true at every step (loop invariants prove correctness) or across a system (my counters only grow on teach)."
+    },
+    {
+      "q": "what is induction",
+      "a": "Prove a base case and an inductive step, and all cases follow — the standard way to reason about recursion."
+    },
+    {
+      "q": "what is a counterexample",
+      "a": "A single case that breaks a claim; searching for one is faster than arguing."
+    },
+    {
+      "q": "what is occam's razor",
+      "a": "Among equally good explanations, prefer the simplest — one more reason this codebase avoids dependencies."
+    },
+    {
+      "q": "what is parkinson's law",
+      "a": "Work expands to fill the time available — hence deliberately small release scopes."
+    },
+    {
+      "q": "what is conway's law",
+      "a": "Systems mirror the communication structure of the teams that built them."
+    },
+    {
+      "q": "what is the map is not the territory",
+      "a": "Models are simplifications; my retrieval scores approximate relevance, they don't capture meaning."
+    },
+    {
+      "q": "what is symbolic versus statistical ai",
+      "a": "Rules and logic versus learned probabilities — MyGPT is deliberately both, with templates and memory on one side and a tiny neural LM on the other."
+    },
+    {
+      "q": "what is explainability",
+      "a": "Being able to say why an answer appeared: my chain-of-thought traces, mode tags and retrieval scores exist for that."
+    },
+    {
+      "q": "what is a confidence score",
+      "a": "A number expressing certainty; a template match is 0.85, a wild guess 0.3 — and I show it."
+    },
+    {
+      "q": "what is calibration",
+      "a": "Whether stated confidence matches reality; overconfident systems are worse than silent ones, hence honest fallbacks."
+    },
+    {
+      "q": "what is hallucination",
+      "a": "Fluent text unmoored from truth. Mitigations here: retrieval, templates, low-confidence phrasing, and refusing to pretend."
+    },
+    {
+      "q": "what is a guardrail",
+      "a": "A hard limit preventing a bad class of action — no code execution, no file writing, strict size caps."
+    },
+    {
+      "q": "what is feedback loop design",
+      "a": "Make correcting the system easy (👍/👎, inline corrections) and actually use the signal (reinforcement, retraining)."
+    },
+    {
+      "q": "what is reinforcement in retrieval",
+      "a": "Raising the weight of answers that worked so they surface sooner — my 👍 directly changes ranking."
+    },
+    {
+      "q": "what is catastrophic forgetting",
+      "a": "Learning new things badly enough to lose old ones — why training rounds here mix in the core corpus."
+    },
+    {
+      "q": "what is a replay buffer",
+      "a": "Rehearsing stored examples alongside new ones to retain old knowledge."
+    },
+    {
+      "q": "what is self supervision",
+      "a": "Learning from the data's own structure (predict the next token) without human labels — my tiny LM's whole regime."
+    },
+    {
+      "q": "what is a knowledge base versus a model",
+      "a": "A knowledge base stores explicit facts you can inspect and delete; a model stores implicit statistics. MyGPT keeps both."
+    },
+    {
+      "q": "what is provenance",
+      "a": "Where a fact came from — seed corpus, your teaching, or an import; my stores tag each."
+    },
+    {
+      "q": "what is a tombstone",
+      "a": "A marker recording a deletion so it can propagate — my forget path removes the pair and logs the event."
+    },
+    {
+      "q": "what is idempotent teaching",
+      "a": "Teaching the same question twice replaces the old answer instead of duplicating — memory.add(replace_question=...)."
+    },
+    {
+      "q": "what is deduplication",
+      "a": "Removing identical or near-identical items; the seed corpus is verified duplicate-free by a test."
+    },
+    {
+      "q": "what is a quality gate",
+      "a": "Automated checks that must pass before shipping: tests, compile, JSON validity and a live smoke test."
+    },
+    {
+      "q": "what is a preflight check",
+      "a": "Verifying prerequisites before heavy work — the browser's OPTIONS preflight, or checking the venv before starting servers."
+    },
+    {
+      "q": "what is a status page",
+      "a": "One place to see service health; /api/health reports version, uptime and dependency reachability."
+    },
+    {
+      "q": "what is a threat model",
+      "a": "Who might attack what, and how: for a localhost app the main risks are malformed input and path traversal — both covered by tests."
+    },
+    {
+      "q": "what is path traversal",
+      "a": "Naming a file like ../../etc/passwd to escape a directory; my checkpoint endpoints reject it and a test proves it."
+    },
+    {
+      "q": "what is input fuzzing",
+      "a": "Feeding random or hostile inputs to find crashes — my validation tests cover empties, huge payloads and wrong types."
+    },
+    {
+      "q": "what is output encoding",
+      "a": "Escaping data when rendering so it can't become code — chat text uses textContent, never innerHTML."
+    },
+    {
+      "q": "what is atomicity",
+      "a": "All-or-nothing updates; a temp-file-plus-rename write is atomic at the file level."
+    },
+    {
+      "q": "what is durability",
+      "a": "Surviving a crash after acknowledging a write — save(force=True) on user-critical actions, flush on exit."
+    },
+    {
+      "q": "what is a single writer principle",
+      "a": "One component owns each piece of state, making races impossible — the Flask lock serialises brain mutations."
+    },
+    {
+      "q": "what is a bounded queue",
+      "a": "A queue with a maximum length that applies backpressure instead of growing forever."
+    },
+    {
+      "q": "what is an unbounded growth bug",
+      "a": "A list that only ever grows — the cause of most long-running leaks; every store here has a cap."
+    },
+    {
+      "q": "what is a watchdog",
+      "a": "A component that revives something stuck; my background trainer tolerates a stalled worker without blocking chat."
+    },
+    {
+      "q": "what is a capability probe",
+      "a": "Trying the real operation cheaply to learn whether it's available — my backend probes hit /health instead of assuming."
+    },
+    {
+      "q": "what is explicit configuration",
+      "a": "Settings stated in one place (env vars here) rather than magic numbers scattered through code."
+    },
+    {
+      "q": "what is a twelve factor app",
+      "a": "Config in the environment, stateless processes, logs as streams, dev/prod parity — the checklist this app broadly follows."
+    },
+    {
+      "q": "what is a monolith",
+      "a": "One deployable process holding the whole system; for a personal chatbot that's the correct, simplest choice."
+    },
+    {
+      "q": "what is coupling",
+      "a": "How much one module must know about another; loose coupling is why the brain is testable without Flask."
+    },
+    {
+      "q": "what is cohesion",
+      "a": "How tightly a module's parts belong together — high cohesion inside memory.py, low coupling outward."
+    },
+    {
+      "q": "what is a test double",
+      "a": "A stand-in for a real dependency (fake, stub, spy) — my dead-port clients are the simplest kind."
+    },
+    {
+      "q": "what is a hermetic test",
+      "a": "One that passes offline, anywhere, deterministically — every test here is hermetic by construction."
+    },
+    {
+      "q": "what is a smoke test",
+      "a": "A quick check the build isn't on fire: page loads, health is green, one chat round-trips."
+    },
+    {
+      "q": "what is test isolation",
+      "a": "Each test builds and tears down its own world so ordering never matters — every suite here gets a temp dir and a fresh brain."
+    },
+    {
+      "q": "what is a golden file",
+      "a": "Stored expected output compared every run; ideal for API shapes and exports."
+    },
+    {
+      "q": "what is flaky test",
+      "a": "A test that passes and fails without code changes — usually timing or shared state. Fix the cause, never retry-loop it."
+    },
+    {
+      "q": "what is accessibility",
+      "a": "Designing so everyone can use it: keyboard paths, screen-reader labels, contrast, reduced motion, scalable text."
+    },
+    {
+      "q": "what is aria",
+      "a": "Accessible Rich Internet Applications: attributes like aria-label and aria-live that describe UI to assistive tech."
+    },
+    {
+      "q": "what is color contrast",
+      "a": "The luminance difference between text and background; WCAG AA wants at least 4.5:1 for body text."
+    },
+    {
+      "q": "what is reduced motion",
+      "a": "A user preference (prefers-reduced-motion) asking for fewer animations; honouring it prevents discomfort."
+    },
+    {
+      "q": "what is semantic html",
+      "a": "Using button, nav, main and label for what they mean rather than divs with handlers — free keyboard support."
+    },
+    {
+      "q": "what is an accessible name",
+      "a": "The label a control is announced with — visible text, aria-label, or a linked <label> element."
+    },
+    {
+      "q": "what is tab order",
+      "a": "The sequence Tab moves focus through; it should follow reading order and stay away from positive tabindex values."
+    },
+    {
+      "q": "what is a skip link",
+      "a": "A first-focus 'skip to content' link letting keyboard users bypass repeated navigation."
+    },
+    {
+      "q": "what is internationalisation",
+      "a": "Designing so text, dates and numbers adapt to other locales — toLocaleTimeString handles my dates."
+    },
+    {
+      "q": "what is a time zone bug",
+      "a": "Storing local times instead of UTC, then adding offsets twice. Store UTC, convert at the display edge."
+    },
+    {
+      "q": "what is a monospace font",
+      "a": "A font where every glyph shares one width, so code columns line up."
+    },
+    {
+      "q": "what is a pwa install",
+      "a": "Adding a web app to the desktop/home screen via its manifest; it opens without browser chrome."
+    },
+    {
+      "q": "what is offline first",
+      "a": "Designing so the app still works without a network — queue actions, serve cached data, sync later."
+    },
+    {
+      "q": "what is localstorage",
+      "a": "A small browser key-value store, ideal for drafts and preferences but unsuitable for large or sensitive data."
+    },
+    {
+      "q": "what is a service worker",
+      "a": "A background script between page and network enabling offline caching and push — the engine behind PWAs."
+    },
+    {
+      "q": "what is debouncing",
+      "a": "Waiting for quiet before acting — the memory search fires 220 ms after you stop typing."
+    },
+    {
+      "q": "what is an optimistic update",
+      "a": "Showing the user's action immediately, then reconciling with the server — why chat feels instant."
+    },
+    {
+      "q": "what is a toast",
+      "a": "A short-lived corner message confirming an action; I use them for copies, clears, themes and imports."
+    },
+    {
+      "q": "what is fitts law",
+      "a": "Bigger, closer targets are faster to hit — why the send button is large and pinned beside the composer."
+    },
+    {
+      "q": "what is hicks law",
+      "a": "More choices take longer to decide — hence Auto mode and a short model list instead of a wall of options."
+    },
+    {
+      "q": "what is a design token",
+      "a": "A named value (colour, radius, spacing) reused everywhere; my CSS variables made the light theme one block of code."
+    },
+    {
+      "q": "what is flexbox versus grid",
+      "a": "Flex is one-dimensional flow, grid is two-dimensional placement; this layout uses flex, with grid for tile rows."
+    },
+    {
+      "q": "what is perceived performance",
+      "a": "How fast something feels — instant composer feedback, typing dots and streamed words all shorten the felt wait."
+    },
+    {
+      "q": "what is cpu versus io bound",
+      "a": "CPU-bound work is limited by computation (use processes); I/O-bound work waits on network or disk (threads or async)."
+    },
+    {
+      "q": "what is a microbenchmark",
+      "a": "Timing one tiny operation — easily misleading; measure whole operations instead."
+    },
+    {
+      "q": "what is a reverse proxy",
+      "a": "A server fronting your app for TLS, compression and headers — I run a tiny one in front of the Cortex dashboard."
+    },
+    {
+      "q": "what is http keep alive",
+      "a": "Reusing one TCP connection for several requests, cutting handshake cost — my Cortex and Ollama clients do this."
+    },
+    {
+      "q": "what is an etag",
+      "a": "A response fingerprint browsers send back to skip unchanged downloads."
+    },
+    {
+      "q": "what is graceful degradation",
+      "a": "Working acceptably when features are missing — no clipboard access still explains what to do."
+    },
+    {
+      "q": "what is progressive enhancement",
+      "a": "Start with working HTML, then layer JavaScript niceties so the base never breaks."
+    },
+    {
+      "q": "what is a fallback chain",
+      "a": "Trying options in order until one works: streaming → plain chat, Cortex → Ollama → brain, clipboard → toast."
+    },
+    {
+      "q": "what is an lru cache",
+      "a": "Least-Recently-Used eviction: when full, discard the entry unused longest — functools.lru_cache implements it."
+    },
+    {
+      "q": "what is a ttl",
+      "a": "Time to live — how long a cached answer stays valid; my backend probes reuse results for 20 seconds."
+    },
+    {
+      "q": "what is a schema",
+      "a": "A description of allowed structure; validating chat payloads (text, non-empty, ≤4000) is a tiny schema."
+    },
+    {
+      "q": "what is a contract test",
+      "a": "A test verifying client and server agree on the interface — my tests pin the exact JSON of every endpoint."
+    },
+    {
+      "q": "what is a regression suite",
+      "a": "Past bug fixes accumulated as permanent tests — every bug fixed in this project gained one."
+    },
+    {
+      "q": "what is a test pyramid",
+      "a": "Many fast unit tests, fewer integration tests, very few slow end-to-end ones — cheap feedback dominates."
+    },
+    {
+      "q": "what is a trie",
+      "a": "A prefix tree storing strings by their characters — it powers autocomplete like my /api/suggest."
+    },
+    {
+      "q": "what is a bloom filter",
+      "a": "A tiny probabilistic set that answers 'definitely not present' or 'maybe present', with no false negatives."
+    },
+    {
+      "q": "what is tf idf",
+      "a": "Term frequency × inverse document frequency: favours words common in one document but rare overall. My retrieval weights this way."
+    },
+    {
+      "q": "what is an inverted index",
+      "a": "A map from word to the documents containing it, so search visits candidates instead of scanning everything."
+    },
+    {
+      "q": "what is cosine similarity",
+      "a": "The cosine of the angle between two vectors — 1 identical, 0 unrelated. It's how questions match memories here."
+    },
+    {
+      "q": "what is edit distance used for",
+      "a": "Spelling correction, fuzzy matching and diffing — the fewest single-character edits between two strings."
+    },
+    {
+      "q": "what is levenshtein distance",
+      "a": "The classic edit distance: insertions, deletions and substitutions, each costing one."
+    },
+    {
+      "q": "what is a monte carlo method",
+      "a": "Estimating an answer by random sampling — like simulating dice rolls to see the distribution."
+    },
+    {
+      "q": "what is the birthday problem",
+      "a": "With just 23 people a shared birthday is more likely than not — intuition about probability is bad."
+    },
+    {
+      "q": "what is the law of large numbers",
+      "a": "Averages converge to the true mean as samples grow — why more dice rolls give flatter bars."
+    },
+    {
+      "q": "what is the normal distribution",
+      "a": "The bell curve: most values near the mean with thinning tails, described by mean and standard deviation."
+    },
+    {
+      "q": "what is standard deviation",
+      "a": "The typical distance of values from their mean — the square root of variance."
+    },
+    {
+      "q": "what is a median versus mean",
+      "a": "The median splits sorted data in half and ignores outliers; the mean can be dragged by them. Report both when data is skewed."
+    },
+    {
+      "q": "what is a percentile",
+      "a": "The value below which a given share of data falls — p95 latency is the 95th percentile of response times."
+    },
+    {
+      "q": "what is correlation versus causation",
+      "a": "Correlation means two things move together; causation means one drives the other. Ice cream sales and drownings correlate — summer causes both."
+    },
+    {
+      "q": "what is p value",
+      "a": "The probability of seeing data at least this extreme if nothing were happening — small suggests a real effect, not proof."
+    },
+    {
+      "q": "what is bayes theorem",
+      "a": "Updating beliefs with evidence: posterior ∝ likelihood × prior. It answers 'how likely is this cause, given what I saw?'"
+    },
+    {
+      "q": "what is a base rate",
+      "a": "How common something is overall; ignoring it causes alarms at rare events that fit common patterns."
+    },
+    {
+      "q": "what is a decision tree",
+      "a": "A series of if/else splits partitioning data — readable, and the ancestor of random forests."
+    },
+    {
+      "q": "what is k nearest neighbours",
+      "a": "Classify a point by the votes of its nearest examples — simple, effective, with no training step."
+    },
+    {
+      "q": "what is k means",
+      "a": "Clustering by iterating: assign points to the nearest of k centres, move each centre to its cluster's mean, repeat."
+    },
+    {
+      "q": "what is regression in ml",
+      "a": "Predicting a number rather than a category; linear regression fits the best straight line."
+    },
+    {
+      "q": "what is an activation function",
+      "a": "The non-linearity between layers (relu, tanh, softmax) that lets networks model curved relationships."
+    },
+    {
+      "q": "what is softmax",
+      "a": "Turns a vector of scores into probabilities summing to one — used for the next-token distribution."
+    },
+    {
+      "q": "what is a learning rate",
+      "a": "How big a step gradient descent takes — too large bounces or diverges, too small crawls."
+    },
+    {
+      "q": "what is batch size",
+      "a": "How many examples gradients are averaged over before a step; bigger batches are smoother but need more memory."
+    },
+    {
+      "q": "what is an epoch",
+      "a": "One full pass over the training data; the Train button here uses 5–50 epochs."
+    },
+    {
+      "q": "what is dropout",
+      "a": "Randomly ignoring neurons during training to prevent co-adaptation and overfitting."
+    },
+    {
+      "q": "what is data leakage",
+      "a": "When training accidentally sees test information — evaluation looks great, reality doesn't."
+    },
+    {
+      "q": "what is feature engineering",
+      "a": "Turning raw data into informative inputs: ratios, flags, counts, n-grams."
+    },
+    {
+      "q": "what is an ablation",
+      "a": "Removing one component at a time to see whether it actually helps — the honest way to justify complexity."
+    },
+    {
+      "q": "what is a baseline",
+      "a": "The simplest reasonable result to beat; improvement without a baseline is meaningless."
+    },
+    {
+      "q": "what is reproducibility",
+      "a": "Same code, same data, same seed → same result. Seeds, pinned dependencies and recorded configs get you there."
+    },
+    {
+      "q": "what is a random seed",
+      "a": "The starting point for a pseudo-random sequence; fixing it makes runs repeatable — my tiny LM is seeded."
+    },
+    {
+      "q": "what is a benchmark",
+      "a": "A standard task for comparing approaches — and a reminder to measure before optimising."
+    },
+    {
+      "q": "what is premature optimization",
+      "a": "Making code complicated for speed before knowing it matters. Profile first."
+    },
+    {
+      "q": "what is profiling",
+      "a": "Measuring where time actually goes — cProfile, py-spy and time.perf_counter are the usual tools."
+    },
+    {
+      "q": "what is lazy evaluation",
+      "a": "Computing only when needed — generators, itertools and short-circuit boolean logic all illustrate it."
+    },
+    {
+      "q": "what is short circuit evaluation",
+      "a": "and/or stop as soon as the answer is known; guard clauses like 'if user and user.active' rely on it."
+    },
+    {
+      "q": "what is a pure function",
+      "a": "Same inputs → same output, no side effects. Trivial to test and safe to cache."
+    },
+    {
+      "q": "what is separation of concerns",
+      "a": "Each module does one job — tokenizer, memory, brain, codegen and clients here are separate and independently testable."
+    },
+    {
+      "q": "what is a proof by contradiction",
+      "a": "Assume the opposite and derive impossibility — how the irrationality of √2 is shown."
+    },
+    {
+      "q": "what is a necessary versus sufficient condition",
+      "a": "Necessary must hold (fuel to drive); sufficient guarantees it (full tank and a working car)."
+    },
+    {
+      "q": "what is a debugger",
+      "a": "A tool to pause execution, inspect variables and step through code — pdb is Python's built-in one."
+    },
+    {
+      "q": "what is a code review",
+      "a": "Reading someone's change for bugs, clarity and fit before merging — not gatekeeping style a formatter handles."
+    },
+    {
+      "q": "what is a pull request",
+      "a": "A proposal to merge a branch, carrying the diff, the discussion and the checks."
+    },
+    {
+      "q": "what is a release tag",
+      "a": "A named pointer to the exact commit that shipped, like v1.9.0 — my changelog numbers map onto these."
+    },
+    {
+      "q": "what is backwards compatibility",
+      "a": "Old clients keep working: add fields, don't rename or remove them, unless a major version says otherwise."
+    },
+    {
+      "q": "what is deprecation",
+      "a": "Announcing that something will be removed, keeping it working for a while, documenting the replacement."
+    },
+    {
+      "q": "what is an api contract",
+      "a": "The written promise about inputs, outputs, errors and status codes; the README table is its public face."
+    },
+    {
+      "q": "what is a runbook",
+      "a": "Step-by-step recovery instructions for common failures, written while calm for use while not."
+    },
+    {
+      "q": "what is a blast radius",
+      "a": "How much breaks when something fails; small isolated components keep it small."
+    },
+    {
+      "q": "what is the principle of least astonishment",
+      "a": "Interfaces should behave the way people expect — Enter sends, Escape clears, nothing surprising."
+    },
+    {
+      "q": "what is active recall",
+      "a": "Retrieving an answer without looking beats re-reading — try asking me before searching."
+    },
+    {
+      "q": "what is the feynman technique",
+      "a": "Explain it simply; wherever you stumble is where you don't yet understand it."
+    },
+    {
+      "q": "what is deliberate practice",
+      "a": "Working at the edge of ability with feedback on specific weaknesses — the reason tests and latency tags exist."
+    },
+    {
+      "q": "what is deep work",
+      "a": "Focused uninterrupted effort on demanding tasks; the reason this UI is quiet by default."
+    },
+    {
+      "q": "what is incremental delivery",
+      "a": "Shipping a thin slice end-to-end rather than half of six features."
+    },
+    {
+      "q": "what is a non functional requirement",
+      "a": "Qualities like speed, portability and accessibility that no feature list captures but users feel immediately."
+    },
+    {
+      "q": "what is a graceful error message",
+      "a": "One sentence saying what happened and what to do next, without a stack trace and without blaming the user."
+    },
+    {
+      "q": "what is a fan out",
+      "a": "One request triggering many downstream calls — powerful, but latency and failure multiply."
+    },
+    {
+      "q": "what is a cron job",
+      "a": "A scheduled command; my brain runs its own gentle background cycle instead of relying on system cron."
+    },
+    {
+      "q": "what is idempotent startup",
+      "a": "Starting twice changes nothing harmful — directories are created with exist_ok and state loads if present."
+    },
+    {
+      "q": "what is a version marker",
+      "a": "A stored number saying which schema a file uses so future code can migrate instead of guessing."
+    },
+    {
+      "q": "what is a fallback default",
+      "a": "A sensible value used when configuration is missing: port 8000, cortex url localhost, plain Brain if nothing answers."
+    },
+    {
+      "q": "what is a denial of service",
+      "a": "Overwhelming a service with volume; caps on message size, batch size and body length are the first defence."
+    },
+    {
+      "q": "what is resource exhaustion",
+      "a": "Running out of memory, handles or disk — bounded queues, capped logs and streamed reads keep it away."
+    },
+    {
+      "q": "what is a spike",
+      "a": "A short throwaway experiment answering one question; delete it afterwards, keep the knowledge."
+    },
+    {
+      "q": "what is a proof of concept",
+      "a": "The smallest build showing the idea is possible — like the first version of this chat."
+    },
+    {
+      "q": "what is continuous delivery",
+      "a": "Keeping every commit releasable via automation; continuous deployment goes further and ships automatically."
+    },
+    {
+      "q": "what is infrastructure as code",
+      "a": "Describing servers in versioned files rather than hand-typed commands, so environments reproduce."
+    },
+    {
+      "q": "what is a container",
+      "a": "A packaged process with its dependencies isolated from the host — Docker is the common tool."
+    },
+    {
+      "q": "what is port forwarding",
+      "a": "Mapping a host port to a service inside an isolated network — how the sandbox preview reaches my 0.0.0.0:8000."
+    },
+    {
+      "q": "what is gzip compression",
+      "a": "Shrinking responses before sending, typically 70%+ smaller for text at a small CPU cost."
+    },
+    {
+      "q": "what is a cache busting query",
+      "a": "Appending a version to a file URL so browsers fetch the new copy after a deploy."
+    },
+    {
+      "q": "what is lazy loading",
+      "a": "Deferring work until needed — images, panels and heavy modules loaded only when they come into view."
+    },
+    {
+      "q": "what is a skeleton screen",
+      "a": "A placeholder outline while content loads, reducing the felt wait versus a blank panel."
+    },
+    {
+      "q": "what is the 3 click rule",
+      "a": "Users should reach any feature within about three interactions; tabs, chips and shortcuts keep me inside that budget."
+    },
+    {
+      "q": "what is a web font",
+      "a": "A font loaded by the page; I use system fonts instead — zero network cost and no layout shift."
+    },
+    {
+      "q": "what is a memory footprint",
+      "a": "How much RAM a process uses; the small LM plus a 2000-episode cap keeps MyGPT modest on a laptop."
+    },
+    {
+      "q": "what is the lindy effect",
+      "a": "Non-perishable things last longer the longer they've already lasted — a guide for what to bet on."
+    }
   ],
   "texts": [
     "mygpt is a small chatbot that learns from every conversation",
@@ -167,6 +1971,46 @@
     "keyboard shortcuts cover sending searching exporting and tab switching",
     "bulk teaching accepts up to one hundred question answer pairs per request",
     "math answers include list statistics like average sum and maximum",
-    "mygpt is a pwa with a manifest so it can be installed to the desktop"
+    "mygpt is a pwa with a manifest so it can be installed to the desktop",
+    "the maths pack answers factorials fibonacci primes gcd lcm factorisation and divisors",
+    "unit conversions cover celsius fahrenheit kilometres miles pounds ounces",
+    "statistics work in chat: median mode range variance standard deviation geometric and harmonic mean",
+    "finance helpers calculate tips simple interest compound interest and letter grades",
+    "geometry helpers cover circles rectangles triangles spheres cylinders and hypotenuses",
+    "fractions simplify add and multiply with exact rational arithmetic",
+    "roman numerals convert both ways and reject non canonical spellings",
+    "percent helpers cover change off increase decrease and what percent of",
+    "the text pack uppercases lowercases titles capitalises and swaps case",
+    "text encodings include base64 rot13 url encoding binary hex sha256 md5 and crc32",
+    "line tools dedupe sort number strip and shuffle lines of text",
+    "extraction tools pull emails urls numbers hashtags and mentions out of text",
+    "data helpers pretty print json minify json and convert csv to markdown tables",
+    "word games include pig latin palindrome isogram and anagram checks",
+    "chat maths is exposed at the api math endpoint and text at api text",
+    "every maths and text rule is listed by the api rules endpoint",
+    "sixty two maths rules and fifty five text rules ship in version one ten",
+    "one hundred and thirty four additional code template families ship in version one ten",
+    "the template library now exceeds two hundred and eighteen families",
+    "seed knowledge grew past four hundred and eighty question answer pairs",
+    "the test suite passed four hundred tests in version one ten",
+    "generated tests give every template family and every rule its own test method",
+    "a ui density toggle switches between compact and comfortable spacing",
+    "a high contrast mode strengthens borders and muted text for readability",
+    "a reduce motion toggle disables animations and honours the system preference",
+    "the sidebar collapses with the button or ctrl b",
+    "pinned messages live in a strip above the composer and persist in local storage",
+    "hover actions on every message offer copy pin and quote",
+    "the edit last button reloads your previous message into the composer",
+    "copy all collects the whole transcript as plain text",
+    "a share button uses the web share api with a clipboard fallback",
+    "a print button and a print stylesheet produce a clean transcript on paper",
+    "desktop notifications and a title badge announce replies when the tab is hidden",
+    "an optional web audio chime plays when a reply arrives",
+    "messages typed while offline queue in local storage and flush when the connection returns",
+    "the status text shows round trip ping time on hover",
+    "polling pauses after five idle minutes to save battery",
+    "a command dialog lists every keyboard shortcut and the question mark key opens it",
+    "an about dialog shows the version and endpoint count",
+    "svg icon serves as favicon apple touch icon and manifest icon"
   ]
 }

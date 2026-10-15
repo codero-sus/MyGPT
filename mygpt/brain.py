@@ -39,6 +39,8 @@ from .tokenizer import normalize
 from .trainer import BackgroundTrainer
 from . import codegen
 from . import importers
+from . import mathx
+from . import textfx
 from .checkpoints import CheckpointManager
 from .cortex import CortexClient
 from .ollama import OllamaClient
@@ -432,6 +434,22 @@ class Brain:
             record.update(mode="math", confidence=1.0, reply=special)
             return self._after_turn(record, extract=False)
 
+        # 0b) maths pack (v1.10): factorials, stats, geometry, finance ---------
+        solved = mathx.solve(text)
+        if solved:
+            name, answer = solved
+            record.update(mode="math", confidence=1.0, reply=answer)
+            self._log(f" maths pack: {name}")
+            return self._after_turn(record, extract=False)
+
+        # 0c) text pack (v1.10): transforms, encodings, extraction --------------
+        done = textfx.solve(text)
+        if done:
+            name, answer = done
+            record.update(mode="skill", confidence=1.0, reply=answer,
+                          skill=f"text:{name}")
+            return self._after_turn(record, extract=False)
+
         # 1) arithmetic skill -------------------------------------------------
         expr = self._find_math(text)
         if expr:
@@ -624,7 +642,7 @@ class Brain:
             (r" to the power of ", " ^ "), (r" squared ", " ^ 2 "),
             (r" mod ", " % "),
             (r" square root of ", " sqrt "), (r" sqrt of ", " sqrt "),
-            (r" percent of ", " %of "),
+            (r" percent of ", " %of "), (r"%\s*of ", " %of "),
         )
         for pat, repl in rules:
             low = re.sub(pat, repl, low)
@@ -816,6 +834,12 @@ class Brain:
         special = self._special_math(text)
         if special:
             return special
+        solved = mathx.solve(text)
+        if solved:
+            return solved[1]
+        done = textfx.solve(text)
+        if done:
+            return done[1]
         expr = self._find_math(text)
         if expr:
             result = self._math(expr)
