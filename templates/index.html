@@ -19,6 +19,7 @@
   <meta property="og:type" content="website" />
 </head>
 <body>
+  <a class="skip-link" href="#composer-input-anchor">Skip to the composer</a>
   <div class="app">
     <header class="topbar">
       <div class="brand">
@@ -36,6 +37,25 @@
                 aria-label="Decrease font size">A−</button>
         <button type="button" class="icon-btn" id="font-inc" title="Larger text"
                 aria-label="Increase font size">A+</button>
+        <button type="button" class="icon-btn" id="density-btn"
+                title="Compact / comfortable spacing" aria-label="Toggle density">📐</button>
+        <button type="button" class="icon-btn" id="contrast-btn"
+                title="High-contrast mode" aria-label="Toggle contrast">◐</button>
+        <button type="button" class="icon-btn" id="motion-btn"
+                title="Reduce animations" aria-label="Toggle reduced motion">🎞</button>
+        <button type="button" class="icon-btn" id="sidebar-btn"
+                title="Collapse the sidebar (Ctrl+B)" aria-label="Toggle sidebar">◧</button>
+        <button type="button" class="icon-btn" id="sound-btn"
+                title="Chime when a reply arrives" aria-label="Toggle sound">🔔</button>
+        <button type="button" class="icon-btn" id="notify-btn"
+                title="Desktop notification when a reply arrives while hidden"
+                aria-label="Toggle desktop notifications">🖥</button>
+        <button type="button" class="icon-btn" id="share-btn"
+                title="Share or copy this conversation" aria-label="Share">🔗</button>
+        <button type="button" class="icon-btn" id="print-btn"
+                title="Print the transcript (Ctrl+P)" aria-label="Print">🖨</button>
+        <button type="button" class="icon-btn" id="help-btn"
+                title="Keyboard shortcuts (?)" aria-label="Shortcuts">⌘</button>
         <div class="status"><span class="dot" id="status-dot"></span>
           <span id="status-text">online &amp; learning</span></div>
       </div>
@@ -60,10 +80,21 @@
           <div class="ih-text" id="install-hint-text"></div>
           <button id="install-hint-x" title="dismiss">✕</button>
         </div>
-        <div class="chat-scroll" id="chat"></div>
+        <div class="chat-scroll" id="chat" role="log" aria-live="polite"
+             aria-label="Conversation transcript"></div>
+        <div class="pins-bar hidden" id="pins-bar" aria-label="Pinned messages"></div>
         <button type="button" class="scroll-bottom hidden" id="scroll-bottom"
                 title="Jump to latest message" aria-label="Jump to latest message">⌄</button>
+        <div class="chat-actions">
+          <button type="button" class="mini ghost-mini" id="first-btn"
+                  title="Jump to the first message">⤒ first</button>
+          <button type="button" class="mini ghost-mini" id="copy-all-btn"
+                  title="Copy the whole transcript as text">⧉ copy all</button>
+          <button type="button" class="mini ghost-mini" id="edit-last-btn"
+                  title="Re-edit your last message">✏️ edit last</button>
+        </div>
         <form class="composer" id="composer">
+          <span id="composer-input-anchor"></span>
           <textarea id="input" rows="1" autocomplete="off" maxlength="4000"
                     aria-label="Message MyGPT"
                     placeholder="Message MyGPT…  (Enter to send · Shift+Enter for a new line)"></textarea>
@@ -334,5 +365,32 @@
     </div>
   </noscript>
   <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+  <dialog class="modal" id="help-modal" aria-labelledby="help-title">
+    <h3 id="help-title">⌨️ Keyboard shortcuts</h3>
+    <ul class="shortcut-list">
+      <li><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline</li>
+      <li><kbd>Esc</kbd> clear composer / search · <kbd>/</kbd> focus composer</li>
+      <li><kbd>Ctrl</kbd>+<kbd>K</kbd> search the chat</li>
+      <li><kbd>Alt</kbd>+<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> sidebar tabs</li>
+      <li><kbd>Ctrl</kbd>+<kbd>B</kbd> collapse the sidebar</li>
+      <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> export ·
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> clear</li>
+      <li><kbd>↑</kbd> recall your last message · <kbd>?</kbd> this dialog</li>
+      <li>Double-click any message to copy it</li>
+    </ul>
+    <form method="dialog"><button class="primary">Got it</button></form>
+  </dialog>
+
+  <dialog class="modal" id="about-modal" aria-labelledby="about-title">
+    <h3 id="about-title">About MyGPT</h3>
+    <p>Self-training chatbot in pure Python + NumPy with a Flask WebUI.
+       Knowledge lives on your machine; nothing is sent anywhere.</p>
+    <p>Made with ❤️ by <a href="https://github.com/codero-sus" target="_blank"
+       rel="noopener">codero-sus</a> ·
+       <a href="https://the-codero.web.app/" target="_blank" rel="noopener">the-codero.web.app</a></p>
+    <p class="hint" id="about-version"></p>
+    <form method="dialog"><button class="primary">Close</button></form>
+  </dialog>
 </body>
 </html>

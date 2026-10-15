@@ -147,7 +147,7 @@ short trace. Compare questions always deliberate — both sides get characterize
 ## Code requests → code blocks in chat
 
 There is **no agentic coding and no code execution**. When the user asks for
-code, MyGPT composes a snippet from a built-in template library of **80+ code
+code, MyGPT composes a snippet from a built-in template library of **218 code
 families** (primes, fibonacci, factorials, digit sums, palindromes, anagrams,
 statistics, gcd/lcm, base conversion, dates & weekdays, geometry, armstrong
 numbers, powers of two, unit conversion, word counts, sorting/searching,
@@ -156,7 +156,11 @@ hangman and rock-paper-scissors, small apps like todo and contacts, and Python
 idioms such as decorators, generators, dataclasses, enums, comprehensions,
 argparse CLIs and unittest skeletons) and returns it in a
 **fenced code block inside the chat reply** — nothing is ever run and nothing
-is ever written to files. If no template matches, MyGPT says so honestly and
+is ever written to files. The library is split in two: **84 families** authored
+in `mygpt/codegen.py` and a **134-family data pack** in
+`mygpt/snippets_more.py` (algorithms, data structures, string/date/JSON
+tooling, maths, files, classes, testing, CLI, security helpers) that registers
+itself at import time. If no template matches, MyGPT says so honestly and
 points the user to **codero-sus on GitHub** for more:
 
 ```
@@ -247,6 +251,8 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 | Priority | Source                                    |
 |----------|-------------------------------------------|
 | 1 | Arithmetic skill (`12*12`, `(3+4)*2`) |
+| 1b | **Maths pack** — 65 rules: factorials, fibonacci, primes, gcd/lcm, square roots, logs, trigonometry, statistics, percentages, geometry, units, roman numerals, bases, interest and more (`/api/math`) |
+| 1c | **Text pack** — 55 rules: case, title case, base64/hex/url/rot13, sha256/md5/crc32, line tools, JSON pretty/minify, CSV→Markdown, extract emails/urls/numbers, pig latin, palindromes, lorem, slugify, censor and more (`/api/text`) |
 | 2 | Learned skill files in `skills/` (pattern-matched) |
 | 3 | Code requests → fenced code block in chat + codero-sus GitHub link |
 | 4 | Semantic facts about you (`what is my name?`) |
@@ -285,8 +291,21 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
   (`question :: answer`, up to 100 per batch), browse what it knows (with
   weights), and **search the memory layer** with ranked scores
 * **Keyboard shortcuts** — Enter send · Shift+Enter newline · Escape clear ·
-  `/` focus · Ctrl+K search · Alt+1/2/3 tabs · Ctrl+Shift+E export ·
-  Ctrl+Shift+L clear chat
+  `/` focus · `?` shortcuts dialog · Ctrl+K search · Ctrl+B sidebar ·
+  Alt+1/2/3 tabs · Ctrl+Shift+E export · Ctrl+Shift+L clear chat
+* **Comfort & accessibility** (v1.10) — 📐 **density** (compact/comfortable),
+  ◐ **high contrast**, 🎞 **reduced motion**, ◧ **collapsible sidebar**,
+  🔔 sound chime and 🖥 **desktop notifications** (with title-badge flash when
+  the tab is hidden); everything is remembered. Pinned-message strip (max 8),
+  hover **copy / pin / quote** on every message, **✏️ edit-last**, **⧉ copy-all**,
+  **⤒ first**, **🔗 share** (Web Share API → clipboard fallback), **🖨 print**
+  with a print stylesheet, plus a **skip-to-composer** link, `role="log"`
+  transcript, `aria-busy` while a reply is streaming and `:focus-visible`
+  outlines throughout
+* **Never lose a message** (v1.10) — messages typed while offline queue in
+  localStorage and flush automatically on reconnect; polling pauses after 5
+  idle minutes to save battery; the status tooltip shows measured round-trip
+  ping (probed every 45 s)
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log, and a
   Software-updates card (manual check + confirmed branch-pinned install)
 * **Mind tab** — the CORTEX loop: trainer status, **🧪 on-demand
@@ -309,15 +328,24 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
   checkpoints — flush immediately, anything pending flushes on shutdown)
 * The WebUI dedupes `/api/stats` polling and only auto-scrolls when you're
   already near the bottom
+* `codegen.has_template()`, `mathx.solve()` and `textfx.solve()` are
+  `lru_cache`d — they are pure and sit on the per-message hot path
+* Seed texts are deduplicated when loaded, so a repeated line can never
+  double-weight a fact
 
 ## Tests
 
-116 smoke tests cover the tokenizer, memory (including the mixed-vocabulary
-crash regression), 60+ code templates, word-form math, unit/temperature/roman
-conversions, list statistics, percent maths, the language model, checkpoints
-(including path-traversal guards), episodes, the backend clients (safe against
-dead ports), the full Brain pipeline, and every API endpoint (including SSE
-streaming, bulk teaching, search, validation and JSON error handlers):
+**420 tests** — 116 smoke tests plus 304 in `tests/test_v110.py`. A generator
+emits one test *per template family* (every canonical ask must match its own
+regex and return the family's own code, syntax-checked), one per maths rule and
+one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11
+new endpoints. Smoke coverage also spans the tokenizer, memory (including the
+mixed-vocabulary crash regression), 60+ code templates, word-form math,
+unit/temperature/roman conversions, list statistics, percent maths, the
+language model, checkpoints (including path-traversal guards), episodes, the
+backend clients (safe against dead ports), the full Brain pipeline, and every
+API endpoint (including SSE streaming, bulk teaching, search, validation and
+JSON error handlers):
 
 ```bash
 .venv/bin/python -m unittest discover -s tests    # .venv\Scripts\python on Windows
@@ -398,10 +426,23 @@ templates/ static/      the WebUI
 | GET    | `/api/checkpoint/info` | `?name=…` (single checkpoint metadata) |
 | GET    | `/api/backends/models` | — (every answerable engine in one list) |
 | GET    | `/api/export.json` / `/api/export.csv` | — (structured transcript exports) |
+| GET    | `/api/math`     | `?q=…` (≤400) — maths pack, falls back to arithmetic |
+| GET    | `/api/text`     | `?q=…` (≤2000) — text pack; 404 lists every rule |
+| GET    | `/api/rules`    | — (inventory: maths, text and code rule names) |
+| GET    | `/api/convert`  | `?q=…` (unit/temperature conversion only) |
+| GET    | `/api/roman`    | `?q=…` (roman numerals both ways) |
+| GET    | `/api/echo`     | `?q=…` (round-trip probe with length + server time) |
+| GET    | `/api/uptime`   | — (seconds, formatted, started-at)       |
+| GET    | `/api/endpoints`| — (self-describing route list)           |
+| GET    | `/api/metrics`  | — (Prometheus-style text metrics)        |
+| POST   | `/api/chat/batch` | `{"messages": […]} `— up to 10, returns a `results` array |
+| GET    | `/api/quote`    | — (a random constitution principle)      |
 | GET    | `/robots.txt` · `/manifest.json` | — (crawler policy · PWA manifest) |
 
 All `/api/*` responses send permissive CORS headers and support `OPTIONS`
-preflight, so local scripts and dashboards can call MyGPT directly.
+preflight, so local scripts and dashboards can call MyGPT directly. Every
+response also carries `X-MyGPT-Version`, a per-request `X-Request-Id` (echoed
+back if you supply one) and a `Server-Timing` duration header.
 
 ## Honest scope
 

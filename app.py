@@ -16,6 +16,7 @@ import json
 import os
 import threading
 import time
+import uuid
 
 from flask import (Flask, Response, jsonify, render_template, request,
                    send_file)
@@ -43,6 +44,7 @@ MAX_CHAT_CHARS = 4000
 MAX_TEACH_Q = 500
 MAX_TEACH_A = 4000
 MAX_BULK_PAIRS = 100
+_started_monotonic = time.monotonic()   # /api/uptime + /api/metrics
 
 
 @app.after_request
@@ -55,7 +57,20 @@ def _cors_and_security(resp):
                                 "GET, POST, OPTIONS")
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    resp.headers.setdefault("X-MyGPT-Version", __version__)
+    # per-request id + server-timing so clients can correlate and profile
+    rid = request.headers.get("X-Request-Id") or uuid.uuid4().hex[:12]
+    resp.headers.setdefault("X-Request-Id", rid)
+    started = getattr(request, "_mygpt_started", None)
+    if started is not None:
+        resp.headers.setdefault(
+            "Server-Timing", f"app;dur={(time.monotonic() - started) * 1000:.1f}")
     return resp
+
+
+@app.before_request
+def _stamp_start():
+    request._mygpt_started = time.monotonic()
 
 
 def _validate_message(raw):
@@ -288,6 +303,169 @@ def checkpoint_info():
                         "error": f"checkpoint '{name}' not found"}), 404
     return jsonify({"ok": True, "checkpoint": meta})
 
+
+
+@app.get("/api/math")
+def api_math():
+    """Evaluate a maths expression: ?q=factorial+of+6 (maths pack + arithmetic)."""
+    from mygpt import mathx
+    q = (request.args.get("q") or "").strip()
+    if not q or len(q) > 400:
+        return jsonify({"ok": False, "error": "query 'q' required (≤400)"}), 400
+    solved = mathx.solve(q)
+    if solved:
+        return jsonify({"ok": True, "rule": solved[0], "answer": solved[1]})
+    with _lock:
+        answer = brain.quick_answer(q)
+    if answer:
+        return jsonify({"ok": True, "rule": "arithmetic", "answer": answer})
+    return jsonify({"ok": False, "error": "no rule matched"}), 404
+
+
+@app.get("/api/text")
+def api_text():
+    """Run a text pack transform: ?q=uppercase:+hello+world."""
+    from mygpt import textfx
+    q = (request.args.get("q") or "").strip()
+    if not q or len(q) > 2000:
+        return jsonify({"ok": False, "error": "query 'q' required (≤2000)"}), 400
+    done = textfx.solve(q)
+    if not done:
+        return jsonify({"ok": False, "error": "no text rule matched",
+                        "rules": textfx.names()}), 404
+    return jsonify({"ok": True, "rule": done[0], "answer": done[1]})
+
+
+@app.get("/api/rules")
+def api_rules():
+    """List every maths-pack and text-pack rule by name."""
+    from mygpt import mathx, textfx
+    return jsonify({"ok": True, "math": mathx.names(), "text": textfx.names(),
+                    "code_families": [f["name"] for f in
+                                      __import__("mygpt.codegen",
+                                                 fromlist=["FAMILIES"]).FAMILIES]})
+
+
+@app.get("/api/convert")
+def api_convert():
+    """Unit / temperature conversion: ?q=5+km+in+miles."""
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({"ok": False, "error": "query 'q' required"}), 400
+    with _lock:
+        answer = brain._special_math(q)
+    if not answer:
+        return jsonify({"ok": False, "error": "not a convertible quantity"}), 404
+    return jsonify({"ok": True, "answer": answer})
+
+
+@app.get("/api/roman")
+def api_roman():
+    """Roman numerals both ways: ?q=42 (→ XLII) or ?q=xiv (→ 14)."""
+    q = (request.args.get("q") or "").strip()
+    with _lock:
+        answer = brain._special_math(f"{q} in roman"
+                                     if q.isdigit() else f"{q} in numbers")
+    if not answer:
+        return jsonify({"ok": False, "error": "not a valid roman conversion"}), 400
+    return jsonify({"ok": True, "answer": answer})
+
+
+@app.get("/api/echo")
+def api_echo():
+    """Echo a message back with metadata — handy for client debugging."""
+    q = (request.args.get("q") or "")[:500]
+    return jsonify({"ok": True, "echo": q, "length": len(q),
+                    "server_time": int(time.time())})
+
+
+@app.get("/api/uptime")
+def api_uptime():
+    """Seconds since boot, plus a human-readable form."""
+    secs = int(time.monotonic() - _started_monotonic)
+    h, m = divmod(secs // 60, 60)
+    return jsonify({"ok": True, "uptime_s": secs,
+                    "human": f"{h}h {m}m {secs % 60}s"})
+
+
+@app.get("/api/endpoints")
+def api_endpoints():
+    """Self-describing route list (method, path) — no secrets, just the map."""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint == "static" or "<" in rule.rule:
+            continue
+        methods = sorted(m for m in rule.methods
+                         if m not in ("HEAD", "OPTIONS"))
+        routes.append({"path": rule.rule, "methods": methods})
+    return jsonify({"ok": True, "count": len(routes),
+                    "endpoints": sorted(routes, key=lambda r: r["path"])})
+
+
+@app.get("/api/metrics")
+def api_metrics():
+    """Tiny metrics text (Prometheus-flavoured) for local dashboards."""
+    with _lock:
+        c = dict(brain.counters)
+        pairs = len(brain.memory.pairs)
+        episodes = len(brain.episodes.episodes)
+        loss = brain.loss_history[-1]["loss"] if brain.loss_history else 0.0
+        score = (brain.store.metric_series("self_eval", 1) or [{"v": 0}])[-1]["v"]
+    lines = [
+        "# TYPE mygpt_up gauge",
+        f"mygpt_up 1",
+        "# TYPE mygpt_uptime_seconds counter",
+        f"mygpt_uptime_seconds {int(time.monotonic() - _started_monotonic)}",
+        "# TYPE mygpt_memory_pairs gauge",
+        f"mygpt_memory_pairs {pairs}",
+        "# TYPE mygpt_episodes gauge",
+        f"mygpt_episodes {episodes}",
+        "# TYPE mygpt_messages_total counter",
+        f"mygpt_messages_total {c.get('messages', 0)}",
+        "# TYPE mygpt_teachings_total counter",
+        f"mygpt_teachings_total {c.get('teachings', 0)}",
+        "# TYPE mygpt_train_rounds_total counter",
+        f"mygpt_train_rounds_total {c.get('train_rounds', 0)}",
+        "# TYPE mygpt_last_loss gauge",
+        f"mygpt_last_loss {loss or 0.0}",
+        "# TYPE mygpt_self_eval_score gauge",
+        f"mygpt_self_eval_score {score or 0}",
+    ]
+    return Response("\n".join(lines) + "\n", mimetype="text/plain")
+
+
+@app.post("/api/chat/batch")
+def chat_batch():
+    """Answer up to 10 messages in one round-trip (good for scripts/tests)."""
+    body = request.get_json(silent=True) or {}
+    msgs = body.get("messages")
+    if not isinstance(msgs, list) or not msgs:
+        return jsonify({"ok": False, "error": "body must be {\"messages\": [...]}"}), 400
+    if len(msgs) > 10:
+        return jsonify({"ok": False, "error": "max 10 messages per batch"}), 400
+    out = []
+    for raw in msgs:
+        message, err = _validate_message(raw)
+        if err:
+            out.append({"ok": False, "error": "invalid message"})
+            continue
+        with _lock:
+            result = brain.reply(message)
+            brain.save()
+        out.append({"ok": True, "reply": result.get("reply"),
+                    "mode": result.get("mode")})
+    return jsonify({"ok": True, "results": out, "count": len(out)})
+
+
+@app.get("/api/quote")
+def api_quote():
+    """A random principle from the constitution (deterministic client-side ok)."""
+    import random as _random
+    with _lock:
+        principles = list(brain.store.principles) or [
+            "Be honest about what you know and don't know."]
+    return jsonify({"ok": True, "quote": _random.choice(principles),
+                    "count": len(principles)})
 
 @app.get("/robots.txt")
 def robots():
