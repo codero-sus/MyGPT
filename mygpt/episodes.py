@@ -88,6 +88,16 @@ class EpisodicMemory:
         self._cap()
         return n
 
+    def clear(self) -> int:
+        """Forget the whole dialogue transcript (memory pairs are untouched)."""
+        n = len(self.episodes)
+        self.episodes = []
+        self._meta = []
+        self._mat = np.zeros((0, DIM), dtype=np.float32)
+        self.working = []
+        self.save()
+        return n
+
     def _append_index(self, rid: int, ep: dict) -> None:
         vec = _embed(ep["content"])
         self._mat = (np.vstack([self._mat, vec.reshape(1, -1)])

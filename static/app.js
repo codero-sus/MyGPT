@@ -72,9 +72,120 @@ function fmtTime(ts) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/* ---------------- theme + text size (v1.9) ---------------- */
+
+const THEME_KEY = "mygpt.theme";
+const ZOOM_KEY = "mygpt.zoom";
+
+function applyTheme(mode) {
+  // mode: "light" | "dark"; the button cycles dark ⇄ light
+  document.documentElement.dataset.theme = mode;
+  try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* private mode */ }
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", mode === "light" ? "#f4f6fb" : "#0b0e14");
+}
+
+function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) { /* ignore */ }
+  if (saved === "light" || saved === "dark") return applyTheme(saved);
+  const prefersLight = window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: light)").matches;
+  applyTheme(prefersLight ? "light" : "dark");
+}
+
+function toggleTheme() {
+  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+  toast(document.documentElement.dataset.theme === "light"
+    ? "☀️ light theme" : "🌙 dark theme");
+}
+
+const ZOOMS = [0.9, 1.0, 1.1, 1.25, 1.4];
+
+function applyZoom(level) {
+  const i = Math.max(0, Math.min(ZOOMS.length - 1, level));
+  document.documentElement.style.fontSize = (15 * ZOOMS[i]) + "px";
+  try { localStorage.setItem(ZOOM_KEY, String(i)); } catch (e) { /* ignore */ }
+  return i;
+}
+
+function initZoom() {
+  let i = 1;
+  try { i = parseInt(localStorage.getItem(ZOOM_KEY) || "1", 10); } catch (e) { /* ignore */ }
+  if (!Number.isFinite(i)) i = 1;
+  applyZoom(i);
+}
+
+function bumpZoom(delta) {
+  let i = 1;
+  try { i = parseInt(localStorage.getItem(ZOOM_KEY) || "1", 10); } catch (e) { /* ignore */ }
+  const next = applyZoom((Number.isFinite(i) ? i : 1) + delta);
+  toast(`🔤 text size ${Math.round(ZOOMS[next] * 100)}%`);
+}
+
+/* ---------------- dependency-free Python syntax highlighting ----------
+   Regex-based, HTML-escaped first, comment/string tokens masked so later
+   passes can't colour inside them. Good enough for chat snippets. */
+
+const PY_KEYWORDS = /\b(def|class|return|if|elif|else|for|while|import|from|as|with|try|except|finally|raise|yield|lambda|in|is|not|and|or|None|True|False|pass|break|continue|global|nonlocal|assert|del|async|await|match|case)\b/g;
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+}
+
+function highlightPython(code) {
+  const masks = [];
+  const mask = (html) => {
+    masks.push(html);
+    return "\u0000" + (masks.length - 1) + "\u0000";
+  };
+  let out = escapeHtml(code);
+  // order matters: triple-quoted → strings → comments
+  out = out.replace(/("""[\s\S]*?"""|'''[\s\S]*?''')/g,
+                    (m) => mask(`<span class="hl-str">${m}</span>`));
+  out = out.replace(/(&quot;|")(?:[^"\\\n]|\\.)*\1|'(?:[^'\\\n]|\\.)*'/g,
+                    (m) => mask(`<span class="hl-str">${m}</span>`));
+  out = out.replace(/(#[^\n]*)/g, (m) => mask(`<span class="hl-com">${m}</span>`));
+  out = out.replace(/\b(0x[0-9a-fA-F]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)\b/g,
+                    '<span class="hl-num">$1</span>');
+  out = out.replace(/@[A-Za-z_][\w.]*/g, '<span class="hl-dec">$&</span>');
+  out = out.replace(PY_KEYWORDS, '<span class="hl-kw">$1</span>');
+  return out.replace(/\u0000(\d+)\u0000/g, (_, i) => masks[+i]);
+}
+
 /* ---------------- chat rendering ---------------- */
 
+let _lastMsgDay = null;
+let _unread = 0;
+
+function dayKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function dayLabel(d) {
+  const now = new Date();
+  const midnight = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((midnight(now) - midnight(d)) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* A subtle day divider whenever messages cross a date boundary. */
+function maybeDateSeparator(opts = {}) {
+  const d = opts.ts ? new Date(opts.ts * 1000) : new Date();
+  const key = dayKey(d);
+  if (key === _lastMsgDay) return;
+  _lastMsgDay = key;
+  const sep = document.createElement("div");
+  sep.className = "date-sep";
+  sep.textContent = dayLabel(d);
+  chatEl.appendChild(sep);
+}
+
 function addMessage(role, text, opts = {}) {
+  maybeDateSeparator(opts);
   const msg = document.createElement("div");
   msg.className = `msg ${role}`;
   const avatar = document.createElement("div");
@@ -87,11 +198,30 @@ function addMessage(role, text, opts = {}) {
   if (role === "bot" && text.includes("```")) renderFenced(bubble, text);
   else bubble.textContent = text;
   wrap.appendChild(bubble);
-  wrap.title = new Date().toLocaleTimeString();   // hover any message for its time
+  wrap.title = new Date().toLocaleTimeString() +
+    " — double-click to copy this message";
+  wrap.addEventListener("dblclick", async () => {
+    try {
+      await navigator.clipboard.writeText(bubble.innerText);
+      toast("Message copied ⧉");
+    } catch (err) {
+      toast("⚠️ clipboard unavailable");
+    }
+  });
   msg.append(avatar, wrap);
   chatEl.appendChild(msg);
+  const wasAway =
+    chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight > 200;
   scrollDown(!!opts.force);
   updateScrollButton();
+  if (opts.force && wasAway && !opts.quiet) {
+    _unread += 1;
+    const btn = $("scroll-bottom");
+    if (btn) {
+      btn.classList.add("pulse");
+      btn.textContent = `⌄ ${_unread} new`;
+    }
+  }
   return wrap;
 }
 
@@ -123,6 +253,11 @@ function updateScrollButton() {
   const away =
     chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight > 200;
   btn.classList.toggle("hidden", !away);
+  if (!away) {                       // back at the bottom → clear the badge
+    _unread = 0;
+    btn.classList.remove("pulse");
+    btn.textContent = "⌄";
+  }
 }
 
 function updateOnlineStatus() {
@@ -149,11 +284,40 @@ function renderFenced(bubble, text) {
       span.textContent = text.slice(last, m.index);
       bubble.appendChild(span);
     }
+    const lang = m[1] || "python";
+    const code = m[2].replace(/\n+$/, "");
+    const box = document.createElement("div");
+    box.className = "code-box";
+    const head = document.createElement("div");
+    head.className = "code-head";
+    const label = document.createElement("span");
+    label.className = "code-lang";
+    label.textContent = lang;
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "code-copy";
+    copy.textContent = "⧉ copy";
+    copy.title = "Copy just this code block";
+    copy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(code);
+        copy.textContent = "✓ copied";
+        setTimeout(() => { copy.textContent = "⧉ copy"; }, 1400);
+      } catch (err) {
+        toast("⚠️ clipboard unavailable");
+      }
+    };
+    head.append(label, copy);
     const pre = document.createElement("pre");
     const codeEl = document.createElement("code");
-    codeEl.textContent = m[2].replace(/\n+$/, "");
+    if (lang === "python" || lang === "py") {
+      codeEl.innerHTML = highlightPython(code);   // escaped inside
+    } else {
+      codeEl.textContent = code;
+    }
     pre.appendChild(codeEl);
-    bubble.appendChild(pre);
+    box.append(head, pre);
+    bubble.appendChild(box);
     last = m.index + m[0].length;
   }
   if (last < text.length) {
@@ -262,6 +426,51 @@ function addBotReply(data, elapsedMs) {
 let lastUserText = "";
 let busy = false;
 
+/* Streaming chat: consume /api/chat/stream (SSE) and type the reply in.
+   Returns the final result object, or throws so send() can fall back. */
+async function streamChat(text, bubble) {
+  const res = await fetch("/api/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: text }),
+  });
+  if (!res.ok || !res.body) throw new Error("stream unavailable");
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let typed = "";
+  let final = null;
+  let firstToken = true;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf("\n\n")) !== -1) {
+      const block = buf.slice(0, idx);
+      buf = buf.slice(idx + 2);
+      let event = "message";
+      const dataLines = [];
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+      }
+      let payload = null;
+      try { payload = JSON.parse(dataLines.join("\n")); } catch (e) { continue; }
+      if (event === "token" && payload && payload.t) {
+        if (firstToken) { bubble.textContent = ""; firstToken = false; }
+        typed += payload.t;
+        bubble.textContent = typed;                 // typewriter effect
+        scrollDown();
+      } else if (event === "done" && payload) {
+        final = payload;
+      }
+    }
+  }
+  if (!final) throw new Error("stream ended early");
+  return { ok: true, ...final };
+}
+
 async function send() {
   const input = $("input");
   const text = input.value.trim();
@@ -280,13 +489,23 @@ async function send() {
 
   const t0 = Date.now();
   let data;
+  const bubble = typingWrap.querySelector(".bubble");
   try {
-    data = await api("/api/chat", { message: text });
+    data = await streamChat(text, bubble);       // typewriter via SSE
   } catch (err) {
-    data = { ok: false, error: String(err) };
+    try {                                        // graceful fallback
+      data = await api("/api/chat", { message: text });
+    } catch (err2) {
+      data = { ok: false, error: String(err2) };
+    }
   }
-  const wait = 420 - (Date.now() - t0);
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  if (data && data.ok) {
+    const wait = 240 - (Date.now() - t0);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  } else {
+    const wait = 420 - (Date.now() - t0);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  }
 
   typingWrap.closest(".msg").remove();
   const elapsed = Date.now() - t0;
@@ -927,7 +1146,11 @@ $("input").addEventListener("keydown", (e) => {
     autoGrow();
   }
 });
-$("input").addEventListener("input", () => { autoGrow(); saveDraft(); });
+$("input").addEventListener("input", () => {
+  autoGrow();
+  saveDraft();
+  updateCharCount();
+});
 chatEl.addEventListener("scroll", updateScrollButton);
 $("scroll-bottom").addEventListener("click", () => {
   scrollDown(true);
@@ -1257,6 +1480,214 @@ $("import-btn").addEventListener("click", async () => {
   refreshMind();
 });
 
+/* ---------------- chat search (Ctrl+K) ---------------- */
+
+function applyChatFilter(term) {
+  const q = term.trim().toLowerCase();
+  let shown = 0;
+  chatEl.querySelectorAll(".msg").forEach((m) => {
+    const hit = !q || m.innerText.toLowerCase().includes(q);
+    m.classList.toggle("filtered-out", !hit);
+    if (hit) shown += 1;
+  });
+  if (q && shown === 0) {
+    toast("No messages match “" + term.trim() + "”");
+  }
+}
+
+$("chat-search").addEventListener("input", (e) => applyChatFilter(e.target.value));
+$("chat-search").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.target.value = "";
+    applyChatFilter("");
+    e.target.blur();
+  }
+});
+
+/* ---------------- clear transcript ---------------- */
+
+async function clearChat() {
+  const msgs = chatEl.querySelectorAll(".msg").length;
+  if (!msgs) return toast("Nothing to clear.");
+  if (!window.confirm("Clear the visible transcript and its saved copy?\n" +
+                      "Your learned memories and facts are kept.")) return;
+  let data = { ok: true };
+  try {
+    data = await api("/api/clear", {});
+  } catch (err) {
+    toast("⚠️ could not reach the server");
+    return;
+  }
+  if (!data.ok) return toast("⚠️ " + (data.error || "clear failed"));
+  chatEl.innerHTML = "";
+  _lastMsgDay = null;
+  _unread = 0;
+  addMessage("bot", GREETING);
+  addChips();
+  toast(`🧹 transcript cleared (${data.cleared} message(s) forgotten)`);
+  refreshSidebars();
+}
+
+$("clear-btn").addEventListener("click", clearChat);
+
+/* ---------------- drag & drop a chat export ---------------- */
+
+function initDragDrop() {
+  const panel = document.querySelector(".chat-panel");
+  if (!panel) return;
+  ["dragenter", "dragover"].forEach((ev) =>
+    panel.addEventListener(ev, (e) => {
+      e.preventDefault();
+      panel.classList.add("dropping");
+    }));
+  ["dragleave", "drop"].forEach((ev) =>
+    panel.addEventListener(ev, (e) => {
+      e.preventDefault();
+      if (ev === "dragleave" && panel.contains(e.relatedTarget)) return;
+      panel.classList.remove("dropping");
+    }));
+  panel.addEventListener("drop", async (e) => {
+    const file = e.dataTransfer && e.dataTransfer.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    toast("📥 importing " + file.name + " …");
+    try {
+      const res = await fetch("/api/import", { method: "POST", body: form });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`✅ ${data.turns} turns → ${data.remembered} episodes remembered`);
+        refreshSidebars();
+      } else {
+        toast("⚠️ " + (data.error || "import failed"));
+      }
+    } catch (err) {
+      toast("⚠️ " + err);
+    }
+  });
+}
+
+/* ---------------- bulk teach ---------------- */
+
+$("bulk-btn").addEventListener("click", async () => {
+  const raw = $("bulk-text").value;
+  const pairs = raw.split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const i = line.indexOf("::");
+      if (i === -1) return { question: line, answer: "" };   // reported as error
+      return { question: line.slice(0, i).trim(), answer: line.slice(i + 2).trim() };
+    });
+  const note = $("bulk-note");
+  if (!pairs.length) { note.textContent = "⚠️ nothing to teach — one pair per line."; return; }
+  if (pairs.length > 100) {
+    note.textContent = `⚠️ ${pairs.length} pairs — the server caps a batch at 100.`;
+    return;
+  }
+  const btn = $("bulk-btn");
+  btn.disabled = true;
+  btn.textContent = "Teaching…";
+  try {
+    const data = await api("/api/teach/bulk", { pairs });
+    if (data.stored) {
+      note.textContent = `✅ stored ${data.stored} pair(s)` +
+        (data.failed ? ` · ${data.failed} skipped` : "");
+      if (!data.failed) $("bulk-text").value = "";
+      toast(`📚 learned ${data.stored} new pair(s)`);
+    } else {
+      note.textContent = "⚠️ " + (data.errors?.[0]?.error || data.error || "nothing stored");
+    }
+  } catch (err) {
+    note.textContent = "⚠️ " + err;
+  }
+  btn.disabled = false;
+  btn.textContent = "Teach all";
+  refreshSidebars();
+});
+
+/* ---------------- memory search panel ---------------- */
+
+let _memSearchTimer = null;
+$("mem-search").addEventListener("input", (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(_memSearchTimer);
+  const list = $("mem-search-results");
+  if (!q) { list.innerHTML = ""; return; }
+  _memSearchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch("/api/memory/search?q=" + encodeURIComponent(q) +
+                              "&k=5");
+      const data = await res.json();
+      list.innerHTML = "";
+      if (!data.hits || !data.hits.length) {
+        const li = document.createElement("li");
+        li.className = "memory-empty";
+        li.textContent = "no matches — teach me this!";
+        list.appendChild(li);
+        return;
+      }
+      data.hits.forEach((h) => {
+        const li = document.createElement("li");
+        const bq = document.createElement("b");
+        bq.textContent = h.q;
+        const sp = document.createElement("span");
+        sp.className = "mem-score";
+        sp.textContent = " " + Math.round(h.score * 100) + "%";
+        const br = document.createElement("div");
+        br.className = "memory-a";
+        br.textContent = h.a;
+        li.append(bq, sp, br);
+        list.appendChild(li);
+      });
+    } catch (err) { /* ignore transient errors */ }
+  }, 220);
+});
+
+/* ---------------- global keyboard shortcuts ---------------- */
+
+document.addEventListener("keydown", (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.shiftKey && e.key.toLowerCase() === "e") {
+    e.preventDefault();
+    $("export-btn").click();
+  } else if (mod && e.shiftKey && e.key.toLowerCase() === "l") {
+    e.preventDefault();
+    clearChat();
+  } else if (mod && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    $("chat-search").focus();
+    $("chat-search").select();
+  } else if (e.altKey && ["1", "2", "3"].includes(e.key)) {
+    e.preventDefault();
+    switchTab({ "1": "learn", "2": "growth", "3": "mind" }[e.key]);
+  } else if (e.target === $("input") && (mod || e.ctrlKey) && e.key === "Enter") {
+    e.preventDefault();
+    send();
+  } else if (e.target === $("input") && e.key === "ArrowUp" &&
+             !$("input").value && lastUserText) {
+    e.preventDefault();
+    $("input").value = lastUserText;          // recall the last message
+    autoGrow();
+    $("input").setSelectionRange(lastUserText.length, lastUserText.length);
+  }
+});
+
+/* ---------------- composer character counter ---------------- */
+
+function updateCharCount() {
+  const el = $("char-count");
+  if (!el) return;
+  const n = $("input").value.length;
+  if (n > 3000) {
+    el.textContent = `${n} / 4000`;
+    el.classList.toggle("near-limit", n > 3800);
+    el.classList.remove("hidden");
+  } else {
+    el.classList.add("hidden");
+  }
+}
+
 /* ---------------- boot ---------------- */
 
 const GREETING =
@@ -1307,6 +1738,8 @@ async function restoreHistory() {
 }
 
 (async function boot() {
+  initTheme();
+  initZoom();
   updateOnlineStatus();
   const hadHistory = await restoreHistory();
   if (!hadHistory) {
@@ -1314,6 +1747,11 @@ async function restoreHistory() {
     addChips();
   }
   restoreDraft();
+  updateCharCount();
+  initDragDrop();
+  $("theme-btn").addEventListener("click", toggleTheme);
+  $("font-inc").addEventListener("click", () => bumpZoom(1));
+  $("font-dec").addEventListener("click", () => bumpZoom(-1));
   refreshSidebars();
   refreshBackends();
   $("input").focus();

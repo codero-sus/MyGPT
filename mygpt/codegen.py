@@ -589,6 +589,432 @@ def _set_ops(m, goal):
     )
 
 
+@family("guessing game", r"guess(?:ing)? game|number guessing|guess the number")
+def _guessing(m, goal):
+    return (
+        "import random\n"
+        "secret = random.randint(1, 100)\n"
+        "tries = 0\n"
+        "while True:\n"
+        "    guess = int(input('Guess 1-100: '))\n"
+        "    tries += 1\n"
+        "    if guess < secret:\n"
+        "        print('higher!')\n"
+        "    elif guess > secret:\n"
+        "        print('lower!')\n"
+        "    else:\n"
+        "        print(f'Got it in {tries} tries!')\n"
+        "        break\n"
+    )
+
+
+@family("rock paper scissors", r"rock paper scissors|rps game")
+def _rps(m, goal):
+    return (
+        "import random\n"
+        "beats = {'rock': 'scissors', 'paper': 'rock', 'scissors': 'paper'}\n"
+        "me = input('rock/paper/scissors: ').strip().lower()\n"
+        "cpu = random.choice(list(beats))\n"
+        "print('CPU picked', cpu)\n"
+        "if me == cpu:\n"
+        "    print('draw')\n"
+        "elif beats[me] == cpu:\n"
+        "    print('you win!')\n"
+        "else:\n"
+        "    print('you lose')\n"
+    )
+
+
+@family("hangman", r"hangman")
+def _hangman(m, goal):
+    return (
+        "import random\n"
+        "word = random.choice(['python', 'flask', 'numpy', 'cortex'])\n"
+        "seen = set()\n"
+        "lives = 6\n"
+        "while lives:\n"
+        "    shown = ' '.join(c if c in seen else '_' for c in word)\n"
+        "    if '_' not in shown:\n"
+        "        print('you win:', word)\n"
+        "        break\n"
+        "    print(shown, '| lives:', lives)\n"
+        "    g = input('letter: ').strip().lower()[:1]\n"
+        "    seen.add(g)\n"
+        "    if g not in word:\n"
+        "        lives -= 1\n"
+        "else:\n"
+        "    print('you lose — it was', word)\n"
+    )
+
+
+@family("todo list", r"todo list|to-do list|task (?:list|manager)")
+def _todo(m, goal):
+    return (
+        "tasks = []\n"
+        "while True:\n"
+        "    cmd = input('add/done/list/quit: ').split(maxsplit=1)\n"
+        "    if cmd[0] == 'quit':\n"
+        "        break\n"
+        "    if cmd[0] == 'add':\n"
+        "        tasks.append([cmd[1], False])\n"
+        "    elif cmd[0] == 'done':\n"
+        "        tasks[int(cmd[1])][1] = True\n"
+        "    elif cmd[0] == 'list':\n"
+        "        for i, (t, done) in enumerate(tasks):\n"
+        "            print(i, '[x]' if done else '[ ]', t)\n"
+    )
+
+
+@family("contact book", r"contact book|address book|contacts? manager")
+def _contacts(m, goal):
+    return (
+        "contacts = {'ada': 'ada@example.com'}\n"
+        "while True:\n"
+        "    cmd = input('add/find/list/quit: ').split()\n"
+        "    if cmd[0] == 'quit':\n"
+        "        break\n"
+        "    if cmd[0] == 'add':\n"
+        "        contacts[cmd[1]] = cmd[2]\n"
+        "    elif cmd[0] == 'find':\n"
+        "        print(contacts.get(cmd[1], 'not found'))\n"
+        "    elif cmd[0] == 'list':\n"
+        "        [print(k, '->', v) for k, v in sorted(contacts.items())]\n"
+    )
+
+
+@family("bmi calculator", r"bmi|body mass")
+def _bmi(m, goal):
+    return (
+        "h = float(input('height (m): '))\n"
+        "w = float(input('weight (kg): '))\n"
+        "bmi = w / h ** 2\n"
+        "band = ('under' if bmi < 18.5 else 'normal' if bmi < 25\n"
+        "        else 'over' if bmi < 30 else 'obese')\n"
+        "print(f'BMI {bmi:.1f} — {band}')\n"
+    )
+
+
+@family("age calculator", r"age calculator|calculate (?:my |the |an )?age|age from (?:birth|dob)")
+def _age(m, goal):
+    return (
+        "from datetime import date\n"
+        "born = date(*map(int, input('born yyyy mm dd: ').split()))\n"
+        "today = date.today()\n"
+        "years = today.year - born.year - ((today.month, today.day) < (born.month, born.day))\n"
+        "print(f'{years} years old — {(today - born).days} days total')\n"
+    )
+
+
+@family("stack and queue", r"stack and queue|queue with deque|deque (?:example|demo)|implement (?:a )?(?:stack|queue)")
+def _stack_queue(m, goal):
+    return (
+        "from collections import deque\n"
+        "stack = deque()          # LIFO\n"
+        "stack.append(1); stack.append(2)\n"
+        "print(stack.pop())       # 2\n"
+        "queue = deque()          # FIFO\n"
+        "queue.append('a'); queue.append('b')\n"
+        "print(queue.popleft())   # a\n"
+    )
+
+
+@family("linked list", r"linked list")
+def _linked(m, goal):
+    return (
+        "class Node:\n"
+        "    def __init__(self, val, nxt=None):\n"
+        "        self.val, self.nxt = val, nxt\n"
+        "head = Node(1, Node(2, Node(3)))\n"
+        "cur = head\n"
+        "while cur:\n"
+        "    print(cur.val, end=' -> ')\n"
+        "    cur = cur.nxt\n"
+        "print('None')\n"
+    )
+
+
+@family("decorator example", r"decorator")
+def _decorator(m, goal):
+    return (
+        "import functools, time\n"
+        "def timed(fn):\n"
+        "    @functools.wraps(fn)\n"
+        "    def wrapper(*a, **k):\n"
+        "        t0 = time.perf_counter()\n"
+        "        out = fn(*a, **k)\n"
+        "        print(f'{fn.__name__} took {time.perf_counter() - t0:.4f}s')\n"
+        "        return out\n"
+        "    return wrapper\n"
+        "@timed\n"
+        "def work(n):\n"
+        "    return sum(i * i for i in range(n))\n"
+        "print(work(100_000))\n"
+    )
+
+
+@family("generator example", r"generator (?:example|function|demo)|\byield\b")
+def _generator(m, goal):
+    return (
+        "def countdown(n):\n"
+        "    while n > 0:\n"
+        "        yield n          # pauses here, resumes on next()\n"
+        "        n -= 1\n"
+        "gen = countdown(3)\n"
+        "print(next(gen), next(gen))   # lazy: 3 2\n"
+        "print(list(gen))              # [1]\n"
+    )
+
+
+@family("dataclass example", r"dataclass")
+def _dataclass(m, goal):
+    return (
+        "from dataclasses import dataclass, field\n"
+        "@dataclass\n"
+        "class Product:\n"
+        "    name: str\n"
+        "    price: float\n"
+        "    tags: list[str] = field(default_factory=list)\n"
+        "    @property\n"
+        "    def with_tax(self) -> float:\n"
+        "        return round(self.price * 1.18, 2)\n"
+        "p = Product('keyboard', 49.99, ['gear'])\n"
+        "print(p, p.with_tax)\n"
+    )
+
+
+@family("enum example", r"\benum\b|enumeration (?:example|class)")
+def _enum(m, goal):
+    return (
+        "from enum import Enum, auto\n"
+        "class State(Enum):\n"
+        "    NEW = auto()\n"
+        "    RUNNING = auto()\n"
+        "    DONE = auto()\n"
+        "s = State.RUNNING\n"
+        "print(s.name, s.value)\n"
+        "print(State(2) is State.RUNNING)\n"
+    )
+
+
+@family("exception handling", r"try except|exception handling|catch (?:an )?exception")
+def _exceptions(m, goal):
+    return (
+        "def safe_div(a, b):\n"
+        "    try:\n"
+        "        return a / b\n"
+        "    except ZeroDivisionError:\n"
+        "        print('cannot divide by zero')\n"
+        "    except TypeError as e:\n"
+        "        print('bad types:', e)\n"
+        "    else:\n"
+        "        print('ok')\n"
+        "    finally:\n"
+        "        print('always runs')\n"
+        "    return None\n"
+        "print(safe_div(10, 2), safe_div(1, 0))\n"
+    )
+
+
+@family("list comprehension", r"list comprehension")
+def _comprehension(m, goal):
+    return (
+        "squares = [n * n for n in range(10)]\n"
+        "evens = [n for n in range(20) if n % 2 == 0]\n"
+        "pairs = [(x, y) for x in 'ab' for y in range(2)]\n"
+        "lookup = {w: len(w) for w in ['alpha', 'beta']}\n"
+        "print(squares, evens, pairs, lookup, sep='\\n')\n"
+    )
+
+
+@family("lambda map filter", r"lambda (?:function|example)|map and filter|map\(\) and filter")
+def _lambda_map(m, goal):
+    return (
+        "nums = [4, 1, 7, 2, 9]\n"
+        "print(list(map(lambda n: n * 10, nums)))\n"
+        "print(list(filter(lambda n: n > 3, nums)))\n"
+        "print(sorted(nums, key=lambda n: -n))\n"
+    )
+
+
+@family("argparse cli", r"command[ -]line arguments|argparse|cli (?:arguments|parser)")
+def _argparse(m, goal):
+    return (
+        "import argparse\n"
+        "p = argparse.ArgumentParser(description='greeter')\n"
+        "p.add_argument('name')\n"
+        "p.add_argument('-n', '--times', type=int, default=1)\n"
+        "p.add_argument('-v', '--verbose', action='store_true')\n"
+        "args = p.parse_args()\n"
+        "for _ in range(args.times):\n"
+        "    print('hello', args.name)\n"
+        "if args.verbose:\n"
+        "    print(args)\n"
+    )
+
+
+@family("logging setup", r"logging (?:setup|example|demo)|log to (?:a )?file")
+def _logging(m, goal):
+    return (
+        "import logging\n"
+        "logging.basicConfig(\n"
+        "    level=logging.INFO,\n"
+        "    format='%(asctime)s %(levelname)s %(name)s: %(message)s',\n"
+        "    handlers=[logging.StreamHandler(),\n"
+        "              logging.FileHandler('app.log', encoding='utf-8')])\n"
+        "log = logging.getLogger('myapp')\n"
+        "log.info('started')\n"
+        "log.warning('careful')\n"
+    )
+
+
+@family("unit test skeleton", r"unit test|unittest|write (?:a )?test for")
+def _unittest(m, goal):
+    return (
+        "import unittest\n"
+        "def add(a, b):\n"
+        "    return a + b\n"
+        "class TestAdd(unittest.TestCase):\n"
+        "    def test_positive(self):\n"
+        "        self.assertEqual(add(2, 3), 5)\n"
+        "    def test_negative(self):\n"
+        "        self.assertEqual(add(-1, -1), -2)\n"
+        "if __name__ == '__main__':\n"
+        "    unittest.main()\n"
+    )
+
+
+@family("walk a directory", r"walk (?:a )?(?:directory|folder)|list all files|files in (?:a )?(?:directory|folder)|os\.walk")
+def _walk_dir(m, goal):
+    return (
+        "import os\n"
+        "for root, dirs, files in os.walk('.'):\n"
+        "    dirs[:] = [d for d in dirs if not d.startswith('.')]\n"
+        "    for f in files:\n"
+        "        path = os.path.join(root, f)\n"
+        "        print(f'{os.path.getsize(path):>10,}  {path}')\n"
+    )
+
+
+@family("count lines in a file", r"count (?:the )?lines|line count|number of lines")
+def _line_count(m, goal):
+    return (
+        "path = 'app.py'\n"
+        "with open(path, encoding='utf-8') as f:\n"
+        "    lines = sum(1 for _ in f)\n"
+        "print(f'{path}: {lines} lines')\n"
+    )
+
+
+@family("web scraper", r"scrape|web scraping|scraper")
+def _scraper(m, goal):
+    return (
+        "import re, urllib.request\n"
+        "url = 'https://example.com'\n"
+        "req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})\n"
+        "html = urllib.request.urlopen(req, timeout=10).read().decode('utf-8')\n"
+        "title = re.search(r'<title>(.*?)</title>', html, re.S)\n"
+        "links = re.findall(r'href=\"([^\"]+)\"', html)\n"
+        "print(title.group(1) if title else '?', links[:5])\n"
+    )
+
+
+@family("read environment variables", r"environment variable|os\.environ|read env")
+def _env_vars(m, goal):
+    return (
+        "import os\n"
+        "print(os.environ.get('HOME', 'not set'))\n"
+        "for k, v in sorted(os.environ.items()):\n"
+        "    if k.startswith(('PATH', 'LANG')):\n"
+        "        print(k, '=', v[:60])\n"
+    )
+
+
+@family("config file loader", r"config (?:file|loader)|load (?:a )?config|settings (?:file|from json)")
+def _config(m, goal):
+    return (
+        "import json, os\n"
+        "DEFAULTS = {'host': '127.0.0.1', 'port': 8000, 'debug': False}\n"
+        "def load_config(path='config.json'):\n"
+        "    cfg = dict(DEFAULTS)\n"
+        "    if os.path.exists(path):\n"
+        "        with open(path, encoding='utf-8') as f:\n"
+        "            cfg.update(json.load(f))\n"
+        "    return cfg\n"
+        "print(load_config())\n"
+    )
+
+
+@family("collatz conjecture", r"collatz")
+def _collatz(m, goal):
+    return (
+        "n = int(input('start: '))\n"
+        "steps = 0\n"
+        "while n != 1:\n"
+        "    n = n // 2 if n % 2 == 0 else 3 * n + 1\n"
+        "    steps += 1\n"
+        "    print(n, end=' ')\n"
+        "print(f'\\nreached 1 in {steps} steps')\n"
+    )
+
+
+@family("reverse words in a sentence", r"reverse (?:the )?words|words in reverse|sentence (?:in )?reverse")
+def _rev_words(m, goal):
+    return (
+        "s = 'the quick brown fox'\n"
+        "print(' '.join(reversed(s.split())))\n"
+        "print(s[::-1])          # whole string, characters reversed\n"
+    )
+
+
+@family("pangram check", r"pangram")
+def _pangram(m, goal):
+    return (
+        "import string\n"
+        "def is_pangram(s):\n"
+        "    return set(string.ascii_lowercase) <= set(s.lower())\n"
+        "print(is_pangram('The quick brown fox jumps over the lazy dog'))\n"
+        "print(is_pangram('hello world'))\n"
+    )
+
+
+@family("sort list of dicts", r"sort (?:a )?list of dict|dicts? by|dictionaries by|sort .* by key")
+def _sort_dicts(m, goal):
+    return (
+        "rows = [{'n': 'b', 'v': 2}, {'n': 'a', 'v': 3}, {'n': 'c', 'v': 1}]\n"
+        "print(sorted(rows, key=lambda r: r['v']))\n"
+        "print(sorted(rows, key=lambda r: r['n'], reverse=True))\n"
+    )
+
+
+@family("number pyramid pattern", r"number pyramid|pyramid pattern|star pattern|triangle pattern")
+def _pyramid(m, goal):
+    return (
+        "rows = int(input('rows: '))\n"
+        "for i in range(1, rows + 1):\n"
+        "    print(' ' * (rows - i) + ' '.join(str(i) * i))\n"
+        "for i in range(rows):\n"
+        "    print('* ' * (i + 1))\n"
+    )
+
+
+@family("number to words", r"number (?:in|to|as) words|words for (?:a )?number|spell (?:out )?(?:a )?number")
+def _num_words_code(m, goal):
+    return (
+        "ONES = 'zero one two three four five six seven eight nine ten '\n"
+        "       'eleven twelve thirteen fourteen fifteen sixteen seventeen '\n"
+        "       'eighteen nineteen'.split()\n"
+        "TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty',\n"
+        "        'sixty', 'seventy', 'eighty', 'ninety']\n"
+        "def to_words(n):\n"
+        "    if n < 20:\n"
+        "        return ONES[n]\n"
+        "    if n < 100:\n"
+        "        return TENS[n // 10] + ('' if n % 10 == 0 else '-' + ONES[n % 10])\n"
+        "    return ONES[n // 100] + ' hundred ' + to_words(n % 100)\n"
+        "print(to_words(247))\n"
+    )
+
+
 TEMPLATE_HINT = ("primes, fibonacci, factorials, digit sums, palindromes, "
                  "anagrams, statistics (mean/median/std), gcd/lcm, base "
                  "conversion, dates & weekdays, circle/sphere/triangle geometry, "
@@ -596,11 +1022,31 @@ TEMPLATE_HINT = ("primes, fibonacci, factorials, digit sums, palindromes, "
                  "sorting, binary search, fizzbuzz, file/CSV/JSON I/O, classes, "
                  "HTTP requests, regex, timers, randomness, caesar cipher, "
                  "passwords, countdowns, matrices, leap years, flattening, "
-                 "dict merging, zipping, f-strings and set operations")
+                 "dict merging, zipping, f-strings, set operations, games "
+                 "(guessing/RPS/hangman), todo & contacts apps, BMI/age, "
+                 "stacks, linked lists, decorators, generators, dataclasses, "
+                 "enums, exceptions, comprehensions, argparse, logging, "
+                 "unittest, directory walking, scraping, env vars, config "
+                 "loaders, collatz, pangrams, pyramids and number-to-words")
+
+
+# A templated ask counts as a code request even without the literal word
+# "code": "write a guessing game" should still come back as Python.
+CODE_VERB = re.compile(
+    r"\b(write|show|give|generate|make|need|want|code|create|build|"
+    r"implement|help me|how do i|how to|example|demo|snippet|print|"
+    r"convert|calculate|compute|count|find|sort|merge|check|parse|"
+    r"validate|reverse|split|join|remove|dedupe|read|sample)\b", re.I)
+
+
+def has_template(text: str) -> bool:
+    return any(fam["re"].search(text) for fam in FAMILIES)
 
 
 def wants_code(text: str) -> bool:
-    return bool(CODE_ASK.search(text))
+    if CODE_ASK.search(text):
+        return True
+    return bool(CODE_VERB.search(text) and has_template(text))
 
 
 def code_reply(text: str) -> tuple[str, bool]:

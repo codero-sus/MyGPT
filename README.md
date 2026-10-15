@@ -147,10 +147,14 @@ short trace. Compare questions always deliberate — both sides get characterize
 ## Code requests → code blocks in chat
 
 There is **no agentic coding and no code execution**. When the user asks for
-code, MyGPT composes a snippet from a built-in template library (primes,
-fibonacci, factorials, digit sums, palindromes, anagrams, statistics, gcd/lcm,
-base conversion, dates & weekdays, circle/sphere/triangle geometry, armstrong
-numbers, powers of two, unit conversion, word counts) and returns it in a
+code, MyGPT composes a snippet from a built-in template library of **80+ code
+families** (primes, fibonacci, factorials, digit sums, palindromes, anagrams,
+statistics, gcd/lcm, base conversion, dates & weekdays, geometry, armstrong
+numbers, powers of two, unit conversion, word counts, sorting/searching,
+file/CSV/JSON I/O, classes, HTTP, regex, ciphers, matrices — plus games like
+hangman and rock-paper-scissors, small apps like todo and contacts, and Python
+idioms such as decorators, generators, dataclasses, enums, comprehensions,
+argparse CLIs and unittest skeletons) and returns it in a
 **fenced code block inside the chat reply** — nothing is ever run and nothing
 is ever written to files. If no template matches, MyGPT says so honestly and
 points the user to **codero-sus on GitHub** for more:
@@ -252,11 +256,23 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 
 ## The WebUI
 
-* **Chat** — rate every answer 👍/👎, correct it inline, teach-it chips on unknowns,
+* **Chat** — answers **stream in word-by-word** (Server-Sent Events), rate every
+  answer 👍/👎, correct it inline, teach-it chips on unknowns,
   collapsible chain-of-thought traces, per-reply latency (⏱ ms), a **⧉ copy**
-  button on every reply, quick-start suggestion chips, **conversation restore
-  after page reload**, and a **⬇️ export** button that downloads the whole
-  conversation as Markdown
+  button on every reply, **copy buttons inside every code block**, dependency-free
+  **Python syntax highlighting**, quick-start suggestion chips, **conversation
+  restore after page reload**, **day dividers** between dates, an unread badge
+  on the jump-to-latest button, and **⬇️ export** (Markdown) plus JSON/CSV
+  endpoints
+* **Find & clean** — a live **chat search** box (Ctrl+K) that filters the
+  transcript, and a **🗑 clear** button that wipes the visible transcript and its
+  saved copy while keeping everything you taught (double-click any message to
+  copy it)
+* **Comfort** — 🌓 **light/dark theme** (follows your system on first visit) and
+  A−/A+ **text-size controls**, both remembered in localStorage; a
+  **print stylesheet** so Ctrl+P prints just the conversation; drag & drop a
+  chat export anywhere on the chat panel to import it; a character counter near
+  the 4000 limit; ↑ in an empty composer recalls your last message
 * **Composer** — multi-line textarea: **Enter sends, Shift+Enter newlines,
   Escape clears, `/` focuses**; drafts survive reloads (localStorage); a
   floating **jump-to-latest** button appears when you scroll up; failed sends
@@ -265,7 +281,12 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 * **Model picker** — a dropdown right next to the send button picks which
   engine answers (Auto / brain / a specific Cortex or Ollama model); the
   status bar shows the active engine and the auto-probe state
-* **Learn tab** — teach Q→A pairs, browse what it knows (with weights)
+* **Learn tab** — teach Q→A pairs, **bulk-teach** many pairs at once
+  (`question :: answer`, up to 100 per batch), browse what it knows (with
+  weights), and **search the memory layer** with ranked scores
+* **Keyboard shortcuts** — Enter send · Shift+Enter newline · Escape clear ·
+  `/` focus · Ctrl+K search · Alt+1/2/3 tabs · Ctrl+Shift+E export ·
+  Ctrl+Shift+L clear chat
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log, and a
   Software-updates card (manual check + confirmed branch-pinned install)
 * **Mind tab** — the CORTEX loop: trainer status, **🧪 on-demand
@@ -291,10 +312,12 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 
 ## Tests
 
-47 smoke tests cover the tokenizer, memory, code templates, word-form math, the
-language model, checkpoints (including path-traversal guards), episodes, the
-backend clients (safe against dead ports), the full Brain pipeline, and every
-API endpoint (including validation and JSON error handlers):
+116 smoke tests cover the tokenizer, memory (including the mixed-vocabulary
+crash regression), 60+ code templates, word-form math, unit/temperature/roman
+conversions, list statistics, percent maths, the language model, checkpoints
+(including path-traversal guards), episodes, the backend clients (safe against
+dead ports), the full Brain pipeline, and every API endpoint (including SSE
+streaming, bulk teaching, search, validation and JSON error handlers):
 
 ```bash
 .venv/bin/python -m unittest discover -s tests    # .venv\Scripts\python on Windows
@@ -363,6 +386,22 @@ templates/ static/      the WebUI
 | POST   | `/api/update/install` | `{"commit_sha"}` confirmed from a fresh check |
 | GET    | `/api/stats`    | — (includes `version`, `author`, `website`, `mind`, `goals`, `cortex`, `ollama`, github) |
 | GET    | `/api/memory`   | —                                       |
+| GET    | `/api/version`  | — (version + author links)             |
+| POST   | `/api/chat/stream` | `{"message": "…"}` — SSE token stream + final JSON |
+| GET    | `/api/events/stream` | — (SSE snapshot of recent self-learning events) |
+| GET    | `/api/memory/search` | `?q=…&k=5` (ranked retrieval with scores) |
+| GET    | `/api/memory/list` | `?offset=0&limit=50` (paginated memory) |
+| GET    | `/api/suggest`  | `?q=frag` (question-title autocomplete) |
+| GET    | `/api/analytics` | — (counters, intent/mode histograms, busiest hours, top memories) |
+| POST   | `/api/teach/bulk` | `{"pairs": [{"question", "answer"}, …]}` — up to 100 |
+| POST   | `/api/clear`    | — (clear the transcript; learned knowledge is kept) |
+| GET    | `/api/checkpoint/info` | `?name=…` (single checkpoint metadata) |
+| GET    | `/api/backends/models` | — (every answerable engine in one list) |
+| GET    | `/api/export.json` / `/api/export.csv` | — (structured transcript exports) |
+| GET    | `/robots.txt` · `/manifest.json` | — (crawler policy · PWA manifest) |
+
+All `/api/*` responses send permissive CORS headers and support `OPTIONS`
+preflight, so local scripts and dashboards can call MyGPT directly.
 
 ## Honest scope
 

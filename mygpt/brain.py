@@ -24,6 +24,7 @@ import re
 import threading
 import time
 import uuid
+from collections import deque
 from pathlib import Path
 
 from .episodes import EpisodicMemory
@@ -84,6 +85,7 @@ class Brain:
         }
         self.loss_history: list[dict] = []
         self.events: list[dict] = []
+        self.last_records: deque = deque(maxlen=200)   # analytics ring buffer
 
         self.trainer = BackgroundTrainer(self.lm, save_fn=self.save)
         self.trainer.dream_source = self._dream_text
@@ -91,9 +93,14 @@ class Brain:
         self.cortex = CortexClient(os.path.join(data_dir, "cortex.json"))
         self.ollama = OllamaClient(os.path.join(data_dir, "ollama.json"))
         # checkpoints live in <project root>/_model_trained (next to data/)
+        # checkpoints default to <project root>/_model_trained; the
+        # MYGPT_CHECKPOINTS env var relocates them (tests, custom datadirs)
         self.checkpoints = CheckpointManager(
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                         "_model_trained"))
+            os.environ.get(
+                "MYGPT_CHECKPOINTS",
+                os.path.join(os.path.dirname(
+                    os.path.dirname(os.path.abspath(__file__))),
+                    "_model_trained")))
         # which engine answers open chat questions (brain/cortex/ollama/auto)
         self.chat_backend = "auto"
         self.chat_model = ""
@@ -141,7 +148,8 @@ class Brain:
                 self.loss_history = meta.get("loss_history", [])
                 self.events = meta.get("events", [])
 
-        if not self.memory.pairs and os.path.exists(self._seed_path):
+        if (not self.memory.pairs and self._seed_path
+                and os.path.exists(self._seed_path)):
             with open(self._seed_path, encoding="utf-8") as f:
                 seed = json.load(f)
             for item in seed.get("pairs", []):
@@ -418,6 +426,12 @@ class Brain:
                   "confidence": 0.0, "intent": intent}
         self.episodes.remember("user", text)
 
+        # 0) special math: conversions, list stats, roman numerals ------------
+        special = self._special_math(text)
+        if special:
+            record.update(mode="math", confidence=1.0, reply=special)
+            return self._after_turn(record, extract=False)
+
         # 1) arithmetic skill -------------------------------------------------
         expr = self._find_math(text)
         if expr:
@@ -521,6 +535,9 @@ class Brain:
                 record["reply"] += "\n\n" + nudge
 
         self.pending[record["id"]] = record
+        self.last_records.append({"mode": record.get("mode"),
+                                  "intent": record.get("intent", "chat"),
+                                  "ts": time.time()})
         if len(self.pending) > 200:
             for k in list(self.pending)[:len(self.pending) - 200]:
                 self.pending.pop(k, None)
@@ -652,9 +669,153 @@ class Brain:
         except Exception:
             return None
 
+    # ------------------------------------------------ special math (v1.9)
+    _UNITS = {  # canonical: meters / kilograms
+        "m": ("len", 1.0), "meter": ("len", 1.0), "meters": ("len", 1.0),
+        "metre": ("len", 1.0), "metres": ("len", 1.0),
+        "km": ("len", 1000.0), "kms": ("len", 1000.0),
+        "cm": ("len", 0.01), "cms": ("len", 0.01),
+        "mm": ("len", 0.001),
+        "mile": ("len", 1609.344), "miles": ("len", 1609.344),
+        "mi": ("len", 1609.344),
+        "inch": ("len", 0.0254), "inches": ("len", 0.0254),
+        "foot": ("len", 0.3048), "feet": ("len", 0.3048), "ft": ("len", 0.3048),
+        "yard": ("len", 0.9144), "yards": ("len", 0.9144),
+        "kg": ("mass", 1.0), "kgs": ("mass", 1.0), "kilo": ("mass", 1.0),
+        "kilos": ("mass", 1.0), "kilogram": ("mass", 1.0),
+        "kilograms": ("mass", 1.0),
+        "g": ("mass", 0.001), "gram": ("mass", 0.001), "grams": ("mass", 0.001),
+        "pound": ("mass", 0.45359237), "pounds": ("mass", 0.45359237),
+        "lb": ("mass", 0.45359237), "lbs": ("mass", 0.45359237),
+        "ounce": ("mass", 0.028349523), "ounces": ("mass", 0.028349523),
+        "oz": ("mass", 0.028349523),
+    }
+    _TEMP_IN = {"c": "c", "celsius": "c", "°c": "c",
+                "f": "f", "fahrenheit": "f", "°f": "f"}
+    _ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"),
+              (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"),
+              (5, "V"), (4, "IV"), (1, "I"))
+
+    @staticmethod
+    def _to_roman(n: int) -> str:
+        out = []
+        for val, sym in Brain._ROMAN:
+            while n >= val:
+                out.append(sym)
+                n -= val
+        return "".join(out) or "0"
+
+    @staticmethod
+    def _from_roman(s: str) -> int | None:
+        vals = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+        total, prev = 0, 0
+        for ch in reversed(s.upper()):
+            v = vals.get(ch)
+            if v is None:
+                return None
+            total += v if v >= prev else -v
+            prev = max(prev, v)
+        # reject non-canonical spellings like "IIII" or "VX"
+        if total < 1 or total > 3999 or Brain._to_roman(total) != s.upper():
+            return None
+        return total
+
+    @staticmethod
+    def _fmt(x: float) -> str:
+        return str(int(x)) if abs(x - round(x)) < 1e-9 else f"{x:.6g}"
+
+    @classmethod
+    def _special_math(cls, text: str) -> str | None:
+        """Conversions and list stats that plain arithmetic can't express."""
+        low = " " + text.lower().strip() + " "
+        # percent change from A to B
+        m = re.search(r"percent(?:age)? change from (-?\d+(?:\.\d+)?) to "
+                      r"(-?\d+(?:\.\d+)?)", low)
+        if m:
+            a, b = float(m.group(1)), float(m.group(2))
+            if a == 0:
+                return "undefined — percent change from zero"
+            return f"percent change {cls._fmt(a)} → {cls._fmt(b)} = " \
+                   f"{cls._fmt((b - a) / abs(a) * 100)}%"
+        # X% off Y
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*(?:%|percent)\s*off\s*"
+                      r"(-?\d+(?:\.\d+)?)", low)
+        if m:
+            off, price = float(m.group(1)), float(m.group(2))
+            return f"{cls._fmt(off)}% off {cls._fmt(price)} = " \
+                   f"{cls._fmt(price * (1 - off / 100))}"
+        # A is what percent of B
+        m = re.search(r"(-?\d+(?:\.\d+)?) is what percent(?:age)? of "
+                      r"(-?\d+(?:\.\d+)?)", low)
+        if m:
+            a, b = float(m.group(1)), float(m.group(2))
+            if b == 0:
+                return "undefined — division by zero"
+            return f"{cls._fmt(a)} is {cls._fmt(a / b * 100)}% of {cls._fmt(b)}"
+        # average / mean / sum / total / max / min of a number list
+        m = re.search(r"(?:average|mean|sum|total|max(?:imum)?|min(?:imum)?) "
+                      r"of ([\d]+(?:[\s,.]+[\d]+)*)", low)
+        if m:
+            nums = [float(n) for n in re.split(r"[\s,.]+| and ", m.group(1))
+                    if n.strip()]
+            if nums:
+                kind = m.group(0).split(" of ")[0].strip()
+                val = {"average": sum(nums) / len(nums),
+                       "mean": sum(nums) / len(nums),
+                       "sum": sum(nums), "total": sum(nums),
+                       "max": max(nums), "maximum": max(nums),
+                       "min": min(nums), "minimum": min(nums)}[kind]
+                return f"{kind} of {', '.join(cls._fmt(n) for n in nums)} = " \
+                       f"{cls._fmt(val)}"
+        # half / double / triple of X
+        m = re.search(r"\b(half|double|twice|triple|thrice) of "
+                      r"(-?\d+(?:\.\d+)?)", low)
+        if m:
+            op, x = m.group(1), float(m.group(2))
+            val = x / 2 if op == "half" else x * 2 if op in ("double", "twice") \
+                else x * 3
+            return f"{op} of {cls._fmt(x)} = {cls._fmt(val)}"
+        # number -> roman
+        m = re.search(r"(-?\d{1,4})\s*(?:in|to|as)\s*roman", low)
+        if m and 1 <= int(m.group(1)) <= 3999:
+            return f"{m.group(1)} in roman numerals = {cls._to_roman(int(m.group(1)))}"
+        # roman -> number
+        m = re.search(r"\b([ivxlcdm]{2,10})\b\s*(?:in|to|as)\s*"
+                      r"(?:numbers?|decimal|digits)", low)
+        if m:
+            val = cls._from_roman(m.group(1))
+            if val is not None:
+                return f"{m.group(1).upper()} = {val}"
+        # temperature conversion
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*°?\s*(c|celsius|f|fahrenheit)\b"
+                      r"\s*(?:in|to|into)\s*°?\s*(c|celsius|f|fahrenheit)\b",
+                      low)
+        if m:
+            x = float(m.group(1))
+            src, dst = m.group(2)[0], m.group(3)[0]
+            if src == dst:
+                return None
+            val = x * 9 / 5 + 32 if src == "c" else (x - 32) * 5 / 9
+            return f"{cls._fmt(x)} °{src.upper()} = {cls._fmt(val)} °{dst.upper()}"
+        # length / mass conversion
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*(°?\s*[a-z]+)\s*"
+                      r"(?:in|to|into)\s*(°?\s*[a-z]+)", low)
+        if m:
+            src = m.group(2).strip().lstrip("°")
+            dst = m.group(3).strip().lstrip("°")
+            s, d = cls._UNITS.get(src), cls._UNITS.get(dst)
+            if s and d and s[0] == d[0] and src != dst:
+                val = float(m.group(1)) * s[1] / d[1]
+                return f"{cls._fmt(float(m.group(1)))} {src} = " \
+                       f"{cls._fmt(val)} {dst}"
+        return None
+
     # ------------------------------------------------------- quick answering
     def quick_answer(self, text: str) -> str:
         """Side-effect-free answer used by the self-eval battery."""
+        special = self._special_math(text)
+        if special:
+            return special
         expr = self._find_math(text)
         if expr:
             result = self._math(expr)
@@ -717,6 +878,112 @@ class Brain:
         self._log(f"taught: '{qn[:36]}'")
         self.save(force=True)
         return {"ok": True, "pairs": len(self.memory.pairs)}
+
+    def teach_many(self, pairs: list) -> dict:
+        """Bulk teaching: validate + store many Q→A pairs in one call."""
+        stored, errors = 0, []
+        for i, item in enumerate(pairs[:100]):
+            if not isinstance(item, dict):
+                errors.append({"index": i, "error": "not an object"})
+                continue
+            q = item.get("question") or item.get("q") or ""
+            a = item.get("answer") or item.get("a") or ""
+            if not isinstance(q, str) or not isinstance(a, str):
+                errors.append({"index": i, "error": "question/answer must be text"})
+                continue
+            q, a = q.strip()[:500], a.strip()[:4000]
+            if not q or not a:
+                errors.append({"index": i, "error": "empty question or answer"})
+                continue
+            qn = normalize(q)
+            self.memory.add(qn, a, replace_question=qn)
+            self._ingest(f"user: {q} mygpt: {a}")
+            stored += 1
+        if stored:
+            self.counters["teachings"] += stored
+            self._log(f"bulk taught {stored} pair(s)")
+            self.save(force=True)
+        return {"ok": stored > 0 or not errors, "stored": stored,
+                "failed": len(errors), "errors": errors,
+                "pairs": len(self.memory.pairs)}
+
+    def clear_transcript(self) -> dict:
+        """Wipe the visible/saved conversation only — learned knowledge stays."""
+        n = self.episodes.clear()
+        self.pending.clear()
+        self.last_records.clear()
+        self._log(f"transcript cleared ({n} episode(s) forgotten)")
+        return {"ok": True, "cleared": n}
+
+    def search_memory(self, query: str, k: int = 5) -> list[dict]:
+        """Ranked search over the memory layer (question, answer, score)."""
+        qn = normalize(query)
+        if not qn:
+            return []
+        return [{"q": p["q"], "a": p["a"], "weight": round(p.get("w", 1.0), 3),
+                 "hits": p.get("hits", 0), "score": round(float(s), 4),
+                 "id": p.get("id")}
+                for p, s in self.memory.search(qn, k=k)]
+
+    def suggest(self, fragment: str, k: int = 6) -> list[str]:
+        """Question-title autocomplete from everything the memory layer knows."""
+        frag = normalize(fragment)
+        if not frag:
+            return []
+        scored = []
+        for p in self.memory.pairs:
+            q = p["q"]
+            if frag in q:
+                scored.append((0 if q.startswith(frag) else 1, len(q), q))
+        scored.sort()
+        return [q for _, _, q in scored[:k]]
+
+    def analytics(self) -> dict:
+        """Aggregate counters, per-intent / per-mode histograms and activity."""
+        modes: dict[str, int] = {}
+        intents: dict[str, int] = {}
+        for rec in self.last_records:
+            key = rec.get("mode") or "none"
+            modes[key] = modes.get(key, 0) + 1
+            ik = rec.get("intent") or "chat"
+            intents[ik] = intents.get(ik, 0) + 1
+        per_hour: dict[str, int] = {}
+        for ep in self.episodes.episodes:
+            key = time.strftime("%Y-%m-%d %H:00", time.localtime(ep.get("ts", 0)))
+            per_hour[key] = per_hour.get(key, 0) + 1
+        counts = self.store.counts()
+        return {
+            "counters": dict(self.counters),
+            "pairs": len(self.memory.pairs),
+            "episodes": len(self.episodes.episodes),
+            "facts": counts["facts"],
+            "modes": modes,
+            "intents": intents,
+            "busiest_hours": sorted(per_hour.items(),
+                                    key=lambda kv: -kv[1])[:8],
+            "self_eval_score": (self.store.metric_series("self_eval", 1) or
+                                [{"v": None}])[-1].get("v"),
+            "top_memories": sorted(
+                ({"q": p["q"], "hits": p.get("hits", 0)} for p in self.memory.pairs),
+                key=lambda d: -d["hits"])[:10],
+        }
+
+    def export_json(self) -> dict:
+        """Structured transcript export (roles, intents, timestamps, replies)."""
+        from . import __version__          # imported late to avoid a cycle
+        return {
+            "app": "MyGPT",
+            "version": __version__,
+            "author": codegen.AUTHOR,
+            "github": codegen.GITHUB_URL,
+            "generated": int(time.time()),
+            "counters": dict(self.counters),
+            "messages": [
+                {"ts": ep.get("ts"), "role": ep.get("role"),
+                 "content": ep.get("content"), "intent": ep.get("intent",
+                                                                  "unknown")}
+                for ep in self.episodes.episodes],
+        }
 
     # ------------------------------------------------------------ improvement
     def improve_cycle(self, reason: str = "manual") -> list[dict]:

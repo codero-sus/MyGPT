@@ -459,3 +459,124 @@ button.primary { box-shadow: 0 3px 12px rgba(106, 77, 240, .25); }
 .composer textarea:focus, .cx-row input:focus, .card input:focus,
 .card textarea:focus, .card select:focus, .composer select:focus {
   box-shadow: 0 0 0 3px rgba(124, 92, 255, .14); }
+
+/* ======================================================================
+   v1.9 additions — light theme, code boxes, search, zoom, print styles
+   ====================================================================== */
+
+/* ---- light theme: same variables, flipped values ---- */
+html[data-theme="light"] {
+  --bg: #f4f6fb;
+  --bg-soft: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #eef1f8;
+  --border: #d8deeb;
+  --text: #1a2233;
+  --muted: #5d6880;
+  --bot-bubble: #eef1f8;
+  color-scheme: light;
+}
+html[data-theme="light"] body {
+  background: radial-gradient(1200px 700px at 80% -10%, #e6ecff 0%, var(--bg) 55%);
+}
+html[data-theme="light"] .msg.bot .bubble {
+  box-shadow: 0 1px 6px rgba(20, 30, 60, .08);
+}
+html[data-theme="light"] .card:hover { border-color: #c3cde3; }
+html[data-theme="light"] pre, html[data-theme="light"] .code-box {
+  background: #f7f9fd;
+}
+
+/* ---- top-bar tool buttons ---- */
+.tools { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 9px; cursor: pointer;
+  font-size: .78rem; padding: 5px 9px; transition: all .15s;
+}
+.icon-btn:hover { color: var(--text); border-color: #3b4a6d; transform: translateY(-1px); }
+.icon-btn:active { transform: translateY(0); }
+
+/* ---- chat search + clear ---- */
+.chat-search {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--text); font-size: .76rem;
+  padding: 5px 9px; outline: none; width: 150px;
+  transition: width .18s, border-color .18s;
+}
+.chat-search:focus { border-color: var(--accent); width: 190px; }
+.msg.filtered-out { display: none; }
+
+/* ---- code block header + highlighting ---- */
+.code-box {
+  background: #10151f; border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden; margin: 8px 0;
+}
+.code-head {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(124, 92, 255, .10); border-bottom: 1px solid var(--border);
+  padding: 4px 10px;
+}
+.code-lang {
+  color: var(--muted); font-size: .68rem; letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.code-copy {
+  background: transparent; border: none; color: var(--muted);
+  cursor: pointer; font-size: .7rem; padding: 2px 4px;
+}
+.code-copy:hover { color: var(--accent-2); }
+.code-box pre { margin: 0; padding: 10px 12px; overflow-x: auto; }
+.hl-kw { color: #c792ea; font-weight: 600; }
+.hl-str { color: #a5e075; }
+.hl-com { color: #6b7a99; font-style: italic; }
+.hl-num { color: #ffb86c; }
+.hl-dec { color: #7fdbff; }
+
+/* ---- day separators ---- */
+.date-sep {
+  color: var(--muted); font-size: .68rem; text-align: center;
+  margin: 14px 0 6px; opacity: .85;
+}
+.date-sep::before, .date-sep::after { content: "· · ·"; margin: 0 8px; opacity: .5; }
+
+/* ---- unread badge on the scroll button ---- */
+.scroll-bottom.pulse {
+  animation: bump .35s ease;
+  background: var(--accent); color: #fff; width: auto;
+  padding: 0 12px; border-radius: 14px;
+}
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
+
+/* ---- drag & drop import ---- */
+.chat-panel.dropping { outline: 2px dashed var(--accent); outline-offset: -4px; }
+.chat-panel.dropping::after {
+  content: "📥 drop a chat export to import it";
+  position: absolute; inset: auto 0 90px 0; text-align: center;
+  color: var(--accent); font-size: .85rem; pointer-events: none;
+}
+
+/* ---- composer character counter ---- */
+.char-count {
+  position: absolute; right: 14px; bottom: 6px; color: var(--muted);
+  font-size: .64rem; pointer-events: none;
+}
+.char-count.near-limit { color: #ff8a6b; font-weight: 600; }
+.composer { position: relative; }
+
+/* ---- memory search results ---- */
+.mem-score { color: var(--accent-2); font-size: .68rem; }
+.memory-a { color: var(--muted); font-size: .72rem; margin-top: 2px; }
+.memory-empty { color: var(--muted); font-size: .74rem; font-style: italic; }
+
+/* ---- print: transcript only ---- */
+@media print {
+  .sidebar, .topbar .tools, .modelbar, .composer, .scroll-bottom,
+  .chat-search, .feedback-row, .copy-btn, .code-copy, .tab, .mb-export,
+  #toast, .install-hint { display: none !important; }
+  body { background: #fff; color: #000; }
+  .layout { display: block; }
+  .chat-panel { border: none; }
+  .chat-scroll { overflow: visible; max-height: none; }
+  .msg .bubble { border: 1px solid #ddd; background: #fff !important; color: #000; }
+}
