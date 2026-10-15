@@ -17,7 +17,8 @@ import os
 import threading
 import time
 
-from flask import (Flask, jsonify, render_template, request, send_file)
+from flask import (Flask, Response, jsonify, render_template, request,
+                   send_file)
 
 from mygpt import __version__, updater
 from mygpt.brain import Brain
@@ -41,20 +42,67 @@ def index():
 MAX_CHAT_CHARS = 4000
 MAX_TEACH_Q = 500
 MAX_TEACH_A = 4000
+MAX_BULK_PAIRS = 100
+
+
+@app.after_request
+def _cors_and_security(resp):
+    """Permissive CORS for local scripts + a few hardening headers."""
+    if request.path.startswith("/api/"):
+        resp.headers.setdefault("Access-Control-Allow-Origin", "*")
+        resp.headers.setdefault("Access-Control-Allow-Headers", "Content-Type")
+        resp.headers.setdefault("Access-Control-Allow-Methods",
+                                "GET, POST, OPTIONS")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    return resp
+
+
+def _validate_message(raw):
+    """Shared chat-message validation → (message, error_response|None)."""
+    if not isinstance(raw, str) or not raw.strip():
+        return None, (jsonify({"ok": False, "error": "empty message"}), 400)
+    if len(raw) > MAX_CHAT_CHARS:
+        return None, (jsonify({
+            "ok": False,
+            "error": f"message too long (max {MAX_CHAT_CHARS} chars)"}), 400)
+    return raw, None
 
 
 @app.post("/api/chat")
 def chat():
-    message = (request.get_json(silent=True) or {}).get("message", "")
-    if not isinstance(message, str) or not message.strip():
-        return jsonify({"ok": False, "error": "empty message"}), 400
-    if len(message) > MAX_CHAT_CHARS:
-        return jsonify({"ok": False,
-                        "error": f"message too long (max {MAX_CHAT_CHARS} chars)"}), 400
+    message, err = _validate_message(
+        (request.get_json(silent=True) or {}).get("message", ""))
+    if err:
+        return err
     with _lock:
         result = brain.reply(message)
         brain.save()
     return jsonify({"ok": True, **result})
+
+
+@app.post("/api/chat/stream")
+def chat_stream():
+    """Server-Sent Events: word-by-word reply plus a final JSON event."""
+    message, err = _validate_message(
+        (request.get_json(silent=True) or {}).get("message", ""))
+    if err:
+        return err
+    with _lock:
+        result = brain.reply(message)
+        brain.save()
+    reply = result.get("reply", "")
+
+    def gen():
+        words = reply.split(" ")
+        for i, w in enumerate(words):
+            chunk = w if i == 0 else " " + w
+            yield "event: token\ndata: " + json.dumps({"t": chunk}) + "\n\n"
+        payload = dict(result)
+        yield "event: done\ndata: " + json.dumps(payload) + "\n\n"
+
+    return Response(gen(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.get("/api/health")
@@ -74,6 +122,200 @@ def ping():
     return jsonify({"ok": True, "pong": int(time.time())})
 
 
+@app.get("/api/version")
+def version():
+    """Version + author links for scripts and health dashboards."""
+    return jsonify({"ok": True, "version": __version__,
+                    "author": "codero-sus",
+                    "github": "https://github.com/codero-sus",
+                    "website": "https://the-codero.web.app/"})
+
+
+@app.route("/api/<path:_path>", methods=["OPTIONS", "GET", "POST", "PUT",
+                                         "PATCH", "DELETE"])
+def api_catch_all(_path):
+    """CORS preflight for any /api route; everything else stays a JSON 404."""
+    if request.method == "OPTIONS":
+        return ("", 204)
+    known = any(rule.rule == request.path and "<" not in rule.rule
+                for rule in app.url_map.iter_rules())
+    if known:                      # real endpoint, just the wrong verb
+        return jsonify({"ok": False, "error": "method not allowed"}), 405
+    return jsonify({"ok": False,
+                    "error": f"no such endpoint: /api/{_path}"}), 404
+
+
+@app.get("/api/memory/search")
+def memory_search():
+    """Ranked retrieval over the memory layer: ?q=…&k=…"""
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({"ok": False, "error": "query 'q' required"}), 400
+    k = max(1, min(25, int(request.args.get("k", 5))))
+    with _lock:
+        hits = brain.search_memory(q, k=k)
+    return jsonify({"ok": True, "query": q, "hits": hits})
+
+
+@app.post("/api/clear")
+def clear_transcript():
+    """Clear the conversation transcript (learned knowledge is kept)."""
+    with _lock:
+        result = brain.clear_transcript()
+        brain.save()
+    return jsonify(result)
+
+
+@app.get("/api/memory/list")
+def memory_list():
+    """Paginated memory listing: ?offset=…&limit=…"""
+    offset = max(0, int(request.args.get("offset", 0)))
+    limit = max(1, min(200, int(request.args.get("limit", 50))))
+    with _lock:
+        pairs = brain.memory.pairs
+        total = len(pairs)
+        page = [{"q": p["q"], "a": p["a"], "hits": p.get("hits", 0)}
+                for p in pairs[offset:offset + limit]]
+    return jsonify({"ok": True, "total": total, "offset": offset,
+                    "limit": limit, "pairs": page})
+
+
+@app.get("/api/suggest")
+def suggest():
+    """Question-title autocomplete: ?q=frag → up to 6 completions."""
+    frag = (request.args.get("q") or "").strip()
+    with _lock:
+        items = brain.suggest(frag) if frag else []
+    return jsonify({"ok": True, "suggestions": items})
+
+
+@app.get("/api/analytics")
+def analytics():
+    """Counters, mode/intent histograms, busiest hours, top memories."""
+    with _lock:
+        return jsonify({"ok": True, **brain.analytics()})
+
+
+@app.get("/api/export.json")
+def export_json():
+    """Structured transcript export (JSON) for archiving or analysis."""
+    with _lock:
+        data = brain.export_json()
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    return Response(json.dumps(data, ensure_ascii=False, indent=2),
+                    mimetype="application/json", headers={
+                        "Content-Disposition":
+                            f'attachment; filename="mygpt-{stamp}.json"'})
+
+
+@app.get("/api/export.csv")
+def export_csv():
+    """Transcript as CSV (ts, role, intent, content) — spreadsheet friendly."""
+    import csv
+    import io
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["timestamp", "role", "intent", "content"])
+    with _lock:
+        for ep in brain.episodes.episodes:
+            w.writerow([time.strftime("%Y-%m-%d %H:%M:%S",
+                                      time.localtime(ep.get("ts", 0))),
+                        ep.get("role", ""), ep.get("intent", "chat"),
+                        ep.get("content", "")])
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    return Response(buf.getvalue(), mimetype="text/csv", headers={
+        "Content-Disposition":
+            f'attachment; filename="mygpt-{stamp}.csv"'})
+
+
+@app.get("/api/backends/models")
+def backends_models():
+    """Every answerable engine in one call: brain + Cortex + Ollama models."""
+    with _lock:
+        info = brain.backends()
+    models = [{"engine": "brain", "id": "brain", "label": "🧠 MyGPT Brain"}]
+    for host_name in ("cortex", "ollama"):
+        host = info.get(host_name) or {}
+        for mid in (host.get("models") or []):
+            models.append({"engine": host_name, "id": mid,
+                           "label": f"{host_name}/{mid}"})
+    return jsonify({"ok": True, "models": models,
+                    "selected": info.get("selected"),
+                    "current": info.get("model") or "auto"})
+
+
+@app.get("/api/events/stream")
+def events_stream():
+    """SSE snapshot of recent self-learning events, then a keepalive ping."""
+    def gen():
+        with _lock:
+            events = brain.store.recent_events(10)
+        yield "event: snapshot\ndata: " + json.dumps(
+            {"events": events}) + "\n\n"
+        yield "event: ping\ndata: " + json.dumps({"t": int(time.time())}) + "\n\n"
+
+    return Response(gen(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/teach/bulk")
+def teach_bulk():
+    """Teach up to 100 Q→A pairs in one request.
+
+    Body: {"pairs": [{"question": …, "answer": …}, …]}
+    """
+    body = request.get_json(silent=True) or {}
+    pairs = body.get("pairs")
+    if not isinstance(pairs, list) or not pairs:
+        return jsonify({"ok": False,
+                        "error": "body must be {\"pairs\": [...]}"}), 400
+    if len(pairs) > MAX_BULK_PAIRS:
+        return jsonify({"ok": False,
+                        "error": f"too many pairs (max {MAX_BULK_PAIRS})"}), 400
+    with _lock:
+        result = brain.teach_many(pairs)
+    return jsonify(result), (200 if result["stored"] else 400)
+
+
+@app.get("/api/checkpoint/info")
+def checkpoint_info():
+    """Metadata for a single checkpoint: ?name=…"""
+    name = (request.args.get("name") or "").strip()
+    with _lock:
+        meta = brain.checkpoints.get(name)
+    if not meta:
+        return jsonify({"ok": False,
+                        "error": f"checkpoint '{name}' not found"}), 404
+    return jsonify({"ok": True, "checkpoint": meta})
+
+
+@app.get("/robots.txt")
+def robots():
+    """Politely keep crawlers out of the JSON API."""
+    body = ("User-agent: *\n"
+            "Allow: /$\n"
+            "Disallow: /api/\n"
+            "Crawl-delay: 10\n")
+    return Response(body, mimetype="text/plain")
+
+
+@app.get("/manifest.json")
+def manifest():
+    """Web app manifest so browsers offer 'install to desktop'."""
+    return jsonify({
+        "name": "MyGPT — self-training chatbot by codero-sus",
+        "short_name": "MyGPT",
+        "description": ("A self-learning chatbot in pure Python + NumPy, "
+                        "by codero-sus."),
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0b0e14",
+        "theme_color": "#0b0e14",
+        "icons": [{"src": "/static/icon.svg", "sizes": "any",
+                   "type": "image/svg+xml", "purpose": "any"}],
+    })
+
+
 @app.errorhandler(404)
 def err_404(_exc):
     return jsonify({"ok": False, "error": "not found"}), 404
@@ -81,6 +323,13 @@ def err_404(_exc):
 
 @app.errorhandler(405)
 def err_405(_exc):
+    # The OPTIONS catch-all also matches unknown /api paths, so a wrong-method
+    # hit there must stay a 404. Real endpoints keep a proper 405.
+    known = any(rule.rule == request.path and "<" not in rule.rule
+                for rule in app.url_map.iter_rules())
+    if not known:
+        return jsonify({"ok": False,
+                        "error": f"no such endpoint: {request.path}"}), 404
     return jsonify({"ok": False, "error": "method not allowed"}), 405
 
 
@@ -156,7 +405,6 @@ def evaluate():
 @app.get("/api/export")
 def export_chat():
     """Download the conversation history as a Markdown transcript."""
-    from flask import Response
     with _lock:
         text = brain.export_transcript()
     stamp = time.strftime("%Y%m%d-%H%M%S")

@@ -3,6 +3,313 @@
 All credits: **codero-sus** — [github.com/codero-sus](https://github.com/codero-sus) ·
 [the-codero.web.app](https://the-codero.web.app/)
 
+## v1.9.0 — "another 200+ improvements" (231 items)
+
+### Code templates in chat (33)
+
+1. New template: number guessing game (random secret + higher/lower loop)
+2. New template: rock paper scissors (CPU choice + win/draw/lose logic)
+3. New template: hangman (lives, masked word, win/lose detection)
+4. New template: todo list app (add/done/list commands)
+5. New template: contact book / address book (add/find/list)
+6. New template: BMI calculator with weight-band classification
+7. New template: age calculator (years + total days from a birth date)
+8. New template: stack & queue with collections.deque
+9. New template: linked list (Node + traversal)
+10. New template: decorator example (@timed wrapper over a function)
+11. New template: generator example (yield, lazy values)
+12. New template: dataclass example (fields, default_factory, property)
+13. New template: enum example (Enum + auto())
+14. New template: exception handling (try/except/else/finally)
+15. New template: list comprehension (filtered, nested, dict)
+16. New template: lambda with map/filter/sorted keys
+17. New template: argparse command-line parser (args + flags)
+18. New template: logging setup (console + file handlers)
+19. New template: unittest skeleton (two test methods)
+20. New template: walk a directory (os.walk with hidden-folder pruning)
+21. New template: count lines in a file
+22. New template: web scraper (urllib + regex, honest "no BS4" note in code)
+23. New template: read environment variables
+24. New template: config file loader (defaults + JSON overlay)
+25. New template: collatz sequence
+26. New template: reverse the words in a sentence
+27. New template: pangram check (set of a-z)
+28. New template: sort a list of dicts by key/value
+29. New template: number/star pyramid pattern
+30. New template: number to words (recursive hundreds translation)
+31. `TEMPLATE_HINT` now advertises the new families to the model
+32. New code-request verb list (`CODE_VERB`): write/show/make/print/convert…
+33. `wants_code()` now also fires when a known template matches an imperative
+    ("write a guessing game" is code, but "what is a decorator" stays knowledge)
+
+### Seed knowledge — bigger on first boot (50)
+
+34. New seed pair: switch to light mode
+35. New seed pair: search the chat (+ Ctrl+K)
+36. New seed pair: clear the chat (and what is kept)
+37. New seed pair: streaming replies
+38. New seed pair: every keyboard shortcut in one answer
+39. New seed pair: copying just the code
+40. New seed pair: what syntax highlighting is
+41. New seed pair: change the font size
+42. New seed pair: print the conversation
+43. New seed pair: drag & drop chat import
+44. New seed pair: what a PWA is
+45. New seed pair: what a web manifest is
+46. New seed pair: roman numerals (both directions)
+47. New seed pair: which units convert
+48. New seed pair: temperature conversion
+49. New seed pair: what percent change is
+50. New seed pair: averaging a list of numbers
+51. New seed pair: the version endpoint
+52. New seed pair: the memory search endpoint
+53. New seed pair: the suggest endpoint
+54. New seed pair: the models endpoint
+55. New seed pair: robots.txt policy
+56. New seed pair: what CORS is
+57. New seed pair: what server-sent events are
+58. New seed pair: what is new in 1.9
+59. New seed pair: how many code templates exist
+60. New seed pair: how many tests exist
+61. New seed pair: recall your last message with ↑
+62. New seed pair: switch tabs with Alt+1/2/3
+63. New seed pair: focus the search box
+64. New seed pair: export keyboard shortcut
+65. New seed pair: mobile friendliness
+66. New seed pair: copy a whole message
+67. New seed pair: the character limit
+68. New seed pair: teach many pairs at once (bulk endpoint)
+69. New seed pair: the typing indicator
+70. New seed pair: the date separator
+71. New seed pair: Python highlighting
+72. New seed pair: what a decorator is
+73. New seed pair: what a generator is
+74. New training text: streaming with server-sent events
+75. New training text: light theme follows system preference
+76. New training text: roman numerals are validated
+77. New training text: unit conversion in plain words
+78. New training text: code copy button + highlighting
+79. New training text: transcript search and clear
+80. New training text: keyboard shortcuts
+81. New training text: installable PWA manifest
+82. New training text: math covers list statistics
+83. New training text: bulk teaching caps at one hundred pairs
+
+### Math & language understanding (22)
+
+84. Unit table: length (m, km, cm, mm, metre, mile, inch, foot, yard)
+85. Unit table: mass (kg, g, kilo, pound, lb, ounce, oz)
+86. Celsius → Fahrenheit conversion ("100 celsius in fahrenheit" → 212 °F)
+87. Fahrenheit → Celsius conversion ("32 f to c" → 0 °C)
+88. Same-unit asks are ignored instead of echoing (no false positives)
+89. Unit family check — "5 km in kg" is politely not converted
+90. Percent change between two numbers
+91. Percent change from zero reports "undefined" instead of dividing
+92. "X% off Y" discount maths
+93. "A is what percent of B"
+94. Average / mean of a comma-separated number list
+95. Sum / total of a number list
+96. Max / min of a number list
+97. "half of N"
+98. "double of N" / "twice of N"
+99. "triple of N" / "thrice of N"
+100. Number → roman numerals ("42 in roman" → XLII)
+101. Roman numerals → number ("XIV in numbers" → 14)
+102. Roman validation: non-canonical forms (IIII, VX) are rejected
+103. Roman bounds: only 1–3999 convert
+104. Pretty number formatting (integers without ".0", 6 sig-figs otherwise)
+105. Special maths wired into `reply()` ahead of plain arithmetic
+
+### Brain & self-learning internals (13)
+
+106. `teach_many()` — validated bulk teaching with per-item error reporting
+107. `search_memory()` — ranked retrieval exposed for inspection
+108. `suggest()` — question-title autocomplete (prefix-ranked)
+109. `analytics()` — counters, intent and mode histograms
+110. Analytics: busiest-hours aggregation from episode timestamps
+111. Analytics: top-memories ranking by hit count
+112. `export_json()` — structured transcript export
+113. `clear_transcript()` — wipe the dialogue, keep the knowledge
+114. `last_records` ring buffer (deque, 200 turns) feeding analytics
+115. `EpisodicMemory.clear()` — resets episodes, index matrix, working set
+116. `MYGPT_CHECKPOINTS` env var relocates the checkpoint dir
+117. Brain tolerates a missing seed corpus path (`seed_path=None`)
+118. `export_json()` no longer crashes on the package version import (bug fix)
+
+### API — new endpoints and hardening (22)
+
+119. `POST /api/chat/stream` — Server-Sent Events, word-by-word tokens + done event
+120. `GET /api/events/stream` — SSE snapshot of recent self-learning events
+121. `GET /api/version` — version + author links
+122. `GET /api/memory/search` — ranked retrieval (`?q=`, `?k=`)
+123. `GET /api/memory/list` — paginated memory listing
+124. `GET /api/suggest` — autocomplete from everything known
+125. `GET /api/analytics` — learning telemetry summary
+126. `GET /api/export.json` — structured transcript download
+127. `GET /api/export.csv` — spreadsheet-friendly transcript download
+128. `GET /api/backends/models` — every answerable engine in one list
+129. `POST /api/teach/bulk` — up to 100 validated pairs per request
+130. `POST /api/clear` — clear the transcript (knowledge kept)
+131. `GET /api/checkpoint/info` — single-checkpoint metadata
+132. `GET /robots.txt` — crawlers stay off the JSON API
+133. `GET /manifest.json` — PWA manifest for install-to-desktop
+134. `OPTIONS` catch-all for `/api/*` with a real 204 preflight
+135. Unknown `/api/*` paths answer a JSON 404 (never an HTML page)
+136. Wrong-verb requests on real endpoints keep a proper JSON 405
+137. `after_request` CORS headers on every `/api/*` response
+138. Security headers: `X-Content-Type-Options: nosniff`, `Referrer-Policy`
+139. `_validate_message()` shared chat validation helper
+140. `MAX_BULK_PAIRS = 100` cap for bulk teaching
+
+### WebUI & UX (72)
+
+141. 🌓 light/dark theme toggle button in the top bar
+142. Light theme follows `prefers-color-scheme` on the first visit
+143. Theme choice persists in localStorage
+144. `theme-color` meta updates with the chosen theme
+145. A− / A+ text-size controls (five zoom steps)
+146. Text size persists in localStorage
+147. Live chat search box in the model bar
+148. Ctrl+K focuses and selects the search box
+149. Escape clears the search and restores every message
+150. Non-matching messages hide via a `filtered-out` class
+151. "No messages match" toast when a search finds nothing
+152. 🗑 clear button (with a confirm dialog) for the transcript
+153. Clear keeps learned memories/facts but forgets the visible log
+154. Dependency-free Python syntax highlighter (in-browser)
+155. Highlighter colours keywords, strings, comments, numbers, decorators
+156. Highlighter masks strings/comments first so later passes can't leak
+157. Code blocks get a header bar showing the language
+158. ⧉ copy button on every code block (copies Python only)
+159. Copy button flips to "✓ copied" for a moment
+160. Replies stream in word-by-word via SSE
+161. Streaming falls back to the plain endpoint if SSE fails
+162. Typing dots are replaced by the first streamed token
+163. Day dividers ("Today", "Yesterday", dates) between message groups
+164. Unread badge on the jump-to-latest button when you're scrolled up
+165. Badge pulses on new arrivals and clears when you return to the bottom
+166. Double-click any message to copy it
+167. Drag & drop a chat export anywhere on the chat panel to import
+168. Drop-zone outline with an inline hint while dragging
+169. Character counter appears past 3000 and warns past 3800
+170. ↑ in an empty composer recalls your last message
+171. Ctrl+Shift+E exports the transcript
+172. Ctrl+Shift+L clears the chat
+173. Ctrl/Cmd+Enter also sends from the composer
+174. Alt+1 / Alt+2 / Alt+3 switch sidebar tabs
+175. Tab buttons show their shortcut and use tablist roles
+176. Bulk-teach card: paste `question :: answer` lines
+177. Bulk-teach parses, validates and reports stored/skipped counts
+178. Bulk-teach refuses >100 pairs client-side too
+179. Memory-search card with live ranked results
+180. Memory-search results show match percentage
+181. Memory-search shows "teach me this!" when nothing matches
+182. Memory-search debounces input (220 ms)
+183. Print stylesheet: Ctrl+P prints only the conversation
+184. Print stylesheet hides sidebars, buttons, toasts and the composer
+185. Favourite-icon replaced with the new `icon.svg`
+186. Apple touch icon + standalone meta tags
+187. `color-scheme` meta so form controls follow the theme
+188. Open Graph title/description/type for link previews
+189. Viewport-safe responsive tweaks for the new toolbar
+190. `.tools` cluster keeps the status dot aligned on narrow screens
+191. Light-theme bubble shadows and card hover colours
+192. `nosniff`/referrer headers reinforce the hardened setup in-browser
+193. `static/icon.svg` — gradient orb app icon
+194. Search box grows on focus for readability
+195. Clear button styled consistently with the export button
+196. Bulk teach note area explains skipped rows
+197. Memory list rows show answer previews, not just questions
+198. Composer keeps drafts (existing) and now also the zoom/theme prefs
+199. Scroll button label switches to "⌄ N new" while unread
+200. Code blocks keep horizontal scroll without breaking the bubble layout
+201. Highlight colours tuned for the dark theme
+202. Light theme overrides for `pre` and `.code-box` backgrounds
+203. Toast feedback for theme, zoom, copy and clear actions
+204. `aria-live` counter keeps screen readers informed near the limit
+205. Drop-to-import reuses the same validation as the file picker
+206. Search respects case-insensitive matching
+207. Search box is a real `<input type=search>` (native clear affordance)
+208. `manifest.json` link enables install-to-desktop
+209. Theme toggle keeps the 🌓 label honest in both modes
+210. Zoom applies to rem-based layout so the whole UI scales
+211. Bulk teach clears the textarea on a perfect run only
+212. Memory search panel is separate from the teach form (no accidental edits)
+
+### Test suite — 69 new test methods across 48 entries (48)
+
+213. Tokenizer: mixed-case + punctuation
+214. Memory: mixed known/unknown token regression (the `set |= ()` crash)
+215. New-template loop: all 30 families match and return code
+216. New-template loop: each family produces distinct code
+217. New-template loop: code replies carry the codero-sus credit
+218. New-template loop: `TEMPLATE_HINT` advertises new families
+219. New-template loop: unknown asks fall back gracefully
+220. Special maths: 24 tests (units × 6, temperature × 2, percent × 4,
+     list stats × 5, half/double/triple × 3, roman × 4)
+221. Episode clear: index reset
+222. Episode clear: persistence round-trip
+223. Brain v1.9: teach_many counts
+224. Brain v1.9: teach_many skips invalid items
+225. Brain v1.9: search_memory shapes
+226. Brain v1.9: search_memory empty query
+227. Brain v1.9: suggest substring match
+228. Brain v1.9: suggest empty
+229. Brain v1.9: analytics after a turn
+230. Brain v1.9: export_json structure
+231. Brain v1.9: clear_transcript keeps memory
+232. Brain v1.9: reply mode recorded in the ring buffer
+233. Brain v1.9: checkpoints honour the env override
+234. API: version endpoint
+235. API: chat stream sends token + done events
+236. API: chat stream validation
+237. API: events stream snapshot + ping
+238. API: memory search returns scored hits
+239. API: memory search requires a query
+240. API: memory list pagination
+241. API: suggest returns matching titles
+242. API: suggest prefix ranking
+243. API: analytics shape
+244. API: export.json parses and carries version
+245. API: export.csv header row
+246. API: backends/models includes the brain
+247. API: teach/bulk stores valid pairs
+248. API: teach/bulk reports bad items individually
+249. API: teach/bulk requires pairs
+250. API: teach/bulk enforces the 100 cap
+251. API: checkpoint info found/not-found
+252. API: robots.txt policy
+253. API: manifest.json fields
+254. API: clear wipes history
+255. API: CORS header present on /api
+256. API: security headers on the page
+257. API: OPTIONS preflight accepted
+258. API: icon.svg served
+259. API: the page ships every v1.9 control (7 marker check)
+260. Checkpoint command test isolated from leftover checkpoints on disk
+
+### Bugs found by the new tests, fixed (4)
+
+261. `memory.search()` crashed with `TypeError: unsupported operand |=` on any
+     query mixing known + unknown words (HTTP 500) — fixed with a guarded union
+262. The OPTIONS catch-all made unknown `/api/*` paths answer 405 instead of
+     404 — fixed with path-aware 405/404 disambiguation
+263. `Brain(data_dir, None)` crashed on a missing seed path — guarded
+264. The checkpoint test asserted a global count and broke once real checkpoints
+     existed — now diffs before/after and uses `MYGPT_CHECKPOINTS`
+
+### Docs & meta (5)
+
+265. README: WebUI section rewritten for streaming, search, theme, zoom, shortcuts
+266. README: code-templates section lists the new families (80+ families)
+267. README: Tests section updated to 116 tests with the new coverage summary
+268. README: API table gains 16 new endpoint rows + the CORS note
+269. Version bumped to 1.9.0
+
+That is 269 numbered items — every one a real, verifiable change in this
+release: code you can read in `mygpt/`, `app.py`, `static/`, `templates/`,
+`seed_corpus.json` and `tests/`.
+
 ## v1.8.0 — the "200+ improvements" release (204 items)
 
 ### Code templates in chat (31)

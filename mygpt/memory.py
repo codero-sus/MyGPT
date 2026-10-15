@@ -136,7 +136,11 @@ class Memory:
         # exhaustive and large ones fast)
         cand_ids: set = set()
         for tok in q_tokens:
-            cand_ids |= self._postings.get(tok, ())
+            # NB: only ever union a real set — `set |= ()` raises TypeError,
+            # which used to 500 on any query mixing known + unknown words.
+            ids = self._postings.get(tok)
+            if ids:
+                cand_ids |= ids
         if not cand_ids:
             return []
         candidates = [self._by_id[i] for i in cand_ids]

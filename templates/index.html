@@ -8,7 +8,15 @@
   <meta name="author" content="codero-sus — https://github.com/codero-sus" />
   <title>MyGPT — self-training chatbot by codero-sus</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%237c5cff'/></svg>" />
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.svg') }}" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="MyGPT" />
+  <meta property="og:title" content="MyGPT — self-training chatbot by codero-sus" />
+  <meta property="og:description" content="A self-learning chatbot in pure Python + NumPy. Made with ❤️ by codero-sus." />
+  <meta property="og:type" content="website" />
 </head>
 <body>
   <div class="app">
@@ -21,7 +29,16 @@
             <a href="https://github.com/codero-sus" target="_blank" rel="noopener">codero-sus</a></p>
         </div>
       </div>
-      <div class="status"><span class="dot" id="status-dot"></span> <span id="status-text">online &amp; learning</span></div>
+      <div class="tools">
+        <button type="button" class="icon-btn" id="theme-btn" title="Toggle light / dark theme"
+                aria-label="Toggle theme">🌓</button>
+        <button type="button" class="icon-btn" id="font-dec" title="Smaller text"
+                aria-label="Decrease font size">A−</button>
+        <button type="button" class="icon-btn" id="font-inc" title="Larger text"
+                aria-label="Increase font size">A+</button>
+        <div class="status"><span class="dot" id="status-dot"></span>
+          <span id="status-text">online &amp; learning</span></div>
+      </div>
     </header>
 
     <main class="layout">
@@ -33,6 +50,11 @@
           <span class="mb-probe" id="probe-pill" title="MyGPT auto-probes local LLM hosts every 20 s"></span>
           <button type="button" class="mb-export" id="export-btn"
                   title="Download the conversation as Markdown">⬇️ export</button>
+          <button type="button" class="mb-export" id="clear-btn"
+                  title="Clear the chat transcript (Ctrl+Shift+L)">🗑 clear</button>
+          <input type="search" class="chat-search" id="chat-search"
+                 placeholder="🔎 search  (Ctrl+K)" aria-label="Search the chat"
+                 autocomplete="off" />
         </div>
         <div class="install-hint hidden" id="install-hint">
           <div class="ih-text" id="install-hint-text"></div>
@@ -45,6 +67,7 @@
           <textarea id="input" rows="1" autocomplete="off" maxlength="4000"
                     aria-label="Message MyGPT"
                     placeholder="Message MyGPT…  (Enter to send · Shift+Enter for a new line)"></textarea>
+          <span class="char-count hidden" id="char-count" aria-live="polite"></span>
           <select id="backend-select" aria-label="Choose the answering model"
                   title="Choose which model answers open questions">
             <option value="auto">⚡ Auto</option>
@@ -56,10 +79,10 @@
 
       <!-- ================= SIDEBAR ================= -->
       <aside class="sidebar">
-        <nav class="tabs">
-          <button class="tab active" data-tab="learn">📚 Learn</button>
-          <button class="tab" data-tab="growth">📈 Growth</button>
-          <button class="tab" data-tab="mind">🧬 Mind</button>
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-tab="learn" role="tab" title="Learn (Alt+1)">📚 Learn</button>
+          <button class="tab" data-tab="growth" role="tab" title="Growth (Alt+2)">📈 Growth</button>
+          <button class="tab" data-tab="mind" role="tab" title="Mind (Alt+3)">🧬 Mind</button>
         </nav>
 
         <!-- Learn tab -->
@@ -72,6 +95,21 @@
             <label for="teach-a">Answer</label>
             <textarea id="teach-a" rows="3" placeholder="e.g. The capital of France is Paris."></textarea>
             <button class="primary" id="teach-btn">Teach it</button>
+          </div>
+          <div class="card">
+            <h2>Bulk teach</h2>
+            <p class="hint">Paste many pairs — one per line as
+              <code>question :: answer</code> (up to 100 at a time).</p>
+            <textarea id="bulk-text" rows="5"
+                      placeholder="what is rust :: A systems language by Mozilla.&#10;who made python :: Guido van Rossum."></textarea>
+            <button class="primary" id="bulk-btn">Teach all</button>
+            <div class="hint" id="bulk-note"></div>
+          </div>
+          <div class="card">
+            <h2>Search memories</h2>
+            <input id="mem-search" type="search" placeholder="e.g. checkpoints"
+                   aria-label="Search memories" autocomplete="off" />
+            <ul class="memory-list" id="mem-search-results"></ul>
           </div>
           <div class="card">
             <h2>What I know <span class="pill" id="pair-count">0</span></h2>
