@@ -804,3 +804,26 @@ body.offline .composer textarea::placeholder { color: #d98b6b; }
 @media (prefers-reduced-motion: reduce) {
   .engine, .next-track i { transition: none; }
 }
+
+/* ---------------- v1.11.1: background self-training card (Model tab) ------ */
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.slider-label {
+  font-size: 12px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--muted, #9aa5b1);
+}
+.row-actions input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+  accent-color: var(--accent, #7aa2f7);
+}
+.row-actions .btn.ghost { white-space: nowrap; }
+#tr-pill.ok { color: var(--ok, #6cc070); border-color: color-mix(in srgb, var(--ok, #6cc070) 40%, transparent); }
+#tr-pill.warn { color: var(--warn, #d9a441); border-color: color-mix(in srgb, var(--warn, #d9a441) 40%, transparent); }

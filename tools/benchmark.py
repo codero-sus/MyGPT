@@ -276,16 +276,296 @@ def benchmark_llamacpp() -> dict | None:
     }
 
 
+def _isolated_app(tmp: str):
+    """The real Flask app, booted against a temp data dir, engines off.
+
+    Driving the HTTP path (rather than calling ``brain.reply`` directly) is the
+    point: the request hooks that tell the trainer to stand down are part of the
+    app, so a benchmark that bypasses them would be measuring the wrong thing.
+    """
+    import importlib
+    import shutil
+    for key, value in (("MYGPT_CHECKPOINTS", os.path.join(tmp, "ckpts")),
+                       ("MYGPT_DATA", tmp),
+                       ("MYGPT_MODELS_DIR", ""),
+                       ("MYGPT_LLAMACPP_MODELS", ""),
+                       ("MYGPT_CORTEX_ENABLED", "0"),
+                       ("MYGPT_OLLAMA_ENABLED", "0"),
+                       ("MYGPT_CORTEX_URL", "http://127.0.0.1:1"),
+                       ("MYGPT_OLLAMA_URL", "http://127.0.0.1:1")):
+        os.environ[key] = value
+    if not os.path.exists(os.path.join(tmp, "seed.json")):
+        shutil.copyfile(os.path.join(ROOT, "seed_corpus.json"),
+                        os.path.join(tmp, "seed.json"))
+    import app as app_module
+    app_module = importlib.reload(app_module)           # fresh Brain per run
+    return app_module
+
+
+def _stop_trainer(module) -> None:
+    try:
+        module.brain.trainer.stop()
+    except Exception:
+        pass
+
+
+def _percentile(values: list[float], pct: float) -> float:
+    if not values:
+        return float("nan")
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, int(round((pct / 100.0) * (len(ordered) - 1))))
+    return ordered[index]
+
+
+def _workload(client, brain, turns: int = 24, gap: float = 0.15) -> dict:
+    """A realistic session over HTTP: chat every turn, teach every third turn.
+
+    Teaching is what marks a learning event (``_ingest`` → ``_maybe_auto_train``);
+    a plain chat turn does not, so a workload of only chats would never reach the
+    auto-training path this benchmark is about.
+    """
+    chat_ms, teach_ms = [], []
+    started = time.perf_counter()
+    for i in range(turns):
+        t0 = time.perf_counter()
+        client.post("/api/chat", json={
+            "message": ("what is the time complexity of a hash map lookup"
+                        if i % 2 else "hello, how are you?")})
+        chat_ms.append((time.perf_counter() - t0) * 1000)
+        if i % 3 == 0:
+            t0 = time.perf_counter()
+            client.post("/api/teach", json={
+                "question": f"bench question {i}",
+                "answer": (f"bench answer {i} - a fixed sentence used to "
+                           f"measure how long a learning event takes.")})
+            teach_ms.append((time.perf_counter() - t0) * 1000)
+        time.sleep(gap)
+    return {"wall_seconds": round(time.perf_counter() - started, 2),
+            "chat_ms": chat_ms, "teach_ms": teach_ms,
+            "rounds": brain.counters.get("train_rounds", 0),
+            "trainer_rounds": brain.trainer.rounds,
+            "learned_pairs": len(brain.memory.pairs)}
+
+
+def _chat_under_load(client, brain, queued: int = 400,
+                     turns: int = 8) -> dict:
+    """Chat latency while the trainer has a large queue to get through."""
+    for i in range(queued):
+        brain.trainer.submit(f"load line {i} pushed into the trainer queue",
+                             steps=1)
+    latencies = []
+    for i in range(turns):
+        t0 = time.perf_counter()
+        resp = client.post("/api/chat", json={"message": f"load test turn {i}"})
+        latencies.append((time.perf_counter() - t0) * 1000)
+        assert resp.status_code == 200, resp.status_code
+        time.sleep(0.1)
+    return {"chat_p50_ms": round(_percentile(latencies, 50), 1),
+            "chat_p95_ms": round(_percentile(latencies, 95), 1),
+            "chat_max_ms": round(max(latencies), 1),
+            "queue_remaining": brain.trainer.jobs.qsize()}
+
+
+def _wait_for_round(brain, timeout: float = 25.0) -> dict:
+    """Let a queued round finish while nothing else is happening.
+
+    This is the honest counterweight to the stall measurement: the round is not
+    skipped, it is *deferred* to the next quiet moment. Without this, the
+    "after" scenario would look faster simply because we stopped counting.
+    """
+    if not brain.trainer.snapshot().get("round_pending") and brain.trainer.rounds == 0:
+        return {"queued": False, "completed": False}
+    start_rounds = brain.trainer.rounds
+    cpu_before = brain.trainer.cpu_now()
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < timeout:
+        if brain.trainer.rounds > start_rounds:
+            return {"queued": True, "completed": True,
+                    "seconds": round(time.perf_counter() - t0, 2),
+                    "cpu_seconds": round(max(0.0, brain.trainer.cpu_now()
+                                             - cpu_before), 3),
+                    "loss_last": brain.trainer.last_loss}
+        time.sleep(0.1)
+    return {"queued": True, "completed": False,
+            "seconds": round(time.perf_counter() - t0, 2),
+            "cpu_seconds": round(max(0.0, brain.trainer.cpu_now()
+                                     - cpu_before), 3)}
+
+
+def _idle_duty(brain, queued: int, seconds: float) -> dict:
+    """Queue work, sit idle, and watch the trainer thread's own CPU clock."""
+    for i in range(queued):
+        brain.trainer.submit(f"duty line {i} for the background trainer",
+                             steps=1)
+    cpu_before = brain.trainer.cpu_now()
+    wall = time.perf_counter()
+    time.sleep(seconds)
+    elapsed = time.perf_counter() - wall
+    cpu = max(0.0, brain.trainer.cpu_now() - cpu_before)
+    return {"seconds": round(elapsed, 2), "cpu_seconds": round(cpu, 3),
+            "duty_observed": round(cpu / elapsed, 3) if elapsed else None,
+            "duty_target": brain.trainer.duty,
+            "queue_left": brain.trainer.jobs.qsize(),
+            "steps_left_running": brain.trainer.busy}
+
+
+def benchmark_trainer_impact(turns: int = 24, duty_window: float = 6.0) -> dict:
+    """Measure what background self-training costs a session, old vs new.
+
+    ``before_inline_rounds`` reproduces the pre-v1.11 code path exactly: the
+    auto-training trigger runs its round inline, on the request thread, with the
+    model locked for the whole round. ``after_queued_rounds`` is the shipped
+    path, which hands the round to the trainer. Both use today's constants and
+    the same workload over the same HTTP endpoints, so the only difference is
+    where the round runs.
+    """
+    import shutil
+    import tempfile
+
+    from mygpt.brain import AUTO_TRAIN_EPOCHS, AUTO_TRAIN_EVERY
+
+    out: dict = {"workload": {"turns": turns,
+                              "chat_every_turn": True,
+                              "teach_every": 3},
+                 "auto_train_every": AUTO_TRAIN_EVERY,
+                 "auto_train_epochs": AUTO_TRAIN_EPOCHS}
+    module = None
+    for label, legacy in (("before_inline_rounds", True),
+                          ("after_queued_rounds", False)):
+        if module is not None:                       # stop the previous brain
+            _stop_trainer(module)
+        tmp = tempfile.mkdtemp(prefix=f"mygpt-bench-{label}-")
+        boot = time.perf_counter()
+        module = _isolated_app(tmp)
+        brain = module.brain
+        client = module.app.test_client()
+        boot_seconds = time.perf_counter() - boot
+        if legacy:
+            def _legacy_auto(b=brain):
+                b.counters["events_since_train"] += 1
+                if b.counters["events_since_train"] >= AUTO_TRAIN_EVERY:
+                    b.train(epochs=AUTO_TRAIN_EPOCHS, reason="auto training",
+                            requirement="explicit")     # the old inline path
+            brain._maybe_auto_train = _legacy_auto
+        try:
+            run = _workload(client, brain, turns=turns)
+            deferred = _wait_for_round(brain)
+            load = _chat_under_load(client, brain)
+            idle = _idle_duty(brain, 400, duty_window)
+            brain.trainer.configure(paused=True)
+            paused = _idle_duty(brain, 60, 2.0)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        out[label] = {
+            "boot_seconds": round(boot_seconds, 2),
+            "wall_seconds": run["wall_seconds"],
+            "chat_p50_ms": round(_percentile(run["chat_ms"], 50), 1),
+            "chat_p95_ms": round(_percentile(run["chat_ms"], 95), 1),
+            "chat_max_ms": round(max(run["chat_ms"]), 1),
+            "teach_p50_ms": round(_percentile(run["teach_ms"], 50), 1),
+            "teach_max_ms": round(max(run["teach_ms"]), 1),
+            "rounds": run["rounds"],
+            "trainer_rounds": run["trainer_rounds"],
+            "deferred_round": deferred,
+            "chat_under_load_p95_ms": load["chat_p95_ms"],
+            "chat_under_load_max_ms": load["chat_max_ms"],
+            "chat_under_load_queue_left": load["queue_remaining"],
+            "idle_duty": idle["duty_observed"],
+            "idle_cpu_seconds": idle["cpu_seconds"],
+            "idle_duty_target": idle["duty_target"],
+            "paused_duty": paused["duty_observed"],
+            "paused_cpu_seconds": paused["cpu_seconds"],
+        }
+    before = out["before_inline_rounds"]
+    after = out["after_queued_rounds"]
+    out["verdict"] = {
+        "chat_max_before_ms": before["chat_max_ms"],
+        "chat_max_after_ms": after["chat_max_ms"],
+        "chat_max_ratio": (round(before["chat_max_ms"] / after["chat_max_ms"], 1)
+                           if after["chat_max_ms"] else None),
+        "teach_max_before_ms": before["teach_max_ms"],
+        "teach_max_after_ms": after["teach_max_ms"],
+        "rounds_before": before["rounds"], "rounds_after": after["rounds"],
+        "rounds_queued_instead": after["trainer_rounds"],
+        "deferred_round_completed": bool(
+            after["deferred_round"].get("completed")),
+        "deferred_round_seconds": after["deferred_round"].get("seconds"),
+        "deferred_round_cpu_seconds": after["deferred_round"].get("cpu_seconds"),
+    }
+    return out
+
+
+def _print_trainer_impact(impact: dict) -> None:
+    before = impact["before_inline_rounds"]
+    after = impact["after_queued_rounds"]
+    print("Background self-training: what it costs a session")
+    print(f"  workload: {impact['workload']['turns']} turns over /api/chat and "
+          f"/api/teach (a teaching event every third turn)")
+    print(f"  auto-training: every {impact['auto_train_every']} learning events, "
+          f"{impact['auto_train_epochs']} epochs")
+    print()
+    head = (f"{'':24} {'chat p50':>9} {'chat p95':>9} {'chat max':>9} "
+            f"{'teach max':>10} {'session':>8} {'rounds':>7}")
+    print(head)
+    print("-" * len(head))
+    for label, name in ((before, "before (inline round)"),
+                        (after, "after (queued round)")):
+        print(f"{name:24} {label['chat_p50_ms']:>7.0f}ms "
+              f"{label['chat_p95_ms']:>7.0f}ms {label['chat_max_ms']:>7.0f}ms "
+              f"{label['teach_max_ms']:>8.0f}ms "
+              f"{label['wall_seconds']:>6.1f}s {label['rounds']:>7}")
+    verdict = impact["verdict"]
+    print()
+    print(f"  worst case before: {verdict['chat_max_before_ms']:.0f}ms chat, "
+          f"{verdict['teach_max_before_ms']:.0f}ms teach (round ran on the "
+          f"request thread)")
+    print(f"  worst case after:  {verdict['chat_max_after_ms']:.0f}ms chat, "
+          f"{verdict['teach_max_after_ms']:.0f}ms teach "
+          f"({verdict['rounds_before']} rounds ran inline before; after, "
+          f"{verdict['rounds_queued_instead']} ran on a request thread)")
+    if verdict.get("deferred_round_completed"):
+        print(f"  the deferred round did run: finished "
+              f"{verdict['deferred_round_seconds']}s of wall time after the "
+              f"session ended, {verdict['deferred_round_cpu_seconds']}s of CPU "
+              f"— deferred, never dropped")
+    print()
+    print("  chat while the trainer has 400 lines queued:")
+    for label, name in ((before, "before"), (after, "after")):
+        print(f"    {name:6} p95 {label['chat_under_load_p95_ms']}ms, "
+              f"max {label['chat_under_load_max_ms']}ms")
+    print()
+    print("Cost while you are not using the app (trainer thread's own CPU clock):")
+    for label, name in ((before, "before"), (after, "after")):
+        print(f"  {name:6} duty {label['idle_duty']} of one core "
+              f"({label['idle_cpu_seconds']}s CPU, target "
+              f"{label['idle_duty_target']}) · paused "
+              f"{label['paused_duty']}")
+    print("  duty = trainer CPU seconds / wall seconds, measured on that thread, "
+          "so 0.35 means at most about a third of one core, and only while there "
+          "is something queued")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Benchmark MyGPT's brain.")
     ap.add_argument("--epochs", type=int, default=5)
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--json", action="store_true", help="print JSON")
     ap.add_argument("--skip-grad-check", action="store_true")
+    ap.add_argument("--trainer-impact", action="store_true",
+                    help="measure what background self-training costs a chat "
+                         "session, before vs after v1.11.0")
     ap.add_argument("--live", action="store_true",
                     help="benchmark data/corpus.json (what a running MyGPT "
                          "has learned from chats) instead of the seed corpus")
     args = ap.parse_args()
+
+    if args.trainer_impact:
+        impact = benchmark_trainer_impact()
+        if args.json:
+            print(json.dumps(impact, indent=2))
+            return 0
+        _print_trainer_impact(impact)
+        return 0
 
     result = benchmark_architectures(args.epochs, args.batch,
                                      live=args.live)

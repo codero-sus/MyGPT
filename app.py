@@ -50,6 +50,11 @@ _started_monotonic = time.monotonic()   # /api/uptime + /api/metrics
 @app.after_request
 def _cors_and_security(resp):
     """Permissive CORS for local scripts + a few hardening headers."""
+    # The background trainer watches this counter: while a request is in
+    # flight, and for a short cooldown after, it stays off the model instead of
+    # competing with the answer the user is waiting for.
+    if request.path.startswith("/api/"):
+        brain.trainer.request_finished()
     if request.path.startswith("/api/"):
         resp.headers.setdefault("Access-Control-Allow-Origin", "*")
         resp.headers.setdefault("Access-Control-Allow-Headers", "Content-Type")
@@ -71,6 +76,8 @@ def _cors_and_security(resp):
 @app.before_request
 def _stamp_start():
     request._mygpt_started = time.monotonic()
+    if request.path.startswith("/api/"):
+        brain.trainer.request_started()
 
 
 def _validate_message(raw):
@@ -430,6 +437,17 @@ def api_metrics():
         f"mygpt_last_loss {loss or 0.0}",
         "# TYPE mygpt_self_eval_score gauge",
         f"mygpt_self_eval_score {score or 0}",
+        # background self-training: the duty cycle is the promise, so expose it
+        "# TYPE mygpt_trainer_duty_observed gauge",
+        f"mygpt_trainer_duty_observed {brain.trainer.snapshot()['duty_observed']}",
+        "# TYPE mygpt_trainer_cpu_seconds counter",
+        f"mygpt_trainer_cpu_seconds {brain.trainer.snapshot()['cpu_ms'] / 1000.0}",
+        "# TYPE mygpt_trainer_steps_total counter",
+        f"mygpt_trainer_steps_total {brain.trainer.done_steps}",
+        "# TYPE mygpt_trainer_paused gauge",
+        f"mygpt_trainer_paused {1 if brain.trainer.paused else 0}",
+        "# TYPE mygpt_trainer_queue gauge",
+        f"mygpt_trainer_queue {brain.trainer.jobs.qsize()}",
     ]
     return Response("\n".join(lines) + "\n", mimetype="text/plain")
 
@@ -914,6 +932,40 @@ def update_install():
 def stats():
     with _lock:
         return jsonify({"ok": True, "version": __version__, **brain.stats()})
+
+
+@app.get("/api/trainer")
+def trainer_status():
+    """What the background trainer is doing, and what it costs.
+
+    ``duty_observed`` is the thread's own CPU time divided by wall time — the
+    honest answer to "how much of my machine does the self-training use". It is
+    read from the OS thread clock, so it excludes the web workers entirely.
+    """
+    snap = brain.trainer.snapshot()
+    snap["note"] = ("trains while the app is idle, at most "
+                    f"{int(snap.get('duty_target', 0) * 100)}% of one core")
+    return jsonify({"ok": True, **snap})
+
+
+@app.post("/api/trainer")
+def trainer_config():
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "expected a JSON object"}), 400
+    for key in ("duty", "cooldown"):
+        if key in data and data[key] is not None:
+            try:
+                float(data[key])
+            except (TypeError, ValueError):
+                return jsonify({"ok": False,
+                                "error": f"{key} must be a number"}), 400
+    snap = brain.trainer.configure(paused=data.get("paused"),
+                                   duty=data.get("duty"),
+                                   cooldown=data.get("cooldown"))
+    state = "paused" if snap.get("paused") else "running"
+    return jsonify({"ok": True, "message": f"background training {state}",
+                    **snap})
 
 
 @app.get("/api/memory")

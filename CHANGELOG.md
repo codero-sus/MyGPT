@@ -3,6 +3,49 @@
 All credits: **codero-sus** — [github.com/codero-sus](https://github.com/codero-sus) ·
 [the-codero.web.app](https://the-codero.web.app/)
 
+## v1.11.1 — background training that stays out of the way (18 items)
+
+The complaint that started this round was "make it train in the background with
+very little impact". Measuring it showed the claim was half-true: the trainer
+already ran in a thread with a queue, **but every fifth learning event ran a
+whole training round inline on the request thread** with the model locked. That
+is a 0.7 s chat stall and a 2.4 s teach stall, on a fast machine, for work
+nobody was waiting on. It is fixed, and the four numbers below are the evidence.
+
+### Background trainer (9)
+
+1. `NeuralLM.step_batch()` — run one Adam step over one batch of windows; the lock is held for that step alone, never around a caller's loop
+2. `NeuralLM.all_windows()` — build a round's window list separately from running it
+3. A full round is now run batch-by-batch by the trainer, so a request never waits on more than one batch
+4. **Requests tell the trainer to stand down**: `trainer.request_started()` / `request_finished()` wired into Flask's `before_request` / `after_request`
+5. A cooldown after the last response (`MYGPT_TRAIN_COOLDOWN`, default 0.25 s) so the moment you send a message is never the moment it grabs the CPU
+6. A request that hangs longer than 120 s is ignored, so a client that vanished mid-stream cannot freeze learning forever
+7. Duty cycle (`MYGPT_TRAIN_DUTY`, default 0.35): the thread sleeps after each chunk so its CPU time stays under that share of one core, and only while there is work queued
+8. `paused` — stop background training entirely; `stop()` also interrupts any sleep rather than waiting for a nap it no longer needs
+9. `snapshot()` reports duty **actually observed** from the OS thread clock (`/proc/self/task/<tid>/stat`), plus CPU ms, rounds, queue and whether it is currently yielding
+
+### The bug that made background training a lie (4)
+
+10. **Auto-training ran on the request thread.** `_maybe_auto_train` called `train()` directly from inside the chat turn; `train()` holds the model lock for the whole round
+11. Training rounds are now **queued** (`submit_round`, coalesced so only one is ever pending) and run during the next idle moment — deferred, never dropped
+12. `Brain.train(requirement=…)` makes the distinction explicit: `"explicit"` blocks (you asked), `"background"` queues (upkeep nobody is waiting on)
+13. The checkpoint command's "train and save" now trains in the background first, and `/api/train` still blocks because you asked for it
+
+### API and UI (3)
+
+14. `GET /api/trainer` — live trainer state and the honest duty figure
+15. `POST /api/trainer` — `{"paused"?: bool, "duty"?: 0.05-1.0, "cooldown"?: s}`, validated
+16. Model tab gains a Self-training card: duty (observed and target), CPU used, background steps and rounds, yielding state, a duty slider and a Pause/Resume button; `/api/metrics` exposes the same numbers as Prometheus-style gauges
+
+### Measurement (2)
+
+17. `tools/benchmark.py --trainer-impact` — same workload over real HTTP (`/api/chat` + `/api/teach`) run twice: once with rounds inline (the old code path reproduced exactly), once with rounds queued. Reports chat/teach percentiles, session wall time, chat latency *while 400 lines are queued*, whether the deferred round completes, and the trainer's own duty cycle
+18. Measured: worst chat stall **719 ms → 34 ms**, worst teach stall **2,401 ms → 30 ms**, session **7.1 s → 3.9 s**, chat p95 while 400 lines are queued **26 ms**, trainer duty **0.34 of one core** against a 0.35 target (0.0 when paused), and the deferred round completed 10.7 s after the session using 3.94 s of CPU. `tests/test_trainer.py` (20 tests) locks all of it in, including a test that would fail if a learning event ever blocked for a round again
+
+**Counting note, same as v1.11.0:** 18 items, but really three changes — a trainer
+that yields, a training trigger moved off the request thread, and the
+measurement that proves both. Items 10–13 are one bug described in parts.
+
 ## v1.11.0 — the transformer brain (107 items)
 
 MyGPT's own model is now a real decoder-only transformer, and it can hand
