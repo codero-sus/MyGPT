@@ -1,0 +1,20 @@
+# Optional local-LLM engines for MyGPT (v1.11+). None of these are needed for
+# MyGPT itself: its own brain (a NumPy transformer) needs only numpy + flask.
+# Install what you want and MyGPT picks it up on the next probe:
+#
+#     .venv/bin/pip install -r requirements-optional.txt
+#
+# llama.cpp  — run a local .gguf file in-process (CPU, quantised models)
+#              needs a C/C++ toolchain; on Debian/Ubuntu: apt install build-essential
+llama-cpp-python>=0.3.0
+
+# read GGUF headers (MyGPT uses it to clamp the context window to what the
+# model was trained with, and the tests use it to build a fixture model)
+gguf>=0.10.0
+
+# 🤗 transformers — run a Hub or local causal LM in-process.
+# NOTE: torch is by far the biggest dependency here (~2 GB with CUDA wheels on
+# Linux); install the CPU-only build if you do not have a GPU:
+#     pip install torch --index-url https://download.pytorch.org/whl/cpu
+transformers>=4.44
+torch>=2.2

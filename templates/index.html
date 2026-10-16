@@ -114,6 +114,7 @@
           <button class="tab active" data-tab="learn" role="tab" title="Learn (Alt+1)">📚 Learn</button>
           <button class="tab" data-tab="growth" role="tab" title="Growth (Alt+2)">📈 Growth</button>
           <button class="tab" data-tab="mind" role="tab" title="Mind (Alt+3)">🧬 Mind</button>
+          <button class="tab" data-tab="model" role="tab" title="Model (Alt+4)">🧠 Model</button>
         </nav>
 
         <!-- Learn tab -->
@@ -196,6 +197,81 @@
               <button class="ghost" id="up-install" disabled>⬇️ Install update</button>
             </div>
             <div class="up-status" id="up-status"></div>
+          </div>
+        </div>
+
+        <!-- Model tab: architecture, engines, generation -->
+        <div class="panel hidden" id="panel-model">
+          <div class="card">
+            <h2>Brain architecture <span class="pill" id="md-arch">–</span></h2>
+            <p class="hint">
+              v1.11 ships a real decoder-only <b>transformer</b>: multi-head causal
+              self-attention, pre-layer-norm blocks, GELU feed-forward, learned
+              positional embeddings and tied input/output embeddings — trained
+              with Adam, warmup + cosine learning-rate decay and gradient clipping.
+              Its gradients are verified against numerical differentiation.
+            </p>
+            <div class="stats-grid">
+              <div class="stat"><b id="md-params">0</b><span>parameters</span></div>
+              <div class="stat"><b id="md-blocks">0</b><span>attention blocks</span></div>
+              <div class="stat"><b id="md-heads">0</b><span>heads / block</span></div>
+              <div class="stat"><b id="md-dim">0</b><span>model dim</span></div>
+              <div class="stat"><b id="md-ctx">0</b><span>context window</span></div>
+              <div class="stat"><b id="md-steps">0</b><span>optimiser steps</span></div>
+              <div class="stat"><b id="md-vocab">0</b><span>vocab</span></div>
+              <div class="stat"><b id="md-loss">–</b><span>last loss</span></div>
+            </div>
+            <div class="arch-vision" id="md-vision"></div>
+            <div class="arch-meta" id="md-meta"></div>
+          </div>
+
+          <div class="card">
+            <h2>Answer engines <span class="pill" id="md-engine-pill">auto</span></h2>
+            <p class="hint">
+              MyGPT answers from its own brain first. Point it at a real local
+              model and the open questions it can't answer go there instead —
+              everything below degrades gracefully when a package or file is
+              missing.
+            </p>
+            <ul class="engine-list" id="engine-list"></ul>
+            <div class="row actions">
+              <button class="ghost" id="engine-refresh">↻ Re-probe engines</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Generation studio</h2>
+            <p class="hint">
+              Sample straight from the model. Type a prompt to continue it, or
+              leave it empty and let the brain start a sentence on its own.
+            </p>
+            <label for="gen-prompt">Prompt</label>
+            <input id="gen-prompt" type="text" placeholder="e.g. the cat sat on" />
+            <div class="gen-controls">
+              <label>tokens <input type="range" id="gen-tokens" min="8" max="200" value="40" /><span id="gen-tokens-v">40</span></label>
+              <label>temperature <input type="range" id="gen-temp" min="5" max="200" value="90" /><span id="gen-temp-v">0.90</span></label>
+              <label>top-k <input type="range" id="gen-topk" min="1" max="100" value="12" /><span id="gen-topk-v">12</span></label>
+              <label>top-p <input type="range" id="gen-topp" min="10" max="100" value="95" /><span id="gen-topp-v">0.95</span></label>
+              <label>repeat&nbsp;penalty <input type="range" id="gen-pen" min="100" max="220" value="110" /><span id="gen-pen-v">1.10</span></label>
+            </div>
+            <div class="row actions">
+              <button class="primary" id="gen-btn">✨ Generate</button>
+              <select id="gen-engine">
+                <option value="brain" selected>MyGPT brain</option>
+                <option value="llamacpp">llama.cpp</option>
+                <option value="hf">transformers</option>
+              </select>
+            </div>
+            <div class="gen-out hidden" id="gen-out"></div>
+          </div>
+
+          <div class="card">
+            <h2>Next-token predictions</h2>
+            <p class="hint">What the transformer expects to see after your text —
+              its raw probabilities, straight from the softmax.</p>
+            <input id="next-q" type="text" placeholder="e.g. the cat sat" />
+            <button class="ghost" id="next-btn">🔮 Predict</button>
+            <div class="next-bars" id="next-bars"></div>
           </div>
         </div>
 

@@ -3,6 +3,136 @@
 All credits: **codero-sus** — [github.com/codero-sus](https://github.com/codero-sus) ·
 [the-codero.web.app](https://the-codero.web.app/)
 
+## v1.11.0 — the transformer brain (92 items)
+
+MyGPT's own model is now a real decoder-only transformer, and it can hand
+hard questions to full-size local models through llama.cpp or 🤗 transformers.
+Every claim in this list is checkable in the repository, and the model's
+backward pass is verified numerically rather than asserted.
+
+### Transformer brain (25)
+
+1. `mygpt/transformer.py` — a decoder-only transformer language model in pure NumPy
+2. Learned token embeddings + learned positional embeddings
+3. N × pre-LayerNorm blocks (LayerNorm before every sublayer, not after)
+4. Multi-head causal self-attention, heads split from full-width Q/K/V projections
+5. Scaled dot-product attention with an upper-triangular causal mask
+6. GELU feed-forward at 4× the model dimension
+7. Residual connections around both sublayers
+8. Final LayerNorm before the output head
+9. Weight tying between the token embedding and the output head (GPT-2 style)
+10. Bias-free projections (LLaMA style) — fewer parameters, same quality at this size
+11. Inverted dropout on attention and residual outputs (train-time only)
+12. Adam optimiser with warmup + cosine learning-rate decay
+13. Global gradient-norm clipping at 1.0
+14. Top-k, top-p (nucleus), temperature and repetition-penalty sampling
+15. Prompt continuation: `generate(prompt=…)` starts from your text
+16. `next_token_probs()` — the model's own ranked prediction for what comes next
+17. Drop-in `NeuralLM` subclass: the trainer, checkpoints, memory and Brain need no changes
+18. Vocabulary growth carries known embedding rows across `rebuild_vocab()`
+19. `save()`/`load()` round-trip weights, vocab, counts and step counter in one npz
+20. `load()` refuses a checkpoint from a different architecture instead of half-loading it
+21. `describe()` — self-reported architecture card used by `/api/model`
+22. `param_count()` and float32/float64 dtypes (float64 makes the gradient exact)
+23. Efficiency: the head projects only each window's **last** position, not all `ctx` positions
+24. Efficiency: GELU uses `x * x * x` instead of `x ** 3` — numpy's float32 power operator took the slow generic path (measured 3.05 ms vs 0.021 ms on the hot array), and GELU runs twice per step. Seed training went 9.7 s → 4.1 s with a bit-identical loss curve
+25. Tunable via `MYGPT_BLOCKS`, `MYGPT_HEADS`, `MYGPT_DIM`, `MYGPT_CTX`, `MYGPT_DROPOUT`, `MYGPT_LR`
+
+### Correctness verification (11)
+
+26. `tests/test_transformer.py` — 33 tests, including a **central-difference gradient check** over every parameter tensor of 1-, 2- and 3-block models (max relative error 3.3e-06 at the optimal step size, which is float64 cancellation noise, not model error)
+27. Gradient check in float64 so the finite difference is not swamped by float32 rounding
+28. Causality test: editing the last token must not change any earlier position's logits
+29. Consistency test: the fast last-position path equals the last slice of the full-position path
+30. Relation test: a (B, V) gradient produces exactly the parameter gradients a (B, C, V) gradient does when the earlier positions carry no gradient
+31. Learning test: perplexity falls and training loss drops over 60 rounds
+32. Learning-rate test: warmup rises, peaks exactly at `lr`, then decays but never reaches zero
+33. Clip test: a huge gradient cannot move a weight by more than the learning rate allows
+34. Sampling tests: nucleus size derived independently from the cumulative distribution, repetition penalty lowers a repeated token's probability, top-p renormalises
+35. Reproducibility test: same seed ⇒ same generated text
+36. Persistence tests: identical weights after a save/load round trip, a foreign checkpoint is refused
+
+### llama.cpp engine (11)
+
+37. `mygpt/llamacpp_backend.py` — runs a local `.gguf` model **in-process** through llama-cpp-python
+38. Auto-discovery of `models/*.gguf` and `data/models/*.gguf` (drop a file in and it just works)
+39. `MYGPT_LLAMACPP_MODEL`, `_ENABLED`, `_LEARN`, `_CTX`, `_THREADS`, `_GPU_LAYERS`, `_MAX_TOKENS`, `_TEMPERATURE` configuration, persisted to `data/llamacpp.json`
+40. Context window clamped to the length the model was **trained** with (read from the GGUF header, so llama.cpp never warns about overflow)
+41. Lazy model load with reuse, explicit `unload()`, and load-time measurement
+42. Chat through `create_chat_completion()` with a system prompt and trimmed history
+43. Raw continuation through `create_completion()` for the UI's generation studio
+44. Package-missing, file-missing, disabled and corrupt-file paths all degrade to a precise `probe()` reason instead of an exception
+45. Answers can be learned back into MyGPT's own memory, like every other engine
+46. `tests/gguf_fixture.py` builds a **valid tiny GGUF** with the official `gguf` writer, so the tests exercise real llama.cpp inference instead of mocks
+47. 13 llama.cpp tests, including real generation, real chat, real header parsing and a real corrupt-file rejection
+
+### 🤗 transformers engine (8)
+
+48. `mygpt/hf_backend.py` — runs a causal LM from the HuggingFace Hub or a local directory
+49. `MYGPT_HF_MODEL`, `_ENABLED`, `_LEARN`, `_DEVICE`, `_DTYPE`, `_MAX_TOKENS`, `_TEMPERATURE`, `_TOP_P`, `_OFFLINE` configuration, persisted to `data/hf.json`
+50. Chat template used when the tokenizer has one, readable transcript when it does not
+51. Device and dtype selection (cpu / cuda / mps, float32 / float16 / bfloat16 / auto)
+52. Offline mode (`MYGPT_HF_OFFLINE=1`) for air-gapped machines with local weights
+53. Lazy-loading pipeline with explicit `unload()`
+54. Honest gating: without torch it reports *that* — torch is a ~2 GB dependency and is deliberately optional (`requirements-optional.txt`)
+55. 13 transformers tests covering configuration, persistence, offline rules and the exact unavailability reasons
+
+### Brain and engines (10)
+
+56. The transformer is now the **default brain**; `MYGPT_ARCH=mlp` keeps the original network
+57. `Brain._make_lm()` — architecture factory with a fallback to the MLP if the transformer cannot be built
+58. `Brain.model_card()` — architecture, size, vocab, context, training state, checkpoints, engines
+59. `Brain.backend_summary()` — every engine with availability, versions and the reason it is not ready
+60. An MLP checkpoint is refused by the transformer and the corpus is re-tokenised instead — upgrading the architecture never orphans existing knowledge
+61. `NeuralLM.load()` now returns False for a foreign checkpoint instead of raising `KeyError`
+62. `auto` mode tries Cortex → Ollama → llama.cpp → transformers, so a running server always wins
+63. Auto-probe loop covers the two new engines (detected / back online / offline events)
+64. `any_local_llm()` and the install hint now consider in-process engines too
+65. `stats()` reports `arch`, `params` and optimiser `steps` for the UI
+
+### API (8)
+
+66. `GET /api/model` — the architecture card
+67. `GET /api/model/topnext?q=&k=` — ranked next-token probabilities
+68. `POST /api/generate` — sample from the brain or an in-process engine, with latency reported
+69. `GET /api/engines` — every engine's readiness, with reasons
+70. `POST /api/engine/config` — configure llama.cpp or transformers live
+71. `/api/backends` now lists five engines, each labelled and probed
+72. `/api/backends/select` accepts `llamacpp` and `hf`
+73. Parameters are clamped (tokens ≤ 400, temperature ≤ 3.0, top_p ∈ [0.05, 1]) — no 500s from silly input
+
+### WebUI (10)
+
+74. New **🧠 Model** tab (Alt+4) with three cards
+75. Architecture card: parameters, blocks, heads, dim, context, optimiser steps, vocab, last loss
+76. Plain-English description of the stack, plus tags for the training recipe and corpus size
+77. Engine list: every engine with a ready / not-set-up / disabled badge, versions and models
+78. Install command shown inline for engines that need one
+79. Generation studio: prompt box, live-labelled sliders for tokens, temperature, top-k, top-p and repetition penalty, and an engine picker
+80. Next-token prediction view: the softmax drawn as ranked bars with percentages
+81. `↻ Re-probe engines` button
+82. CSS for the model card, engine list, badges, sliders, generation output and probability bars
+83. Reduced-motion respected by the new transitions
+
+### Bugs fixed (6)
+
+84. **The transformer was trained against the wrong logits** — the loss read position 0 of each window instead of the last position. Found by the gradient check, not by watching the loss go down
+85. **The gradient corresponded to a different objective than the reported loss** — `dlogits` was initialised from the softmax, leaving gradient at every position. Also found by the gradient check
+86. The corpus was read *after* the model loaded, so the architecture-change warmup never ran and the brain silently booted knowing only `<pad>`/`<unk>`
+87. `perplexity()` scored the first position of each window rather than the last
+88. `NeuralLM.load()` raised `KeyError` on a transformer checkpoint
+89. Two test-harness bugs found while writing the checks (3-blocks at 0.05 tolerance in float32; a hardcoded nucleus size) — noted because the checks matter more than the assertions
+
+### Docs (3)
+
+90. README: new "The brain is a transformer" section, the local-model engine table, the Model tab, the new endpoints and the honest caveat about small-model prose
+91. `requirements-optional.txt` — llama-cpp-python, gguf, transformers, torch (with the CPU-only torch advice), none of which MyGPT itself requires
+92. Version bumped to 1.11.0
+
+**Total: 92 numbered items.** The previous release held the *count* up as
+the headline; this one is deliberately smaller and each item is a real
+change, because two of these items are bugs that a bigger feature list
+would not have caught.
 ## v1.10.0 — the 777+ release (1057 items)
 
 Every item below is verifiable in the repository: templates in

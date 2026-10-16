@@ -43,7 +43,10 @@ from . import mathx
 from . import textfx
 from .checkpoints import CheckpointManager
 from .cortex import CortexClient
+from .hf_backend import HFClient
+from .llamacpp_backend import LlamaCppClient
 from .ollama import OllamaClient
+from .transformer import TransformerLM
 
 STRONG_MATCH = 0.52      # confident recall
 WEAK_MATCH = 0.30        # a guess worth offering
@@ -67,7 +70,15 @@ class Brain:
     def __init__(self, data_dir: str, seed_path: str, skills_dir: str | None = None):
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
-        self.lm = NeuralLM()
+        # --- language model architecture -------------------------------------
+        # v1.11: the default brain is a small decoder-only *transformer*
+        # (multi-head causal self-attention, pre-LN, tied embeddings, learned
+        # positional embeddings). MYGPT_ARCH=mlp keeps the original feed-forward
+        # network, and a saved MLP checkpoint is loaded into it automatically so
+        # nobody's existing brain is orphaned by the upgrade.
+        self.arch = (os.environ.get("MYGPT_ARCH", "transformer") or
+                     "transformer").strip().lower()
+        self.lm = self._make_lm(self.arch)
         self.memory = Memory()
         self.store = SelfLearnStore(os.path.join(data_dir, "selflearn.json"))
         self.episodes = EpisodicMemory(os.path.join(data_dir, "episodes.json"))
@@ -94,6 +105,13 @@ class Brain:
         self.improver = SelfImprovement(self)
         self.cortex = CortexClient(os.path.join(data_dir, "cortex.json"))
         self.ollama = OllamaClient(os.path.join(data_dir, "ollama.json"))
+        # v1.11 in-process backends: llama.cpp (GGUF) and 🤗 transformers
+        self.llamacpp = LlamaCppClient(
+            os.path.join(data_dir, "llamacpp.json"),
+            models_dir=os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "models"))
+        self.hf = HFClient(os.path.join(data_dir, "hf.json"))
         # checkpoints live in <project root>/_model_trained (next to data/)
         # checkpoints default to <project root>/_model_trained; the
         # MYGPT_CHECKPOINTS env var relocates them (tests, custom datadirs)
@@ -110,6 +128,7 @@ class Brain:
 
         # background auto-probe of the local LLM backends (Cortex & Ollama)
         self._probe_state: dict = {"cortex": None, "ollama": None,
+                                   "llamacpp": None, "hf": None,
                                    "last_check": 0}
         self._install_nudges = 0
         self._prober_stop = threading.Event()
@@ -133,7 +152,12 @@ class Brain:
         met_path = os.path.join(self.data_dir, "metrics.json")
         lm_path = os.path.join(self.data_dir, "lm_weights.npz")
 
-        self.lm.load(lm_path)
+        # A checkpoint from a *different* architecture is refused by the model
+        # (both loaders return False rather than half-loading). The decision to
+        # re-tokenise the corpus is taken *after* the corpus is read below —
+        # checking here would always see an empty corpus and silently boot a
+        # brain that only knows <pad>/<unk>.
+        lm_loaded = self.lm.load(lm_path)
 
         if os.path.exists(mem_path):
             with open(mem_path, encoding="utf-8") as f:
@@ -184,6 +208,18 @@ class Brain:
             for line in self.corpus:
                 self.lm.observe(line)
 
+        # Weights from another architecture (or a fresh transformer brain with
+        # an existing corpus) need their vocabulary rebuilt before they can do
+        # anything useful — otherwise the model would only know <pad>/<unk>.
+        if (not lm_loaded) and self.corpus:
+            for line in self.corpus[:20000]:
+                self.lm.observe(line)
+            self.lm.rebuild_vocab()
+            self._log(f"re-tokenised {len(self.corpus)} corpus lines for the "
+                      f"{getattr(self.lm, 'arch', 'mlp')} brain")
+            for line in self.corpus[-40:]:
+                self.trainer.submit(line, steps=2)
+
         # chat-backend selection (brain/cortex/ollama/auto)
         if os.path.exists(self._backends_path):
             try:
@@ -199,8 +235,9 @@ class Brain:
     # ------------------------------------------------- backends & checkpoints
     def set_chat_backend(self, backend: str, model: str = "") -> dict:
         backend = (backend or "auto").strip().lower()
-        if backend not in ("brain", "cortex", "ollama", "auto"):
-            return {"ok": False, "error": "backend must be brain, cortex, ollama or auto"}
+        if backend not in ("brain", "cortex", "ollama", "llamacpp", "hf", "auto"):
+            return {"ok": False, "error": "backend must be brain, cortex, ollama, "
+                                          "llamacpp, hf or auto"}
         self.chat_backend = backend
         self.chat_model = (model or "").strip()
         self._write("backends.json", {"chat_backend": self.chat_backend,
@@ -216,10 +253,17 @@ class Brain:
             "chat_backend": self.chat_backend,
             "chat_model": self.chat_model,
             "options": {
-                "brain": {"label": "MyGPT self-trained brain"},
+                "brain": {"label": f"MyGPT self-trained "
+                                   f"{getattr(self.lm, 'arch', 'mlp')} brain",
+                          "available": True,
+                          "arch": getattr(self.lm, "arch", "mlp"),
+                          "params": getattr(self.lm, "param_count", lambda: 0)()},
                 "cortex": self.cortex.probe(),
                 "ollama": self.ollama.probe(),
+                "llamacpp": self.llamacpp.probe(),
+                "hf": self.hf.probe(),
             },
+            "arch": getattr(self.lm, "arch", "mlp"),
             "checkpoints": self.checkpoints.list(),
             "auto_probe": {"interval_s": PROBE_INTERVAL_S,
                            **self._probe_state},
@@ -240,7 +284,9 @@ class Brain:
 
     def _auto_probe_once(self) -> None:
         labels = (("cortex", self.cortex, "Cortex LLMHoster"),
-                  ("ollama", self.ollama, "Ollama"))
+                  ("ollama", self.ollama, "Ollama"),
+                  ("llamacpp", self.llamacpp, "llama.cpp (GGUF)"),
+                  ("hf", self.hf, "transformers"))
         for key, client, label in labels:
             # presence = server answers, regardless of the enable toggle
             up = bool(client.health())
@@ -255,8 +301,9 @@ class Brain:
         self._probe_state["last_check"] = round(time.time())
 
     def any_local_llm(self) -> bool:
-        """True when at least one local LLM host is actually present."""
-        return bool(self.cortex.health()) or bool(self.ollama.health())
+        """True when at least one local LLM engine is actually usable."""
+        return any((self.cortex.health(), self.ollama.health(),
+                    self.llamacpp.health(), self.hf.health()))
 
     def install_hint(self) -> dict | None:
         """Install suggestions when neither Cortex nor Ollama is present."""
@@ -341,6 +388,14 @@ class Brain:
             engines.append(("cortex", self.cortex))
         if self.chat_backend in ("auto", "ollama"):
             engines.append(("ollama", self.ollama))
+        # in-process engines run before the networked ones when chosen
+        # explicitly; in "auto" they come last so a running host wins
+        if self.chat_backend == "llamacpp":
+            engines.insert(0, ("llamacpp", self.llamacpp))
+        elif self.chat_backend == "hf":
+            engines.insert(0, ("hf", self.hf))
+        elif self.chat_backend == "auto":
+            engines += [("llamacpp", self.llamacpp), ("hf", self.hf)]
         if self.chat_backend == "brain" or not engines:
             return None
         history = [{"role": "user" if e["role"] == "user" else "assistant",
@@ -1086,6 +1141,75 @@ class Brain:
                 f"Lessons:\n{lessons}\nDialogue:\n{dialogue}\n"
                 f"Recent episodes:\n{episodes}")[:4000]
 
+    def _log_safe(self, message: str) -> None:
+        """Log before the event buffer exists (early __init__ failures)."""
+        if hasattr(self, "events"):
+            self._log(message)
+        else:                                        # pragma: no cover
+            print(f"[mygpt] {message}")
+
+    def _make_lm(self, arch: str):
+        """Build the language model for `arch` ('transformer' or 'mlp').
+
+        The transformer is the same public API as NeuralLM, so the trainer,
+        checkpoints and generation code all work unchanged. If a *transformer*
+        cannot be built (very old NumPy, exotic platform) we fall back to the
+        MLP rather than refusing to boot.
+        """
+        if arch in ("mlp", "ffn", "neural"):
+            self.arch = "mlp"
+            return NeuralLM()
+        try:
+            model = TransformerLM(
+                dim=int(os.environ.get("MYGPT_DIM", 64) or 64),
+                heads=int(os.environ.get("MYGPT_HEADS", 4) or 4),
+                blocks=int(os.environ.get("MYGPT_BLOCKS", 2) or 2),
+                ctx=int(os.environ.get("MYGPT_CTX", 6) or 6),
+                dropout=float(os.environ.get("MYGPT_DROPOUT", 0.0) or 0.0),
+                lr=float(os.environ.get("MYGPT_LR", 3e-3) or 3e-3),
+            )
+            self.arch = "transformer"
+            return model
+        except Exception as exc:                     # pragma: no cover
+            self._log_safe(f"transformer unavailable ({exc}); using the MLP brain")
+            self.arch = "mlp"
+            return NeuralLM()
+
+    def model_card(self) -> dict:
+        """Human-readable description of the brain that is loaded right now."""
+        lm = self.lm
+        card = {
+            "arch": getattr(lm, "arch", "mlp"),
+            "vocab": lm.vocab_size,
+            "params": (lm.param_count() if hasattr(lm, "param_count")
+                       else int(getattr(lm, "E", None).size if getattr(lm, "E", None) is not None else 0)),
+            "context": getattr(lm, "ctx", 4),
+            "corpus_lines": len(self.corpus),
+            "tokens_trained": sum(len(t.split()) for t in self.corpus),
+            "loss_history": self.loss_history[-40:],
+            "last_loss": (self.loss_history[-1]["loss"]
+                          if self.loss_history else None),
+            "training_steps": getattr(lm, "step_count", 0),
+            "checkpoints": len(self.checkpoints.list()),
+            "backends": self.backend_summary(),
+        }
+        if hasattr(lm, "describe"):
+            card.update({k: v for k, v in lm.describe().items()
+                         if k not in ("params", "vocab")})
+        return card
+
+    def backend_summary(self) -> dict:
+        """Which engines can answer right now, and why not when they can't."""
+        return {
+            "brain": {"available": True, "label": "MyGPT self-trained brain",
+                      "arch": getattr(self.lm, "arch", "mlp")},
+            "cortex": {**self.cortex.probe(), "available": self.cortex.available()},
+            "ollama": {**self.ollama.probe(), "available": self.ollama.available()},
+            "llamacpp": {**self.llamacpp.probe(),
+                         "available": self.llamacpp.available()},
+            "hf": {**self.hf.probe(), "available": self.hf.available()},
+        }
+
     def import_history(self, filename: str, data: bytes) -> dict:
         """Absorb an exported chat history (WhatsApp/ChatGPT/Claude/Telegram/…)."""
         return importers.absorb(self, filename, data)
@@ -1101,6 +1225,10 @@ class Brain:
             "counters": self.counters,
             "pairs": len(self.memory.pairs),
             "vocab_size": self.lm.vocab_size,
+            "arch": getattr(self.lm, "arch", "mlp"),
+            "params": (self.lm.param_count() if hasattr(self.lm, "param_count")
+                       else None),
+            "training_steps": getattr(self.lm, "step_count", 0),
             "corpus_lines": len(self.corpus),
             "tokens_trained": sum(len(t.split()) for t in self.corpus),
             "loss_history": self.loss_history[-60:],
