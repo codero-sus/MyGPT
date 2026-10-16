@@ -11,3 +11,7 @@ skills/handle_*.py
 
 # trained-model checkpoints (created on demand)
 _model_trained/
+
+# local model files (large; users drop their own in)
+models/*.gguf
+models/**/*.gguf

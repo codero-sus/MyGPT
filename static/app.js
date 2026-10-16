@@ -594,7 +594,9 @@ function switchTab(name) {
   $("panel-learn").classList.toggle("hidden", name !== "learn");
   $("panel-growth").classList.toggle("hidden", name !== "growth");
   $("panel-mind").classList.toggle("hidden", name !== "mind");
+  $("panel-model").classList.toggle("hidden", name !== "model");
   if (name === "growth") refreshStats();
+  if (name === "model") refreshModelTab();
   if (name === "mind") {
     refreshMind();
     refreshCortex();
@@ -1674,9 +1676,9 @@ document.addEventListener("keydown", (e) => {
     e.preventDefault();
     $("chat-search").focus();
     $("chat-search").select();
-  } else if (e.altKey && ["1", "2", "3"].includes(e.key)) {
+  } else if (e.altKey && ["1", "2", "3", "4"].includes(e.key)) {
     e.preventDefault();
-    switchTab({ "1": "learn", "2": "growth", "3": "mind" }[e.key]);
+    switchTab({ "1": "learn", "2": "growth", "3": "mind", "4": "model" }[e.key]);
   } else if (e.target === $("input") && (mod || e.ctrlKey) && e.key === "Enter") {
     e.preventDefault();
     send();
@@ -1710,6 +1712,162 @@ function updateCharCount() {
    share/print/help/about, first/copy-all/edit-last, idle pause, offline
    queue, chat-batch helpers, notification + title badge.
    ====================================================================== */
+
+/* ===== v1.11 Model tab: architecture, engines, generation ================= */
+
+async function refreshModel(force = false) {
+  let data;
+  try {
+    data = await (await fetch("/api/model")).json();
+  } catch (e) {
+    return;
+  }
+  const num = (n) => (n ?? 0).toLocaleString();
+  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  set("md-arch", data.arch === "transformer" ? "transformer" : "MLP");
+  set("md-params", num(data.params));
+  set("md-blocks", data.blocks ?? "–");
+  set("md-heads", data.heads ?? "–");
+  set("md-dim", data.dim ?? "–");
+  set("md-ctx", data.context ?? "–");
+  set("md-steps", num(data.training_steps));
+  set("md-vocab", num(data.vocab));
+  set("md-loss", data.last_loss == null ? "–" : Number(data.last_loss).toFixed(3));
+  const vision = $("md-vision");
+  if (vision) {
+    vision.textContent = data.vision || "feed-forward network (classic NeuralLM)";
+  }
+  const meta = $("md-meta");
+  if (meta && data.training) {
+    meta.innerHTML = `<span class="tag">${escapeHtml(data.training)}</span>` +
+      `<span class="tag">${num(data.tokens_trained)} tokens trained</span>` +
+      `<span class="tag">${num(data.corpus_lines)} corpus lines</span>` +
+      `<span class="tag">${num(data.checkpoints)} checkpoints</span>`;
+  }
+  const pill = $("md-engine-pill");
+  if (pill) pill.textContent = (data.backends && data.backends.brain)
+    ? (data.backends.brain.arch || "brain") : "brain";
+}
+
+function engineBadge(info) {
+  if (info.available) return '<span class="badge ok">ready</span>';
+  if (info.enabled === false) return '<span class="badge off">disabled</span>';
+  return '<span class="badge warn">not set up</span>';
+}
+
+function renderEngines(engines) {
+  const list = $("engine-list");
+  if (!list) return;
+  const order = ["brain", "cortex", "ollama", "llamacpp", "hf"];
+  const labels = {
+    brain: "MyGPT self-trained brain", cortex: "Cortex LLMHoster",
+    ollama: "Ollama", llamacpp: "llama.cpp (GGUF)", hf: "🤗 transformers",
+  };
+  list.innerHTML = "";
+  order.forEach((key) => {
+    const info = engines[key];
+    if (!info) return;
+    const li = document.createElement("li");
+    li.className = "engine" + (info.available ? " ready" : "");
+    const detail = [];
+    if (key === "brain") detail.push(`arch: ${info.arch || "mlp"}`);
+    if (info.model) detail.push(`model: ${info.model}`);
+    if (info.package_version) detail.push(`v${info.package_version}`);
+    if (info.torch_version) detail.push(`torch ${info.torch_version}`);
+    if (info.model_path && info.available) detail.push(info.model_path);
+    if (info.answers) detail.push(`${info.answers} answers`);
+    if (info.reason) detail.push(info.reason);
+    li.innerHTML =
+      `<div class="engine-head"><b>${labels[key] || key}</b>${engineBadge(info)}</div>` +
+      (detail.length ? `<div class="engine-detail">${escapeHtml(detail.join(" · "))}</div>` : "") +
+      (info.install && !info.available
+        ? `<code class="engine-install">${escapeHtml(info.install)}</code>` : "");
+    list.appendChild(li);
+  });
+}
+
+async function refreshEngines(force = false) {
+  let data;
+  try {
+    data = await (await fetch("/api/engines")).json();
+  } catch (e) {
+    return;
+  }
+  renderEngines(data.engines || {});
+  const pill = $("md-engine-pill");
+  if (pill) pill.textContent = data.selected || "auto";
+}
+
+function sliderLabels() {
+  const pairs = [["gen-tokens", "gen-tokens-v", (v) => v],
+                 ["gen-temp", "gen-temp-v", (v) => (v / 100).toFixed(2)],
+                 ["gen-topk", "gen-topk-v", (v) => v],
+                 ["gen-topp", "gen-topp-v", (v) => (v / 100).toFixed(2)],
+                 ["gen-pen", "gen-pen-v", (v) => (v / 100).toFixed(2)]];
+  pairs.forEach(([input, out, fmt]) => {
+    const el = $(input), span = $(out);
+    if (!el || !span) return;
+    const sync = () => { span.textContent = fmt(Number(el.value)); };
+    el.addEventListener("input", sync);
+    sync();
+  });
+}
+
+async function runGenerate() {
+  const out = $("gen-out");
+  const btn = $("gen-btn");
+  if (!out) return;
+  btn.disabled = true;
+  out.classList.remove("hidden");
+  out.innerHTML = '<span class="muted">sampling…</span>';
+  const body = {
+    prompt: $("gen-prompt").value,
+    tokens: Number($("gen-tokens").value),
+    temperature: Number($("gen-temp").value) / 100,
+    top_k: Number($("gen-topk").value),
+    top_p: Number($("gen-topp").value) / 100,
+    repetition_penalty: Number($("gen-pen").value) / 100,
+    engine: $("gen-engine").value,
+  };
+  try {
+    const r = await fetch("/api/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!data.ok) {
+      out.innerHTML = `<span class="muted">${escapeHtml(data.error || "nothing came back")}</span>`;
+    } else {
+      out.innerHTML =
+        `<div class="gen-text">${escapeHtml(data.text)}</div>` +
+        `<div class="gen-meta">${data.engine} · ${data.arch || "brain"} · ${data.ms} ms</div>`;
+    }
+  } catch (e) {
+    out.innerHTML = '<span class="muted">generation failed</span>';
+  }
+  btn.disabled = false;
+}
+
+async function runNextTokens() {
+  const q = $("next-q").value.trim();
+  const box = $("next-bars");
+  if (!box) return;
+  if (!q) { box.innerHTML = ""; return; }
+  try {
+    const data = await (await fetch(`/api/model/topnext?q=${encodeURIComponent(q)}`)).json();
+    if (!data.ok) { box.innerHTML = `<div class="muted">${escapeHtml(data.error)}</div>`; return; }
+    const top = data.predictions || [];
+    const max = Math.max(...top.map((p) => p.probability), 1e-9);
+    box.innerHTML = top.map((p) =>
+      `<div class="next-row"><span class="next-token">${escapeHtml(p.token)}</span>` +
+      `<span class="next-track"><i style="width:${Math.max(2, (p.probability / max) * 100).toFixed(1)}%"></i></span>` +
+      `<span class="next-p">${(p.probability * 100).toFixed(1)}%</span></div>`).join("");
+  } catch (e) { /* ignore */ }
+}
+
+async function refreshModelTab() {
+  await Promise.all([refreshModel(), refreshEngines()]);
+}
 
 const PREFS_KEY = "mygpt.prefs";
 const prefs = {
@@ -2067,6 +2225,17 @@ const GREETING =
   "codero-sus/agi — GitHub: github.com/codero-sus · " +
   "Website: the-codero.web.app";
 
+function initModelTab() {
+  const pairs = [["gen-btn", runGenerate], ["next-btn", runNextTokens],
+                 ["engine-refresh", () => refreshEngines(true)]];
+  pairs.forEach(([id, fn]) => { const el = $(id); if (el) el.addEventListener("click", fn); });
+  const q = $("next-q");
+  if (q) q.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); runNextTokens(); }
+  });
+  sliderLabels();
+}
+
 function addChips() {
   const chips = document.createElement("div");
   chips.className = "chips";
@@ -2118,6 +2287,8 @@ async function restoreHistory() {
   restoreDraft();
   updateCharCount();
   initDragDrop();
+  initModelTab();
+  refreshModel();
   $("theme-btn").addEventListener("click", toggleTheme);
   $("font-inc").addEventListener("click", () => bumpZoom(1));
   $("font-dec").addEventListener("click", () => bumpZoom(-1));

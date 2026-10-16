@@ -1,6 +1,6 @@
 # MyGPT
 
-**A self-training chatbot that improves over time — pure Python, NumPy brain, Flask WebUI.**
+**A self-training chatbot whose own brain is a real transformer — pure Python + NumPy, Flask WebUI.**
 
 Made with ❤️ by **[codero-sus](https://github.com/codero-sus)** — all credits to them.
 🌐 Website: [the-codero.web.app](https://the-codero.web.app/) ·
@@ -261,7 +261,59 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
 | 4 | Semantic facts about you (`what is my name?`) |
 | 5 | Learned Q→A memory pairs (TF-IDF retrieval); 👍 reinforces, 👎+correction replaces |
 | 5b | **Cortex LLMHoster** — a locally hosted model answers the rest (optional, learned back into memory) |
+| 5c | **Ollama · llama.cpp · 🤗 transformers** — in-process / local engines, tried in that order in `auto` mode |
 | 6 | Admits ignorance and asks to be taught |
+
+## The brain is a transformer (v1.11)
+
+MyGPT trains and runs **its own decoder-only transformer** in NumPy — no
+PyTorch required, no downloads, no GPU:
+
+* **architecture** — learned token + positional embeddings, N × (pre-LayerNorm
+  → multi-head causal self-attention → residual → LayerNorm → GELU 4×
+  feed-forward → residual), final LayerNorm, and **tied** input/output
+  embeddings (GPT-2 style) with no projection biases (LLaMA style)
+* **training** — Adam with warmup + cosine learning-rate decay, global
+  gradient-norm clipping, inverted dropout, and background training that never
+  blocks a chat turn
+* **generation** — temperature, top-k, **top-p (nucleus)** and repetition
+  penalty, with prompt continuation
+* **verified** — the hand-written backward pass is checked against
+  central-difference numerical gradients for every parameter tensor
+  (`tests/test_transformer.py`); that check found two real bugs while this was
+  being written (the loss read from the wrong position, and a gradient that
+  corresponded to a different objective than the reported loss)
+* sizes default to 2 blocks × 4 heads × dim 64 × ctx 6 and are configurable
+  with `MYGPT_BLOCKS`, `MYGPT_HEADS`, `MYGPT_DIM`, `MYGPT_CTX`, `MYGPT_LR`,
+  `MYGPT_DROPOUT`; `MYGPT_ARCH=mlp` keeps the original feed-forward network
+
+Because it is still small, the transformer needs far more data than a
+30-line test corpus before it writes good prose — that is exactly why the
+next section exists.
+
+### Real local models (optional)
+
+MyGPT also speaks to full-size models, as *clients* — it never ships or
+modifies their source:
+
+| engine | what it runs | install |
+|---|---|---|
+| **Cortex LLMHoster** | OpenAI-compatible local server | see [codero-sus/Cortex_LLMHoster](https://github.com/codero-sus/Cortex_LLMHoster) |
+| **Ollama** | local model runner | [ollama.com](https://ollama.com) |
+| **llama.cpp** | a `.gguf` file, in-process, CPU + optional GPU offload | `pip install llama-cpp-python` |
+| **🤗 transformers** | any causal LM from the Hub or a local directory (needs torch) | `pip install transformers torch` |
+
+```bash
+pip install -r requirements-optional.txt        # llama.cpp + transformers
+mkdir -p models && cp ~/Downloads/*.gguf models/   # then just drop a model in
+```
+
+MyGPT finds a GGUF in `models/` automatically (or set
+`MYGPT_LLAMACPP_MODEL=/path/to/model.gguf`); for transformers set
+`MYGPT_HF_MODEL=Qwen/Qwen2.5-0.5B-Instruct` or a local directory path. Both are
+configurable live from the **Model** tab, and the context window is clamped to
+what the model was trained with. When nothing is installed, every engine
+reports *why* it is unavailable and MyGPT's own brain keeps answering.
 
 ## The WebUI
 
@@ -309,6 +361,13 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
   localStorage and flush automatically on reconnect; polling pauses after 5
   idle minutes to save battery; the status tooltip shows measured round-trip
   ping (probed every 45 s)
+* **Model tab** (v1.11) — the architecture card (parameters, blocks, heads,
+  dim, context, optimiser steps, vocab, last loss, and a plain-English
+  description of the stack), an engine list showing exactly which local model
+  servers/backends are ready and how to enable the ones that aren't, a
+  **generation studio** (prompt + live tokens/temperature/top-k/top-p/repetition
+  sliders, choose the engine), and a **next-token prediction** view that draws
+  the model's softmax as ranked bars
 * **Growth tab** — loss chart, vitals, Train now, Dream, activity log, and a
   Software-updates card (manual check + confirmed branch-pinned install)
 * **Mind tab** — the CORTEX loop: trainer status, **🧪 on-demand
@@ -335,10 +394,17 @@ Trained weights can be snapshotted on demand into `./_model_trained/`
   `lru_cache`d — they are pure and sit on the per-message hot path
 * Seed texts are deduplicated when loaded, so a repeated line can never
   double-weight a fact
+* The transformer head scores only each window's **last** position instead of
+  all `ctx` positions — the same predictions for a fraction of the cost
+* GELU uses `x * x * x`, never `x ** 3`: numpy's float32 power operator takes a
+  slow generic path (measured 145× slower on the hot array size), and GELU runs
+  twice per training step. Fixing that one expression cut seed-training time
+  from 9.7 s to 4.1 s with an identical loss curve
 
 ## Tests
 
-**451 tests** — 116 smoke tests plus 335 in `tests/test_v110.py`. A generator
+**520 tests** — the original 116 smoke tests, 336 for the v1.10 packs/API, and
+39 + 33 for the transformer and the local-model backends. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11
@@ -429,6 +495,11 @@ templates/ static/      the WebUI
 | GET    | `/api/checkpoint/info` | `?name=…` (single checkpoint metadata) |
 | GET    | `/api/backends/models` | — (every answerable engine in one list) |
 | GET    | `/api/export.json` / `/api/export.csv` | — (structured transcript exports) |
+| GET    | `/api/model`    | — (architecture card: transformer size, training state, backends) |
+| GET    | `/api/model/topnext` | `?q=…` (≤400) — the model's ranked next-token probabilities |
+| POST   | `/api/generate` | `{"prompt", "tokens", "temperature", "top_k", "top_p", "repetition_penalty", "engine"}` |
+| GET    | `/api/engines`  | — (every engine: available?, why not, versions, models) |
+| POST   | `/api/engine/config` | `{"engine": "llamacpp"\|"hf", …settings}` |
 | GET    | `/api/math`     | `?q=…` (≤400) — maths pack, falls back to arithmetic |
 | GET    | `/api/text`     | `?q=…` (≤2000) — text pack; 404 lists every rule |
 | GET    | `/api/rules`    | — (inventory: maths, text and code rule names) |

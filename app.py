@@ -688,6 +688,105 @@ def backends_select():
     return jsonify(result), (200 if result.get("ok") else 400)
 
 
+@app.get("/api/model")
+def model_card():
+    """The brain's architecture card: transformer vs MLP, size, training state."""
+    with _lock:
+        return jsonify({"ok": True, "version": __version__,
+                        **brain.model_card()})
+
+
+@app.get("/api/model/topnext")
+def model_topnext():
+    """What the brain expects to come next (its own prediction)."""
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({"ok": False, "error": "q is required"}), 400
+    if len(q) > 400:
+        return jsonify({"ok": False, "error": "q must be at most 400 chars"}), 400
+    lm = brain.lm
+    if not hasattr(lm, "next_token_probs"):
+        return jsonify({"ok": False,
+                        "error": "the MLP brain has no next-token head"}), 400
+    with _lock:
+        top = lm.next_token_probs(q, top=int(request.args.get("k", 5) or 5))
+    return jsonify({"ok": True, "q": q,
+                    "predictions": [{"token": t, "probability": round(p, 6)}
+                                    for t, p in top]})
+
+
+@app.post("/api/generate")
+def generate_text():
+    """Sample from the model — the 'continue this' / 'dream' generator.
+
+    Body: {"prompt": "...", "tokens": 40, "temperature": 0.9, "top_k": 12,
+           "top_p": 0.95, "repetition_penalty": 1.1, "engine": "brain"}
+    """
+    body = request.get_json(silent=True) or {}
+    prompt = str(body.get("prompt", ""))[:1000]
+    tokens = max(1, min(int(body.get("tokens", 40) or 40), 400))
+    temperature = max(0.05, min(float(body.get("temperature", 0.9) or 0.9), 3.0))
+    top_k = max(1, min(int(body.get("top_k", 12) or 12), 200))
+    top_p = max(0.05, min(float(body.get("top_p", 0.95) or 0.95), 1.0))
+    penalty = max(1.0, min(float(body.get("repetition_penalty", 1.1) or 1.1), 4.0))
+    engine = str(body.get("engine", "brain")).strip().lower()
+
+    started = time.perf_counter()
+    with _lock:
+        if engine == "llamacpp" and brain.llamacpp.available():
+            text = brain.llamacpp.generate(prompt, max_tokens=tokens,
+                                           temperature=temperature, top_p=top_p)
+        elif engine == "hf" and brain.hf.available():
+            text = brain.hf.generate(prompt, max_tokens=tokens,
+                                     temperature=temperature, top_p=top_p)
+        else:
+            lm = brain.lm
+            text = lm.generate(n_tokens=tokens, temperature=temperature,
+                               top_k=top_k, top_p=top_p,
+                               repetition_penalty=penalty, prompt=prompt)
+            engine = "brain"
+    took = round((time.perf_counter() - started) * 1000, 1)
+    if not text:
+        return jsonify({"ok": False, "engine": engine,
+                        "error": "the model produced nothing — train it a "
+                                 "little first (Growth tab) or try another engine"}), 200
+    return jsonify({"ok": True, "engine": engine, "prompt": prompt,
+                    "text": text, "ms": took,
+                    "arch": getattr(brain.lm, "arch", "mlp")})
+
+
+@app.get("/api/engines")
+def engines():
+    """Which engines can answer right now, with the reason when they cannot."""
+    with _lock:
+        summary = brain.backend_summary()
+    return jsonify({"ok": True, "engines": summary,
+                    "selected": brain.chat_backend,
+                    "model": brain.chat_model})
+
+
+@app.post("/api/engine/config")
+def engine_config():
+    """Configure an in-process engine (llama.cpp / transformers).
+
+    Body: {"engine": "llamacpp", "model_path": "/path/to/model.gguf"} or
+          {"engine": "hf", "model": "Qwen/Qwen2.5-0.5B-Instruct", "device": "cpu"}
+    """
+    body = request.get_json(silent=True) or {}
+    engine = str(body.get("engine", "")).strip().lower()
+    payload = {k: v for k, v in body.items() if k != "engine"}
+    if engine == "llamacpp":
+        clean = brain.llamacpp.configure(**payload)
+    elif engine == "hf":
+        clean = brain.hf.configure(**payload)
+    else:
+        return jsonify({"ok": False,
+                        "error": "engine must be llamacpp or hf"}), 400
+    return jsonify({"ok": True, "engine": engine, "applied": clean,
+                    "status": (brain.llamacpp if engine == "llamacpp"
+                               else brain.hf).probe()})
+
+
 @app.post("/api/checkpoint")
 def checkpoint_create():
     """Snapshot the current trained model into _model_trained/.

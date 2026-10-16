@@ -268,6 +268,8 @@ class NeuralLM:
         if not os.path.exists(path):
             return False
         with np.load(path, allow_pickle=True) as d:
+            if "E" not in d.files or "vocab" not in d.files:
+                return False        # e.g. a transformer checkpoint
             self.E = d["E"].astype(np.float32)
             self.W1 = d["W1"].astype(np.float32)
             self.b1 = d["b1"].astype(np.float32)
