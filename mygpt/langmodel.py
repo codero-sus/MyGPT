@@ -132,26 +132,53 @@ class NeuralLM:
         return e / e.sum(axis=1, keepdims=True)
 
     # ------------------------------------------------------------------ train
-    def train(self, texts: list[str], epochs: int = 5, batch_size: int = 32,
-              max_windows: int = 20000) -> dict:
-        """Train on the corpus; returns loss stats for this round."""
-        if not texts:
-            return {"loss_first": None, "loss_last": None, "windows": 0}
+    def all_windows(self, texts: list[str],
+                    max_windows: int = 20000) -> list:
+        """Every training window for ``texts``, capped the same way ``train`` caps it.
 
+        Split out so a caller can run a round batch-by-batch (the background
+        trainer does exactly that) without rebuilding the window list.
+        """
         windows = list(self._windows(texts))
         if len(windows) > max_windows:
             keep = self.rng.choice(len(windows), max_windows, replace=False)
             windows = [windows[i] for i in sorted(keep)]
+        return windows
+
+    def step_batch(self, windows: list) -> float:
+        """One Adam step over one batch of windows.
+
+        The lock is taken for the step alone, never around the caller's loop.
+        That is what lets the background trainer hand the model back to the
+        request path between batches instead of holding it for a whole round.
+        """
+        if not windows:
+            return 0.0
+        ctx = np.stack([w[0] for w in windows])
+        tgt = np.array([w[1] for w in windows], dtype=np.int64)
+        with self.lock:
+            return self._step(ctx, tgt)
+
+    def train(self, texts: list[str], epochs: int = 5, batch_size: int = 32,
+              max_windows: int = 20000) -> dict:
+        """Train on the corpus; returns loss stats for this round.
+
+        Explicit training (the API's ``/api/train`` and the first boot) keeps
+        the lock for the whole round so the round is atomic and the reported
+        numbers belong to one pass. The *background* trainer does not use this
+        method — it calls :meth:`step_batch` itself, one batch at a time.
+        """
+        if not texts:
+            return {"loss_first": None, "loss_last": None, "windows": 0}
+
+        windows = self.all_windows(texts, max_windows)
 
         first_loss, last_loss = None, None
         with self.lock:
             for _ in range(epochs):
                 self.rng.shuffle(windows)
                 for b in range(0, len(windows), batch_size):
-                    batch = windows[b:b + batch_size]
-                    ctx = np.stack([w[0] for w in batch])
-                    tgt = np.array([w[1] for w in batch], dtype=np.int64)
-                    loss = self._step(ctx, tgt)
+                    loss = self.step_batch(windows[b:b + batch_size])
                     if first_loss is None:
                         first_loss = loss
                     last_loss = loss

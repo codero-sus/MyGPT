@@ -1749,6 +1749,49 @@ async function refreshModel(force = false) {
     ? (data.backends.brain.arch || "brain") : "brain";
 }
 
+async function refreshTrainer(force = false) {
+  let data;
+  try {
+    data = await (await fetch("/api/trainer")).json();
+  } catch (e) {
+    return null;
+  }
+  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  const state = data.paused ? "paused" : (data.busy ? "working" : "idle");
+  set("tr-pill", state);
+  const pill = $("tr-pill");
+  if (pill) pill.className = "pill" + (data.paused ? " warn" : (data.busy ? " ok" : ""));
+  const duty = data.duty_observed == null ? "–" : `${Math.round(data.duty_observed * 100)}%`;
+  set("tr-duty", duty);
+  set("tr-target", `${Math.round((data.duty_target ?? 0) * 100)}%`);
+  set("tr-cpu", `${((data.cpu_ms ?? 0) / 1000).toFixed(1)}s`);
+  set("tr-steps", (data.done_steps ?? 0).toLocaleString());
+  set("tr-rounds", data.rounds ?? 0);
+  set("tr-loss", data.last_loss ? Number(data.last_loss).toFixed(3) : "–");
+  set("tr-waiting", data.waiting_for_requests ? "yes" : "no");
+  set("tr-queue", data.queue ?? 0);
+  const range = $("tr-duty-range");
+  if (range && !range.dataset.dirty) {
+    range.value = Math.round((data.duty_target ?? 0.35) * 100);
+    const label = $("tr-duty-label");
+    if (label) label.textContent = `${range.value}%`;
+  }
+  const pause = $("tr-pause");
+  if (pause) pause.textContent = data.paused ? "Resume" : "Pause";
+  const meta = $("tr-meta");
+  if (meta) {
+    const inflight = data.inflight ?? 0;
+    const last = data.last_round;
+    meta.innerHTML =
+      `<span class="tag">${inflight} request(s) in flight</span>` +
+      `<span class="tag">${data.queued ?? 0} steps submitted</span>` +
+      (last ? `<span class="tag">last round: ${last.steps} steps, ` +
+              `${last.cpu_ms} ms CPU, ${last.took_ms} ms wall</span>` : "") +
+      `<span class="tag">${escapeHtml(data.note || "")}</span>`;
+  }
+  return data;
+}
+
 function engineBadge(info) {
   if (info.available) return '<span class="badge ok">ready</span>';
   if (info.enabled === false) return '<span class="badge off">disabled</span>';
@@ -1866,7 +1909,7 @@ async function runNextTokens() {
 }
 
 async function refreshModelTab() {
-  await Promise.all([refreshModel(), refreshEngines()]);
+  await Promise.all([refreshModel(), refreshEngines(), refreshTrainer()]);
 }
 
 const PREFS_KEY = "mygpt.prefs";
@@ -2227,13 +2270,43 @@ const GREETING =
 
 function initModelTab() {
   const pairs = [["gen-btn", runGenerate], ["next-btn", runNextTokens],
-                 ["engine-refresh", () => refreshEngines(true)]];
+                 ["engine-refresh", () => refreshEngines(true)],
+                 ["tr-pause", toggleTrainer]];
   pairs.forEach(([id, fn]) => { const el = $(id); if (el) el.addEventListener("click", fn); });
   const q = $("next-q");
   if (q) q.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); runNextTokens(); }
   });
+  const range = $("tr-duty-range");
+  if (range) {
+    range.addEventListener("input", () => {
+      const label = $("tr-duty-label");
+      if (label) label.textContent = `${range.value}%`;
+      range.dataset.dirty = "1";          // don't fight the user's hand
+    });
+    range.addEventListener("change", async () => {
+      const label = $("tr-duty-label");
+      if (label) label.textContent = `${range.value}%`;
+      await fetch("/api/trainer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duty: Number(range.value) / 100 }),
+      });
+      delete range.dataset.dirty;
+    });
+  }
   sliderLabels();
+}
+
+async function toggleTrainer() {
+  const current = await refreshTrainer();
+  const paused = !(current && current.paused);
+  await fetch("/api/trainer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paused }),
+  });
+  await refreshTrainer();
 }
 
 function addChips() {

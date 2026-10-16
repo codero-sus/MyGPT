@@ -381,6 +381,41 @@ reports *why* it is unavailable and MyGPT's own brain keeps answering.
   LLMHoster or Ollama, with live connection status and the hosted model list;
   checkpoints can be **downloaded as zip** (weights + metadata)
 
+## Background training, and what it costs you
+
+MyGPT keeps learning while it runs, in a thread that is deliberately built to
+stay out of your way:
+
+* **It yields.** Every API request marks itself in flight; the trainer waits for
+  the app to go quiet and stays quiet for a short cooldown after your last reply.
+* **It duty-cycles.** After each chunk of work it sleeps so its own CPU time
+  stays under `MYGPT_TRAIN_DUTY` of wall time (default `0.35` — about a third of
+  one core), and only while there is something queued. Idle costs nothing.
+* **No step owns the model.** A training round is run one batch at a time via
+  `NeuralLM.step_batch`, which takes the model lock for that batch alone, so a
+  request ever waits milliseconds at worst.
+* **A learning event never trains in front of you.** Before v1.11.0, every fifth
+  teaching/rating event ran a whole round *on the request thread* with the model
+  locked. It is now queued and runs during the next quiet moment.
+* **It is visible and controllable.** `GET /api/trainer` reports duty actually
+  observed (read from the OS thread clock, so it is the trainer's CPU and not the
+  web worker's), and the Model tab has a live card with a duty slider and a
+  Pause button. `POST /api/trainer {"paused": true}` stops it entirely.
+
+Measured with `.venv/bin/python tools/benchmark.py --trainer-impact` — same
+workload (`/api/chat` every turn, `/api/teach` every third turn, 24 turns),
+same constants, only the code path differs:
+
+| | chat p50 | chat p95 | worst chat | worst teach | session |
+|---|---|---|---|---|---|
+| rounds inline (before) | 4 ms | 45 ms | **719 ms** | **2,401 ms** | 7.1 s |
+| rounds queued (now) | 3 ms | 5 ms | **34 ms** | **30 ms** | 3.9 s |
+
+The deferred round is not skipped: it completed 10.7 s of wall time after that
+session ended, using 3.94 s of CPU — deferred, never dropped. Chat stays at
+p95 ≈ 26 ms even with 400 lines already queued for the trainer, and the trainer
+thread measured **0.34 of one core** against a 0.35 target (0.0 when paused).
+
 ## Efficiency notes
 
 * Memory retrieval prunes candidates via an inverted token index; tokenizer is
@@ -463,9 +498,9 @@ decimal places.
 
 ## Tests
 
-**532 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
-33 + 42 + 6 for the transformer, the local-model backends and the benchmark
-tool. A generator
+**552 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
+33 + 42 + 6 + 20 for the transformer, the local-model backends, the benchmark
+tool and the background trainer. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11
@@ -521,7 +556,9 @@ templates/ static/      the WebUI
 | POST   | `/api/chat`     | `{"message": "…"}` (≤ 4000 chars)      |
 | POST   | `/api/feedback` | `{"msg_id", "verdict": "up"\|"down", "correction"?}` |
 | POST   | `/api/teach`    | `{"question", "answer"}`               |
-| POST   | `/api/train`    | `{"epochs": 10}`                       |
+| POST   | `/api/train`    | `{"epochs": 10}` (blocks — you asked)  |
+| GET    | `/api/trainer`  | — (background trainer: duty observed, CPU, rounds, queue) |
+| POST   | `/api/trainer`  | `{"paused"?: bool, "duty"?: 0.05-1.0, "cooldown"?: seconds}` |
 | POST   | `/api/improve`  | — (force a medium improvement cycle)   |
 | POST   | `/api/eval`     | — (run the self-eval battery now, per-question results) |
 | GET    | `/api/export`   | — (download the conversation as Markdown) |

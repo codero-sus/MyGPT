@@ -102,6 +102,9 @@ class Brain:
 
         self.trainer = BackgroundTrainer(self.lm, save_fn=self.save)
         self.trainer.dream_source = self._dream_text
+        # a queued round reports back here, so finished background work lands in
+        # the loss history and counters exactly like an explicit round does
+        self.trainer.on_round = self._on_background_round
         self.improver = SelfImprovement(self)
         self.cortex = CortexClient(os.path.join(data_dir, "cortex.json"))
         self.ollama = OllamaClient(os.path.join(data_dir, "ollama.json"))
@@ -148,6 +151,10 @@ class Brain:
         # save()); anything pending is flushed on shutdown
         self._last_save = 0.0
         self._save_pending = False
+        # The background trainer also saves (it flushes checkpoints when idle),
+        # so serialise the write itself — two threads interleaving json writes
+        # would corrupt data/memory.json rather than merely race.
+        self._save_lock = threading.RLock()
         atexit.register(self._flush_on_exit)
 
         self._seed_path = seed_path
@@ -378,7 +385,8 @@ class Brain:
         if not CHECKPOINT_RE.search(text):
             return None
         if TRAIN_RE.search(text):
-            self.train(epochs=AUTO_TRAIN_EPOCHS, reason="checkpoint request")
+            self.train(epochs=AUTO_TRAIN_EPOCHS, reason="checkpoint request",
+                       requirement="background")
         meta = self.checkpoint(note=text[:120])
         return (f"✅ Saved a trained-model checkpoint to "
                 f"`_model_trained/{meta['name']}/` "
@@ -435,6 +443,14 @@ class Brain:
             return
         self._last_save = now
         self._save_pending = False
+        self._write_locked()
+
+    def _write_locked(self) -> None:
+        """The actual writes, serialised against the trainer's own flushes."""
+        with self._save_lock:
+            self._write_state()
+
+    def _write_state(self) -> None:
         self._write("memory.json", self.memory.to_list())
         self._write("corpus.json", self.corpus[-5000:])
         self._write("metrics.json", {
@@ -473,11 +489,38 @@ class Brain:
             self._maybe_auto_train()
 
     def _maybe_auto_train(self) -> None:
+        """Count a learning event and, every AUTO_TRAIN_EVERY of them, queued.
+
+        The round is handed to the background trainer rather than run here: this
+        is called from inside a chat turn, and a round is seconds of locked CPU
+        on the very thread that owes the user an answer.
+        """
         self.counters["events_since_train"] += 1
         if self.counters["events_since_train"] >= AUTO_TRAIN_EVERY:
-            self.train(epochs=AUTO_TRAIN_EPOCHS, reason="auto training")
+            self.train(epochs=AUTO_TRAIN_EPOCHS, reason="auto training",
+                       requirement="background")
 
-    def train(self, epochs: int = 10, reason: str = "manual") -> dict:
+    def train(self, epochs: int = 10, reason: str = "manual",
+              requirement: str = "explicit") -> dict:
+        """Train the brain.
+
+        ``requirement`` says who is asking:
+
+        * ``"explicit"`` (default) — you asked, so block and do the work now.
+          ``/api/train`` and the first-boot round use this.
+        * ``"background"`` — upkeep nobody is waiting on (seed updates, the
+          checkpoint command's "train and save"). The trainer queue does the
+          epochs, so the request returns in milliseconds and the round runs
+          **while the app is idle**, at the configured duty cycle.
+
+        Before v1.11.0 this distinction did not exist: ``_maybe_auto_train``
+        called this method from inside the chat turn, so every fifth learning
+        event blocked the answer for the whole round (seconds, with the model
+        locked). That is exactly the stall the background trainer exists to
+        avoid — it just was not the path being used.
+        """
+        if requirement == "background":
+            return self._submit_background_round(epochs, reason)
         if not self.corpus:
             return {"ok": False, "error": "corpus is empty"}
         t0 = time.time()
@@ -486,10 +529,34 @@ class Brain:
             self.lm.rebuild_vocab()
         stats = self.lm.train(self.corpus, epochs=epochs)
         took_ms = int((time.time() - t0) * 1000)
+        self._record_round(stats, epochs, reason, took_ms)
+        return {"ok": True, **self.loss_history[-1]}
+
+    def _submit_background_round(self, epochs: int, reason: str) -> dict:
+        """Queue a full round for the background trainer; return immediately."""
+        if not self.corpus:
+            return {"ok": False, "error": "corpus is empty"}
+        queued = self.trainer.submit_round(self.corpus, epochs=epochs,
+                                           reason=reason)
+        if not queued:
+            return {"ok": True, "deferred": False, "queued": False,
+                    "reason": reason,
+                    "note": "a round is already queued or the queue is full"}
+        self._log(f"queued a background training round "
+                  f"({epochs} epochs, {reason})")
+        return {"ok": True, "deferred": True, "queued": True, "epochs": epochs,
+                "reason": reason,
+                "note": "training runs in the background while the app is idle"}
+
+    def _record_round(self, stats: dict, epochs: int, reason: str,
+                      took_ms: int) -> dict:
+        """Book-keeping shared by explicit rounds and finished background ones."""
+        last = stats.get("loss_last")
         self.counters["train_rounds"] += 1
         self.counters["events_since_train"] = 0
         point = {
-            "t": round(time.time()), "loss": round(stats["loss_last"], 4),
+            "t": round(time.time()),
+            "loss": (round(last, 4) if last is not None else None),
             "epochs": epochs, "reason": reason,
             "vocab": self.lm.vocab_size, "took_ms": took_ms,
         }
@@ -498,7 +565,17 @@ class Brain:
                   f"loss {point['loss']} ({reason}, {took_ms} ms)")
         self.goals.nudge("become-more-capable", 0.01)
         self.save()
-        return {"ok": True, **point}
+        return point
+
+    def _on_background_round(self, result: dict) -> None:
+        """Called by the trainer thread when a queued round finishes."""
+        stats = {"loss_last": result.get("loss_last")}
+        point = self._record_round(stats, result.get("epochs", 0),
+                                   f"{result.get('reason', 'auto')} (background)",
+                                   result.get("took_ms", 0))
+        self.store.log_metric("bg_round_cpu_ms", float(result.get("cpu_ms", 0)))
+        self._log(f"background round finished: loss {point['loss']} "
+                  f"({result.get('cpu_ms', 0)} ms of CPU)")
 
     # ------------------------------------------------------------------ chat
     def reply(self, user_text: str) -> dict:

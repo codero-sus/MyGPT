@@ -226,6 +226,37 @@
           </div>
 
           <div class="card">
+            <h2>Self-training <span class="pill" id="tr-pill">checking…</span></h2>
+            <p class="hint">
+              The brain keeps learning in a background thread — but only while
+              you are <b>not</b> waiting on it. Each request tells the trainer to
+              stand down, it waits a moment after your last reply, and it
+              duty-cycles so its own CPU time stays under the share below. A
+              training round triggered by a learning event is <b>queued</b>, never
+              run on the request thread.
+            </p>
+            <div class="stats-grid">
+              <div class="stat"><b id="tr-duty">–</b><span>duty (of one core)</span></div>
+              <div class="stat"><b id="tr-target">–</b><span>duty target</span></div>
+              <div class="stat"><b id="tr-cpu">0</b><span>cpu used</span></div>
+              <div class="stat"><b id="tr-steps">0</b><span>bg steps</span></div>
+              <div class="stat"><b id="tr-rounds">0</b><span>bg rounds</span></div>
+              <div class="stat"><b id="tr-loss">–</b><span>bg loss</span></div>
+              <div class="stat"><b id="tr-waiting">–</b><span>yielding</span></div>
+              <div class="stat"><b id="tr-queue">0</b><span>queued</span></div>
+            </div>
+            <div class="row-actions">
+              <label class="slider-label" for="tr-duty-range">
+                Duty cycle <span id="tr-duty-label">35%</span>
+              </label>
+              <input type="range" id="tr-duty-range" min="5" max="100" step="5"
+                     value="35" class="slider">
+              <button class="btn ghost" id="tr-pause">Pause</button>
+            </div>
+            <div class="arch-meta" id="tr-meta"></div>
+          </div>
+
+          <div class="card">
             <h2>Answer engines <span class="pill" id="md-engine-pill">auto</span></h2>
             <p class="hint">
               MyGPT answers from its own brain first. Point it at a real local
