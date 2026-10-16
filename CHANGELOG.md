@@ -10,7 +10,7 @@ Every item below is verifiable in the repository: templates in
 `mygpt/textfx.py`, knowledge in `seed_corpus.json`, routes in
 `app.py`, tests in `tests/test_v110.py`.
 
-### Code templates (166)
+### Code templates (168)
 
 1. Template family: linear search
 2. Template family: selection sort
@@ -178,997 +178,1002 @@ Every item below is verifiable in the repository: templates in
 164. Template family: html escape
 165. Template family: markdown table
 166. Template family: validate email
+167. `codegen.match_family()` — families are ranked by how much of the request they explain (match span, then pattern specificity, then recency), so a narrow ask can no longer be swallowed by a broad earlier pattern
+168. `codegen._ranked()` — `code_reply()` walks families best-first instead of in registration order
 
 ### Seed knowledge (401)
 
-167. Seed pair: what is a linked list
-168. Seed pair: what is a stack
-169. Seed pair: what is a queue
-170. Seed pair: what is a hash table
-171. Seed pair: what is a binary tree
-172. Seed pair: what is a heap
-173. Seed pair: what is a graph
-174. Seed pair: what is breadth first search
-175. Seed pair: what is depth first search
-176. Seed pair: what is big o notation
-177. Seed pair: what is a stable sort
-178. Seed pair: what is recursion
-179. Seed pair: what is dynamic programming
-180. Seed pair: what is greedy algorithm
-181. Seed pair: what is a sliding window
-182. Seed pair: what is two pointer technique
-183. Seed pair: what is memoisation
-184. Seed pair: what is a deque
-185. Seed pair: what is a generator
-186. Seed pair: what is a context manager
-187. Seed pair: what is a closure
-188. Seed pair: what is duck typing
-189. Seed pair: what is the gil
-190. Seed pair: what are type hints
-191. Seed pair: what is pytest
-192. Seed pair: what is a virtual environment
-193. Seed pair: what is pep 8
-194. Seed pair: what is a wheel
-195. Seed pair: what is requirements txt
-196. Seed pair: what is a shebang
-197. Seed pair: what does if __name__ mean
-198. Seed pair: what is scope in python
-199. Seed pair: what is immutability
-200. Seed pair: what is tuple unpacking
-201. Seed pair: what is a frozenset
-202. Seed pair: what is a byte string
-203. Seed pair: what is a raw string
-204. Seed pair: what is string formatting
-205. Seed pair: what is a join
-206. Seed pair: what is a walrus operator
-207. Seed pair: what is a ternary expression
-208. Seed pair: what is a match statement
-209. Seed pair: what is an exception chain
-210. Seed pair: what is a finally block
-211. Seed pair: what is a custom exception
-212. Seed pair: what are logging levels
-213. Seed pair: what is a daemon thread
-214. Seed pair: what is a race condition
-215. Seed pair: what is async await
-216. Seed pair: what is a coroutine
-217. Seed pair: what is an event loop
-218. Seed pair: what is the difference between process and thread
-219. Seed pair: what is multiprocessing
-220. Seed pair: what is a memory leak in python
-221. Seed pair: what is garbage collection
-222. Seed pair: what is a linter
-223. Seed pair: what is a formatter
-224. Seed pair: what is a type checker
-225. Seed pair: what is ci
-226. Seed pair: what is a pre commit hook
-227. Seed pair: what is dependency pinning
-228. Seed pair: what is semantic versioning
-229. Seed pair: what is a changelog
-230. Seed pair: what is a regression
-231. Seed pair: what is test coverage
-232. Seed pair: what is mocking
-233. Seed pair: what is a fixture
-234. Seed pair: what is property based testing
-235. Seed pair: what is api versioning
-236. Seed pair: what is a health check
-237. Seed pair: what is a load balancer
-238. Seed pair: what is a cdn
-239. Seed pair: what is http status 418
-240. Seed pair: what is idempotency
-241. Seed pair: what is a websocket
-242. Seed pair: what is long polling
-243. Seed pair: what is a json schema
-244. Seed pair: what is openapi
-245. Seed pair: what is csp
-246. Seed pair: what is xss
-247. Seed pair: what is sqli
-248. Seed pair: what is csrf
-249. Seed pair: what is a salt
-250. Seed pair: what is hashing versus encryption
-251. Seed pair: what is constant time comparison
-252. Seed pair: what is the principle of least privilege
-253. Seed pair: what is a token bucket
-254. Seed pair: what is backoff
-255. Seed pair: what is a circuit breaker
-256. Seed pair: what is observability
-257. Seed pair: what is a metric histogram
-258. Seed pair: what is a trace id
-259. Seed pair: what is graceful shutdown
-260. Seed pair: what is a migration
-261. Seed pair: what is privacy by design
-262. Seed pair: what is a seed corpus
-263. Seed pair: what is human in the loop
-264. Seed pair: what is the ai alignment problem
-265. Seed pair: what is goodhart's law
-266. Seed pair: what is technical debt
-267. Seed pair: what is refactoring
-268. Seed pair: what is a code smell
-269. Seed pair: what is yagni
-270. Seed pair: what is kiss
-271. Seed pair: what is dry
-272. Seed pair: what is the boy scout rule
-273. Seed pair: what is rubber duck debugging
-274. Seed pair: what is a stack trace
-275. Seed pair: what is a breakpoint
-276. Seed pair: what is logging versus printing
-277. Seed pair: what is an assertion
-278. Seed pair: what is fail fast
-279. Seed pair: what is defensive copying
-280. Seed pair: what is a feature flag
-281. Seed pair: what is canary deployment
-282. Seed pair: what is rollback
-283. Seed pair: what is a postmortem
-284. Seed pair: what is an adr
-285. Seed pair: what is technical writing
-286. Seed pair: what is a user story
-287. Seed pair: what is mvp
-288. Seed pair: what is dogfooding
-289. Seed pair: what is progressive disclosure
-290. Seed pair: what is a vertical slice
-291. Seed pair: what is tracer bullet development
-292. Seed pair: what is yak shaving
-293. Seed pair: what is a timebox
-294. Seed pair: what is definition of done
-295. Seed pair: what is acceptance criteria
-296. Seed pair: what is load testing
-297. Seed pair: what is chaos testing
-298. Seed pair: what is a 400 versus 500
-299. Seed pair: what is a 429
-300. Seed pair: what is a 503
-301. Seed pair: what is a 204
-302. Seed pair: what is idempotent retry
-303. Seed pair: what is a webhook versus polling
-304. Seed pair: what is eventual consistency
-305. Seed pair: what is a write ahead log
-306. Seed pair: what is an atomic rename
-307. Seed pair: what is a checksum
-308. Seed pair: what is a heartbeat
-309. Seed pair: what is a leaky abstraction
-310. Seed pair: what is the law of demeter
-311. Seed pair: what is dependency injection
-312. Seed pair: what is inversion of control
-313. Seed pair: what is deterministic code
-314. Seed pair: what is a side effect
-315. Seed pair: what is defensive validation
-316. Seed pair: what is a data retention policy
-317. Seed pair: what is backpressure
-318. Seed pair: what is a semaphore
-319. Seed pair: what is a deadlock
-320. Seed pair: what is jitter
-321. Seed pair: what is monotonic time
-322. Seed pair: what is utc versus local time
-323. Seed pair: what is epoch time
-324. Seed pair: what is an iso 8601 date
-325. Seed pair: what is a canonical form
-326. Seed pair: what is stemming
-327. Seed pair: what is stop word removal
-328. Seed pair: what is a posting list
-329. Seed pair: what is a term frequency
-330. Seed pair: what is a document frequency
-331. Seed pair: what is a dot product
-332. Seed pair: what is vectorisation in numpy
-333. Seed pair: what is broadcasting
-334. Seed pair: what is a view versus a copy
-335. Seed pair: what is a hot path
-336. Seed pair: what is a bottleneck
-337. Seed pair: what is a cold start
-338. Seed pair: what is a warm cache
-339. Seed pair: what is the 80 20 rule
-340. Seed pair: what is hashability
-341. Seed pair: what is a hash collision
-342. Seed pair: what is a load factor
-343. Seed pair: what is a balanced tree
-344. Seed pair: what is a b-tree
-345. Seed pair: what is a union find
-346. Seed pair: what is topological sort
-347. Seed pair: what is dijkstra
-348. Seed pair: what is a star search
-349. Seed pair: what is a minimum spanning tree
-350. Seed pair: what is a segment tree
-351. Seed pair: what is a suffix array
-352. Seed pair: what is rolling hash
-353. Seed pair: what is kmp
-354. Seed pair: what is meet in the middle
-355. Seed pair: what is a state machine
-356. Seed pair: what is a finite automaton
-357. Seed pair: what is the halting problem
-358. Seed pair: what is p versus np
-359. Seed pair: what is np complete
-360. Seed pair: what is the travelling salesman problem
-361. Seed pair: what is the pigeonhole principle
-362. Seed pair: what is an invariant
-363. Seed pair: what is induction
-364. Seed pair: what is a counterexample
-365. Seed pair: what is occam's razor
-366. Seed pair: what is parkinson's law
-367. Seed pair: what is conway's law
-368. Seed pair: what is the map is not the territory
-369. Seed pair: what is symbolic versus statistical ai
-370. Seed pair: what is explainability
-371. Seed pair: what is a confidence score
-372. Seed pair: what is calibration
-373. Seed pair: what is hallucination
-374. Seed pair: what is a guardrail
-375. Seed pair: what is feedback loop design
-376. Seed pair: what is reinforcement in retrieval
-377. Seed pair: what is catastrophic forgetting
-378. Seed pair: what is a replay buffer
-379. Seed pair: what is self supervision
-380. Seed pair: what is a knowledge base versus a model
-381. Seed pair: what is provenance
-382. Seed pair: what is a tombstone
-383. Seed pair: what is idempotent teaching
-384. Seed pair: what is deduplication
-385. Seed pair: what is a quality gate
-386. Seed pair: what is a preflight check
-387. Seed pair: what is a status page
-388. Seed pair: what is a threat model
-389. Seed pair: what is path traversal
-390. Seed pair: what is input fuzzing
-391. Seed pair: what is output encoding
-392. Seed pair: what is atomicity
-393. Seed pair: what is durability
-394. Seed pair: what is a single writer principle
-395. Seed pair: what is a bounded queue
-396. Seed pair: what is an unbounded growth bug
-397. Seed pair: what is a watchdog
-398. Seed pair: what is a capability probe
-399. Seed pair: what is explicit configuration
-400. Seed pair: what is a twelve factor app
-401. Seed pair: what is a monolith
-402. Seed pair: what is coupling
-403. Seed pair: what is cohesion
-404. Seed pair: what is a test double
-405. Seed pair: what is a hermetic test
-406. Seed pair: what is a smoke test
-407. Seed pair: what is test isolation
-408. Seed pair: what is a golden file
-409. Seed pair: what is flaky test
-410. Seed pair: what is accessibility
-411. Seed pair: what is aria
-412. Seed pair: what is color contrast
-413. Seed pair: what is reduced motion
-414. Seed pair: what is semantic html
-415. Seed pair: what is an accessible name
-416. Seed pair: what is tab order
-417. Seed pair: what is a skip link
-418. Seed pair: what is internationalisation
-419. Seed pair: what is a time zone bug
-420. Seed pair: what is a monospace font
-421. Seed pair: what is a pwa install
-422. Seed pair: what is offline first
-423. Seed pair: what is localstorage
-424. Seed pair: what is a service worker
-425. Seed pair: what is debouncing
-426. Seed pair: what is an optimistic update
-427. Seed pair: what is a toast
-428. Seed pair: what is fitts law
-429. Seed pair: what is hicks law
-430. Seed pair: what is a design token
-431. Seed pair: what is flexbox versus grid
-432. Seed pair: what is perceived performance
-433. Seed pair: what is cpu versus io bound
-434. Seed pair: what is a microbenchmark
-435. Seed pair: what is a reverse proxy
-436. Seed pair: what is http keep alive
-437. Seed pair: what is an etag
-438. Seed pair: what is graceful degradation
-439. Seed pair: what is progressive enhancement
-440. Seed pair: what is a fallback chain
-441. Seed pair: what is an lru cache
-442. Seed pair: what is a ttl
-443. Seed pair: what is a schema
-444. Seed pair: what is a contract test
-445. Seed pair: what is a regression suite
-446. Seed pair: what is a test pyramid
-447. Seed pair: what is a trie
-448. Seed pair: what is a bloom filter
-449. Seed pair: what is tf idf
-450. Seed pair: what is an inverted index
-451. Seed pair: what is cosine similarity
-452. Seed pair: what is edit distance used for
-453. Seed pair: what is levenshtein distance
-454. Seed pair: what is a monte carlo method
-455. Seed pair: what is the birthday problem
-456. Seed pair: what is the law of large numbers
-457. Seed pair: what is the normal distribution
-458. Seed pair: what is standard deviation
-459. Seed pair: what is a median versus mean
-460. Seed pair: what is a percentile
-461. Seed pair: what is correlation versus causation
-462. Seed pair: what is p value
-463. Seed pair: what is bayes theorem
-464. Seed pair: what is a base rate
-465. Seed pair: what is a decision tree
-466. Seed pair: what is k nearest neighbours
-467. Seed pair: what is k means
-468. Seed pair: what is regression in ml
-469. Seed pair: what is an activation function
-470. Seed pair: what is softmax
-471. Seed pair: what is a learning rate
-472. Seed pair: what is batch size
-473. Seed pair: what is an epoch
-474. Seed pair: what is dropout
-475. Seed pair: what is data leakage
-476. Seed pair: what is feature engineering
-477. Seed pair: what is an ablation
-478. Seed pair: what is a baseline
-479. Seed pair: what is reproducibility
-480. Seed pair: what is a random seed
-481. Seed pair: what is a benchmark
-482. Seed pair: what is premature optimization
-483. Seed pair: what is profiling
-484. Seed pair: what is lazy evaluation
-485. Seed pair: what is short circuit evaluation
-486. Seed pair: what is a pure function
-487. Seed pair: what is separation of concerns
-488. Seed pair: what is a proof by contradiction
-489. Seed pair: what is a necessary versus sufficient condition
-490. Seed pair: what is a debugger
-491. Seed pair: what is a code review
-492. Seed pair: what is a pull request
-493. Seed pair: what is a release tag
-494. Seed pair: what is backwards compatibility
-495. Seed pair: what is deprecation
-496. Seed pair: what is an api contract
-497. Seed pair: what is a runbook
-498. Seed pair: what is a blast radius
-499. Seed pair: what is the principle of least astonishment
-500. Seed pair: what is active recall
-501. Seed pair: what is the feynman technique
-502. Seed pair: what is deliberate practice
-503. Seed pair: what is deep work
-504. Seed pair: what is incremental delivery
-505. Seed pair: what is a non functional requirement
-506. Seed pair: what is a graceful error message
-507. Seed pair: what is a fan out
-508. Seed pair: what is a cron job
-509. Seed pair: what is idempotent startup
-510. Seed pair: what is a version marker
-511. Seed pair: what is a fallback default
-512. Seed pair: what is a denial of service
-513. Seed pair: what is resource exhaustion
-514. Seed pair: what is a spike
-515. Seed pair: what is a proof of concept
-516. Seed pair: what is continuous delivery
-517. Seed pair: what is infrastructure as code
-518. Seed pair: what is a container
-519. Seed pair: what is port forwarding
-520. Seed pair: what is gzip compression
-521. Seed pair: what is a cache busting query
-522. Seed pair: what is lazy loading
-523. Seed pair: what is a skeleton screen
-524. Seed pair: what is the 3 click rule
-525. Seed pair: what is a web font
-526. Seed pair: what is a memory footprint
-527. Seed pair: what is the lindy effect
-528. Training text: the maths pack answers factorials fibonacci primes gcd lcm factorisation and divisors
-529. Training text: unit conversions cover celsius fahrenheit kilometres miles pounds ounces
-530. Training text: statistics work in chat: median mode range variance standard deviation geometric and harmonic mean
-531. Training text: finance helpers calculate tips simple interest compound interest and letter grades
-532. Training text: geometry helpers cover circles rectangles triangles spheres cylinders and hypotenuses
-533. Training text: fractions simplify add and multiply with exact rational arithmetic
-534. Training text: roman numerals convert both ways and reject non canonical spellings
-535. Training text: percent helpers cover change off increase decrease and what percent of
-536. Training text: the text pack uppercases lowercases titles capitalises and swaps case
-537. Training text: text encodings include base64 rot13 url encoding binary hex sha256 md5 and crc32
-538. Training text: line tools dedupe sort number strip and shuffle lines of text
-539. Training text: extraction tools pull emails urls numbers hashtags and mentions out of text
-540. Training text: data helpers pretty print json minify json and convert csv to markdown tables
-541. Training text: word games include pig latin palindrome isogram and anagram checks
-542. Training text: chat maths is exposed at the api math endpoint and text at api text
-543. Training text: every maths and text rule is listed by the api rules endpoint
-544. Training text: sixty two maths rules and fifty five text rules ship in version one ten
-545. Training text: one hundred and thirty four additional code template families ship in version one ten
-546. Training text: the template library now exceeds two hundred and eighteen families
-547. Training text: seed knowledge grew past four hundred and eighty question answer pairs
-548. Training text: the test suite passed four hundred tests in version one ten
-549. Training text: generated tests give every template family and every rule its own test method
-550. Training text: a ui density toggle switches between compact and comfortable spacing
-551. Training text: a high contrast mode strengthens borders and muted text for readability
-552. Training text: a reduce motion toggle disables animations and honours the system preference
-553. Training text: the sidebar collapses with the button or ctrl b
-554. Training text: pinned messages live in a strip above the composer and persist in local storage
-555. Training text: hover actions on every message offer copy pin and quote
-556. Training text: the edit last button reloads your previous message into the composer
-557. Training text: copy all collects the whole transcript as plain text
-558. Training text: a share button uses the web share api with a clipboard fallback
-559. Training text: a print button and a print stylesheet produce a clean transcript on paper
-560. Training text: desktop notifications and a title badge announce replies when the tab is hidden
-561. Training text: an optional web audio chime plays when a reply arrives
-562. Training text: messages typed while offline queue in local storage and flush when the connection returns
-563. Training text: the status text shows round trip ping time on hover
-564. Training text: polling pauses after five idle minutes to save battery
-565. Training text: a command dialog lists every keyboard shortcut and the question mark key opens it
-566. Training text: an about dialog shows the version and endpoint count
-567. Training text: svg icon serves as favicon apple touch icon and manifest icon
+169. Seed pair: what is a linked list
+170. Seed pair: what is a stack
+171. Seed pair: what is a queue
+172. Seed pair: what is a hash table
+173. Seed pair: what is a binary tree
+174. Seed pair: what is a heap
+175. Seed pair: what is a graph
+176. Seed pair: what is breadth first search
+177. Seed pair: what is depth first search
+178. Seed pair: what is big o notation
+179. Seed pair: what is a stable sort
+180. Seed pair: what is recursion
+181. Seed pair: what is dynamic programming
+182. Seed pair: what is greedy algorithm
+183. Seed pair: what is a sliding window
+184. Seed pair: what is two pointer technique
+185. Seed pair: what is memoisation
+186. Seed pair: what is a deque
+187. Seed pair: what is a generator
+188. Seed pair: what is a context manager
+189. Seed pair: what is a closure
+190. Seed pair: what is duck typing
+191. Seed pair: what is the gil
+192. Seed pair: what are type hints
+193. Seed pair: what is pytest
+194. Seed pair: what is a virtual environment
+195. Seed pair: what is pep 8
+196. Seed pair: what is a wheel
+197. Seed pair: what is requirements txt
+198. Seed pair: what is a shebang
+199. Seed pair: what does if __name__ mean
+200. Seed pair: what is scope in python
+201. Seed pair: what is immutability
+202. Seed pair: what is tuple unpacking
+203. Seed pair: what is a frozenset
+204. Seed pair: what is a byte string
+205. Seed pair: what is a raw string
+206. Seed pair: what is string formatting
+207. Seed pair: what is a join
+208. Seed pair: what is a walrus operator
+209. Seed pair: what is a ternary expression
+210. Seed pair: what is a match statement
+211. Seed pair: what is an exception chain
+212. Seed pair: what is a finally block
+213. Seed pair: what is a custom exception
+214. Seed pair: what are logging levels
+215. Seed pair: what is a daemon thread
+216. Seed pair: what is a race condition
+217. Seed pair: what is async await
+218. Seed pair: what is a coroutine
+219. Seed pair: what is an event loop
+220. Seed pair: what is the difference between process and thread
+221. Seed pair: what is multiprocessing
+222. Seed pair: what is a memory leak in python
+223. Seed pair: what is garbage collection
+224. Seed pair: what is a linter
+225. Seed pair: what is a formatter
+226. Seed pair: what is a type checker
+227. Seed pair: what is ci
+228. Seed pair: what is a pre commit hook
+229. Seed pair: what is dependency pinning
+230. Seed pair: what is semantic versioning
+231. Seed pair: what is a changelog
+232. Seed pair: what is a regression
+233. Seed pair: what is test coverage
+234. Seed pair: what is mocking
+235. Seed pair: what is a fixture
+236. Seed pair: what is property based testing
+237. Seed pair: what is api versioning
+238. Seed pair: what is a health check
+239. Seed pair: what is a load balancer
+240. Seed pair: what is a cdn
+241. Seed pair: what is http status 418
+242. Seed pair: what is idempotency
+243. Seed pair: what is a websocket
+244. Seed pair: what is long polling
+245. Seed pair: what is a json schema
+246. Seed pair: what is openapi
+247. Seed pair: what is csp
+248. Seed pair: what is xss
+249. Seed pair: what is sqli
+250. Seed pair: what is csrf
+251. Seed pair: what is a salt
+252. Seed pair: what is hashing versus encryption
+253. Seed pair: what is constant time comparison
+254. Seed pair: what is the principle of least privilege
+255. Seed pair: what is a token bucket
+256. Seed pair: what is backoff
+257. Seed pair: what is a circuit breaker
+258. Seed pair: what is observability
+259. Seed pair: what is a metric histogram
+260. Seed pair: what is a trace id
+261. Seed pair: what is graceful shutdown
+262. Seed pair: what is a migration
+263. Seed pair: what is privacy by design
+264. Seed pair: what is a seed corpus
+265. Seed pair: what is human in the loop
+266. Seed pair: what is the ai alignment problem
+267. Seed pair: what is goodhart's law
+268. Seed pair: what is technical debt
+269. Seed pair: what is refactoring
+270. Seed pair: what is a code smell
+271. Seed pair: what is yagni
+272. Seed pair: what is kiss
+273. Seed pair: what is dry
+274. Seed pair: what is the boy scout rule
+275. Seed pair: what is rubber duck debugging
+276. Seed pair: what is a stack trace
+277. Seed pair: what is a breakpoint
+278. Seed pair: what is logging versus printing
+279. Seed pair: what is an assertion
+280. Seed pair: what is fail fast
+281. Seed pair: what is defensive copying
+282. Seed pair: what is a feature flag
+283. Seed pair: what is canary deployment
+284. Seed pair: what is rollback
+285. Seed pair: what is a postmortem
+286. Seed pair: what is an adr
+287. Seed pair: what is technical writing
+288. Seed pair: what is a user story
+289. Seed pair: what is mvp
+290. Seed pair: what is dogfooding
+291. Seed pair: what is progressive disclosure
+292. Seed pair: what is a vertical slice
+293. Seed pair: what is tracer bullet development
+294. Seed pair: what is yak shaving
+295. Seed pair: what is a timebox
+296. Seed pair: what is definition of done
+297. Seed pair: what is acceptance criteria
+298. Seed pair: what is load testing
+299. Seed pair: what is chaos testing
+300. Seed pair: what is a 400 versus 500
+301. Seed pair: what is a 429
+302. Seed pair: what is a 503
+303. Seed pair: what is a 204
+304. Seed pair: what is idempotent retry
+305. Seed pair: what is a webhook versus polling
+306. Seed pair: what is eventual consistency
+307. Seed pair: what is a write ahead log
+308. Seed pair: what is an atomic rename
+309. Seed pair: what is a checksum
+310. Seed pair: what is a heartbeat
+311. Seed pair: what is a leaky abstraction
+312. Seed pair: what is the law of demeter
+313. Seed pair: what is dependency injection
+314. Seed pair: what is inversion of control
+315. Seed pair: what is deterministic code
+316. Seed pair: what is a side effect
+317. Seed pair: what is defensive validation
+318. Seed pair: what is a data retention policy
+319. Seed pair: what is backpressure
+320. Seed pair: what is a semaphore
+321. Seed pair: what is a deadlock
+322. Seed pair: what is jitter
+323. Seed pair: what is monotonic time
+324. Seed pair: what is utc versus local time
+325. Seed pair: what is epoch time
+326. Seed pair: what is an iso 8601 date
+327. Seed pair: what is a canonical form
+328. Seed pair: what is stemming
+329. Seed pair: what is stop word removal
+330. Seed pair: what is a posting list
+331. Seed pair: what is a term frequency
+332. Seed pair: what is a document frequency
+333. Seed pair: what is a dot product
+334. Seed pair: what is vectorisation in numpy
+335. Seed pair: what is broadcasting
+336. Seed pair: what is a view versus a copy
+337. Seed pair: what is a hot path
+338. Seed pair: what is a bottleneck
+339. Seed pair: what is a cold start
+340. Seed pair: what is a warm cache
+341. Seed pair: what is the 80 20 rule
+342. Seed pair: what is hashability
+343. Seed pair: what is a hash collision
+344. Seed pair: what is a load factor
+345. Seed pair: what is a balanced tree
+346. Seed pair: what is a b-tree
+347. Seed pair: what is a union find
+348. Seed pair: what is topological sort
+349. Seed pair: what is dijkstra
+350. Seed pair: what is a star search
+351. Seed pair: what is a minimum spanning tree
+352. Seed pair: what is a segment tree
+353. Seed pair: what is a suffix array
+354. Seed pair: what is rolling hash
+355. Seed pair: what is kmp
+356. Seed pair: what is meet in the middle
+357. Seed pair: what is a state machine
+358. Seed pair: what is a finite automaton
+359. Seed pair: what is the halting problem
+360. Seed pair: what is p versus np
+361. Seed pair: what is np complete
+362. Seed pair: what is the travelling salesman problem
+363. Seed pair: what is the pigeonhole principle
+364. Seed pair: what is an invariant
+365. Seed pair: what is induction
+366. Seed pair: what is a counterexample
+367. Seed pair: what is occam's razor
+368. Seed pair: what is parkinson's law
+369. Seed pair: what is conway's law
+370. Seed pair: what is the map is not the territory
+371. Seed pair: what is symbolic versus statistical ai
+372. Seed pair: what is explainability
+373. Seed pair: what is a confidence score
+374. Seed pair: what is calibration
+375. Seed pair: what is hallucination
+376. Seed pair: what is a guardrail
+377. Seed pair: what is feedback loop design
+378. Seed pair: what is reinforcement in retrieval
+379. Seed pair: what is catastrophic forgetting
+380. Seed pair: what is a replay buffer
+381. Seed pair: what is self supervision
+382. Seed pair: what is a knowledge base versus a model
+383. Seed pair: what is provenance
+384. Seed pair: what is a tombstone
+385. Seed pair: what is idempotent teaching
+386. Seed pair: what is deduplication
+387. Seed pair: what is a quality gate
+388. Seed pair: what is a preflight check
+389. Seed pair: what is a status page
+390. Seed pair: what is a threat model
+391. Seed pair: what is path traversal
+392. Seed pair: what is input fuzzing
+393. Seed pair: what is output encoding
+394. Seed pair: what is atomicity
+395. Seed pair: what is durability
+396. Seed pair: what is a single writer principle
+397. Seed pair: what is a bounded queue
+398. Seed pair: what is an unbounded growth bug
+399. Seed pair: what is a watchdog
+400. Seed pair: what is a capability probe
+401. Seed pair: what is explicit configuration
+402. Seed pair: what is a twelve factor app
+403. Seed pair: what is a monolith
+404. Seed pair: what is coupling
+405. Seed pair: what is cohesion
+406. Seed pair: what is a test double
+407. Seed pair: what is a hermetic test
+408. Seed pair: what is a smoke test
+409. Seed pair: what is test isolation
+410. Seed pair: what is a golden file
+411. Seed pair: what is flaky test
+412. Seed pair: what is accessibility
+413. Seed pair: what is aria
+414. Seed pair: what is color contrast
+415. Seed pair: what is reduced motion
+416. Seed pair: what is semantic html
+417. Seed pair: what is an accessible name
+418. Seed pair: what is tab order
+419. Seed pair: what is a skip link
+420. Seed pair: what is internationalisation
+421. Seed pair: what is a time zone bug
+422. Seed pair: what is a monospace font
+423. Seed pair: what is a pwa install
+424. Seed pair: what is offline first
+425. Seed pair: what is localstorage
+426. Seed pair: what is a service worker
+427. Seed pair: what is debouncing
+428. Seed pair: what is an optimistic update
+429. Seed pair: what is a toast
+430. Seed pair: what is fitts law
+431. Seed pair: what is hicks law
+432. Seed pair: what is a design token
+433. Seed pair: what is flexbox versus grid
+434. Seed pair: what is perceived performance
+435. Seed pair: what is cpu versus io bound
+436. Seed pair: what is a microbenchmark
+437. Seed pair: what is a reverse proxy
+438. Seed pair: what is http keep alive
+439. Seed pair: what is an etag
+440. Seed pair: what is graceful degradation
+441. Seed pair: what is progressive enhancement
+442. Seed pair: what is a fallback chain
+443. Seed pair: what is an lru cache
+444. Seed pair: what is a ttl
+445. Seed pair: what is a schema
+446. Seed pair: what is a contract test
+447. Seed pair: what is a regression suite
+448. Seed pair: what is a test pyramid
+449. Seed pair: what is a trie
+450. Seed pair: what is a bloom filter
+451. Seed pair: what is tf idf
+452. Seed pair: what is an inverted index
+453. Seed pair: what is cosine similarity
+454. Seed pair: what is edit distance used for
+455. Seed pair: what is levenshtein distance
+456. Seed pair: what is a monte carlo method
+457. Seed pair: what is the birthday problem
+458. Seed pair: what is the law of large numbers
+459. Seed pair: what is the normal distribution
+460. Seed pair: what is standard deviation
+461. Seed pair: what is a median versus mean
+462. Seed pair: what is a percentile
+463. Seed pair: what is correlation versus causation
+464. Seed pair: what is p value
+465. Seed pair: what is bayes theorem
+466. Seed pair: what is a base rate
+467. Seed pair: what is a decision tree
+468. Seed pair: what is k nearest neighbours
+469. Seed pair: what is k means
+470. Seed pair: what is regression in ml
+471. Seed pair: what is an activation function
+472. Seed pair: what is softmax
+473. Seed pair: what is a learning rate
+474. Seed pair: what is batch size
+475. Seed pair: what is an epoch
+476. Seed pair: what is dropout
+477. Seed pair: what is data leakage
+478. Seed pair: what is feature engineering
+479. Seed pair: what is an ablation
+480. Seed pair: what is a baseline
+481. Seed pair: what is reproducibility
+482. Seed pair: what is a random seed
+483. Seed pair: what is a benchmark
+484. Seed pair: what is premature optimization
+485. Seed pair: what is profiling
+486. Seed pair: what is lazy evaluation
+487. Seed pair: what is short circuit evaluation
+488. Seed pair: what is a pure function
+489. Seed pair: what is separation of concerns
+490. Seed pair: what is a proof by contradiction
+491. Seed pair: what is a necessary versus sufficient condition
+492. Seed pair: what is a debugger
+493. Seed pair: what is a code review
+494. Seed pair: what is a pull request
+495. Seed pair: what is a release tag
+496. Seed pair: what is backwards compatibility
+497. Seed pair: what is deprecation
+498. Seed pair: what is an api contract
+499. Seed pair: what is a runbook
+500. Seed pair: what is a blast radius
+501. Seed pair: what is the principle of least astonishment
+502. Seed pair: what is active recall
+503. Seed pair: what is the feynman technique
+504. Seed pair: what is deliberate practice
+505. Seed pair: what is deep work
+506. Seed pair: what is incremental delivery
+507. Seed pair: what is a non functional requirement
+508. Seed pair: what is a graceful error message
+509. Seed pair: what is a fan out
+510. Seed pair: what is a cron job
+511. Seed pair: what is idempotent startup
+512. Seed pair: what is a version marker
+513. Seed pair: what is a fallback default
+514. Seed pair: what is a denial of service
+515. Seed pair: what is resource exhaustion
+516. Seed pair: what is a spike
+517. Seed pair: what is a proof of concept
+518. Seed pair: what is continuous delivery
+519. Seed pair: what is infrastructure as code
+520. Seed pair: what is a container
+521. Seed pair: what is port forwarding
+522. Seed pair: what is gzip compression
+523. Seed pair: what is a cache busting query
+524. Seed pair: what is lazy loading
+525. Seed pair: what is a skeleton screen
+526. Seed pair: what is the 3 click rule
+527. Seed pair: what is a web font
+528. Seed pair: what is a memory footprint
+529. Seed pair: what is the lindy effect
+530. Training text: the maths pack answers factorials fibonacci primes gcd lcm factorisation and divisors
+531. Training text: unit conversions cover celsius fahrenheit kilometres miles pounds ounces
+532. Training text: statistics work in chat: median mode range variance standard deviation geometric and harmonic mean
+533. Training text: finance helpers calculate tips simple interest compound interest and letter grades
+534. Training text: geometry helpers cover circles rectangles triangles spheres cylinders and hypotenuses
+535. Training text: fractions simplify add and multiply with exact rational arithmetic
+536. Training text: roman numerals convert both ways and reject non canonical spellings
+537. Training text: percent helpers cover change off increase decrease and what percent of
+538. Training text: the text pack uppercases lowercases titles capitalises and swaps case
+539. Training text: text encodings include base64 rot13 url encoding binary hex sha256 md5 and crc32
+540. Training text: line tools dedupe sort number strip and shuffle lines of text
+541. Training text: extraction tools pull emails urls numbers hashtags and mentions out of text
+542. Training text: data helpers pretty print json minify json and convert csv to markdown tables
+543. Training text: word games include pig latin palindrome isogram and anagram checks
+544. Training text: chat maths is exposed at the api math endpoint and text at api text
+545. Training text: every maths and text rule is listed by the api rules endpoint
+546. Training text: sixty two maths rules and fifty five text rules ship in version one ten
+547. Training text: one hundred and thirty four additional code template families ship in version one ten
+548. Training text: the template library now exceeds two hundred and eighteen families
+549. Training text: seed knowledge grew past four hundred and eighty question answer pairs
+550. Training text: the test suite passed four hundred tests in version one ten
+551. Training text: generated tests give every template family and every rule its own test method
+552. Training text: a ui density toggle switches between compact and comfortable spacing
+553. Training text: a high contrast mode strengthens borders and muted text for readability
+554. Training text: a reduce motion toggle disables animations and honours the system preference
+555. Training text: the sidebar collapses with the button or ctrl b
+556. Training text: pinned messages live in a strip above the composer and persist in local storage
+557. Training text: hover actions on every message offer copy pin and quote
+558. Training text: the edit last button reloads your previous message into the composer
+559. Training text: copy all collects the whole transcript as plain text
+560. Training text: a share button uses the web share api with a clipboard fallback
+561. Training text: a print button and a print stylesheet produce a clean transcript on paper
+562. Training text: desktop notifications and a title badge announce replies when the tab is hidden
+563. Training text: an optional web audio chime plays when a reply arrives
+564. Training text: messages typed while offline queue in local storage and flush when the connection returns
+565. Training text: the status text shows round trip ping time on hover
+566. Training text: polling pauses after five idle minutes to save battery
+567. Training text: a command dialog lists every keyboard shortcut and the question mark key opens it
+568. Training text: an about dialog shows the version and endpoint count
+569. Training text: svg icon serves as favicon apple touch icon and manifest icon
 
 ### Maths pack (65)
 
-568. Maths rule: factorial
-569. Maths rule: fibonacci nth
-570. Maths rule: is prime
-571. Maths rule: nth prime
-572. Maths rule: gcd lcm
-573. Maths rule: prime factors
-574. Maths rule: divisors
-575. Maths rule: digit sum
-576. Maths rule: digital root
-577. Maths rule: perfect square check
-578. Maths rule: palindrome number
-579. Maths rule: leap year
-580. Maths rule: divisible by
-581. Maths rule: even or odd
-582. Maths rule: nth root
-583. Maths rule: log base 10
-584. Maths rule: log2
-585. Maths rule: natural log
-586. Maths rule: trig degrees
-587. Maths rule: absolute value
-588. Maths rule: floor ceil
-589. Maths rule: round to n
-590. Maths rule: remainder
-591. Maths rule: percent of
-592. Maths rule: what percent of
-593. Maths rule: percent off
-594. Maths rule: percent increase
-595. Maths rule: percent decrease
-596. Maths rule: tip
-597. Maths rule: simple interest
-598. Maths rule: compound interest
-599. Maths rule: grade letter
-600. Maths rule: circle area
-601. Maths rule: rectangle area
-602. Maths rule: triangle area
-603. Maths rule: sphere volume
-604. Maths rule: cylinder volume
-605. Maths rule: pythagoras
-606. Maths rule: distance midpoint
-607. Maths rule: slope
-608. Maths rule: speed
-609. Maths rule: time
-610. Maths rule: bmi
-611. Maths rule: sum of range
-612. Maths rule: sum of squares
-613. Maths rule: triangular number
-614. Maths rule: median
-615. Maths rule: mode
-616. Maths rule: range
-617. Maths rule: variance
-618. Maths rule: stddev
-619. Maths rule: geometric mean
-620. Maths rule: harmonic mean
-621. Maths rule: decimal to fraction
-622. Maths rule: fraction to decimal
-623. Maths rule: simplify fraction
-624. Maths rule: add fractions
-625. Maths rule: multiply fractions
-626. Maths rule: ratio simplify
-627. Maths rule: independent probability
-628. Maths rule: coin run
-629. Maths rule: dice double
-630. Maths rule: hex to rgb
-631. Maths rule: rgb to hex
-632. Maths rule: quadratic roots
+570. Maths rule: factorial
+571. Maths rule: fibonacci nth
+572. Maths rule: is prime
+573. Maths rule: nth prime
+574. Maths rule: gcd lcm
+575. Maths rule: prime factors
+576. Maths rule: divisors
+577. Maths rule: digit sum
+578. Maths rule: digital root
+579. Maths rule: perfect square check
+580. Maths rule: palindrome number
+581. Maths rule: leap year
+582. Maths rule: divisible by
+583. Maths rule: even or odd
+584. Maths rule: nth root
+585. Maths rule: log base 10
+586. Maths rule: log2
+587. Maths rule: natural log
+588. Maths rule: trig degrees
+589. Maths rule: absolute value
+590. Maths rule: floor ceil
+591. Maths rule: round to n
+592. Maths rule: remainder
+593. Maths rule: percent of
+594. Maths rule: what percent of
+595. Maths rule: percent off
+596. Maths rule: percent increase
+597. Maths rule: percent decrease
+598. Maths rule: tip
+599. Maths rule: simple interest
+600. Maths rule: compound interest
+601. Maths rule: grade letter
+602. Maths rule: circle area
+603. Maths rule: rectangle area
+604. Maths rule: triangle area
+605. Maths rule: sphere volume
+606. Maths rule: cylinder volume
+607. Maths rule: pythagoras
+608. Maths rule: distance midpoint
+609. Maths rule: slope
+610. Maths rule: speed
+611. Maths rule: time
+612. Maths rule: bmi
+613. Maths rule: sum of range
+614. Maths rule: sum of squares
+615. Maths rule: triangular number
+616. Maths rule: median
+617. Maths rule: mode
+618. Maths rule: range
+619. Maths rule: variance
+620. Maths rule: stddev
+621. Maths rule: geometric mean
+622. Maths rule: harmonic mean
+623. Maths rule: decimal to fraction
+624. Maths rule: fraction to decimal
+625. Maths rule: simplify fraction
+626. Maths rule: add fractions
+627. Maths rule: multiply fractions
+628. Maths rule: ratio simplify
+629. Maths rule: independent probability
+630. Maths rule: coin run
+631. Maths rule: dice double
+632. Maths rule: hex to rgb
+633. Maths rule: rgb to hex
+634. Maths rule: quadratic roots
 
 ### Text pack (55)
 
-633. Text rule: uppercase
-634. Text rule: lowercase
-635. Text rule: title case
-636. Text rule: capitalize
-637. Text rule: swap case
-638. Text rule: reverse text
-639. Text rule: reverse words
-640. Text rule: count words
-641. Text rule: count characters
-642. Text rule: count vowels
-643. Text rule: count consonants
-644. Text rule: count sentences
-645. Text rule: reading time
-646. Text rule: word frequency
-647. Text rule: slugify
-648. Text rule: snake case
-649. Text rule: kebab case
-650. Text rule: camel case
-651. Text rule: initials
-652. Text rule: acronym
-653. Text rule: base64 encode
-654. Text rule: base64 decode
-655. Text rule: rot13
-656. Text rule: url encode
-657. Text rule: binary of text
-658. Text rule: hex of text
-659. Text rule: sha256
-660. Text rule: md5
-661. Text rule: crc32
-662. Text rule: remove duplicate lines
-663. Text rule: sort lines
-664. Text rule: number lines
-665. Text rule: strip empty lines
-666. Text rule: collapse spaces
-667. Text rule: trim
-668. Text rule: shuffle lines
-669. Text rule: extract emails
-670. Text rule: extract urls
-671. Text rule: extract numbers
-672. Text rule: extract hashtags
-673. Text rule: extract mentions
-674. Text rule: json pretty
-675. Text rule: json minify
-676. Text rule: csv to markdown
-677. Text rule: markdown to text
-678. Text rule: pig latin
-679. Text rule: is palindrome
-680. Text rule: is isogram
-681. Text rule: are anagrams
-682. Text rule: repeat text
-683. Text rule: truncate
-684. Text rule: pad text
-685. Text rule: replace text
-686. Text rule: split to list
-687. Text rule: join list
+635. Text rule: uppercase
+636. Text rule: lowercase
+637. Text rule: title case
+638. Text rule: capitalize
+639. Text rule: swap case
+640. Text rule: reverse text
+641. Text rule: reverse words
+642. Text rule: count words
+643. Text rule: count characters
+644. Text rule: count vowels
+645. Text rule: count consonants
+646. Text rule: count sentences
+647. Text rule: reading time
+648. Text rule: word frequency
+649. Text rule: slugify
+650. Text rule: snake case
+651. Text rule: kebab case
+652. Text rule: camel case
+653. Text rule: initials
+654. Text rule: acronym
+655. Text rule: base64 encode
+656. Text rule: base64 decode
+657. Text rule: rot13
+658. Text rule: url encode
+659. Text rule: binary of text
+660. Text rule: hex of text
+661. Text rule: sha256
+662. Text rule: md5
+663. Text rule: crc32
+664. Text rule: remove duplicate lines
+665. Text rule: sort lines
+666. Text rule: number lines
+667. Text rule: strip empty lines
+668. Text rule: collapse spaces
+669. Text rule: trim
+670. Text rule: shuffle lines
+671. Text rule: extract emails
+672. Text rule: extract urls
+673. Text rule: extract numbers
+674. Text rule: extract hashtags
+675. Text rule: extract mentions
+676. Text rule: json pretty
+677. Text rule: json minify
+678. Text rule: csv to markdown
+679. Text rule: markdown to text
+680. Text rule: pig latin
+681. Text rule: is palindrome
+682. Text rule: is isogram
+683. Text rule: are anagrams
+684. Text rule: repeat text
+685. Text rule: truncate
+686. Text rule: pad text
+687. Text rule: replace text
+688. Text rule: split to list
+689. Text rule: join list
 
 ### Brain wiring (8)
 
-688. Maths pack runs in `reply()` before arithmetic (confidence 1.0, mode `math`)
-689. Text pack runs in `reply()` and tags replies as `skill: text:<rule>`
-690. `quick_answer()` consults the maths pack (self-eval coverage)
-691. `quick_answer()` consults the text pack
-692. Both packs return `None` on no match so normal chat continues
-693. Rule handlers are exception-guarded — a broken rule can never 500 chat
-694. Seed loading is **additive and idempotent** — a later boot merges only the pairs/texts an update added, instead of skipping the seed because memory is no longer empty
-695. `TEMPLATE_HINT` now names only capabilities that really have a family — 29 advertised concepts (trie, bloom filter, dijkstra, LRU/TTL cache, circuit breaker, cron, JWT…) had no template behind them and were written for this release
+690. Maths pack runs in `reply()` before arithmetic (confidence 1.0, mode `math`)
+691. Text pack runs in `reply()` and tags replies as `skill: text:<rule>`
+692. `quick_answer()` consults the maths pack (self-eval coverage)
+693. `quick_answer()` consults the text pack
+694. Both packs return `None` on no match so normal chat continues
+695. Rule handlers are exception-guarded — a broken rule can never 500 chat
+696. Seed loading is **additive and idempotent** — a later boot merges only the pairs/texts an update added, instead of skipping the seed because memory is no longer empty
+697. `TEMPLATE_HINT` now names only capabilities that really have a family — 29 advertised concepts (trie, bloom filter, dijkstra, LRU/TTL cache, circuit breaker, cron, JWT…) had no template behind them and were written for this release
 
 ### API (16)
 
-696. GET /api/math — evaluate a maths expression, falls back to arithmetic
-697. GET /api/text — run a text transform; 404 lists every available rule
-698. GET /api/rules — machine-readable inventory of maths, text and code rules
-699. GET /api/convert — unit/temperature conversion only
-700. GET /api/roman — roman numerals both directions
-701. GET /api/echo — echo with length + server time, for client debugging
-702. GET /api/uptime — uptime seconds plus human form
-703. GET /api/endpoints — self-describing route list
-704. GET /api/metrics — Prometheus-style text metrics
-705. POST /api/chat/batch — up to 10 messages in one round-trip, `results` array
-706. GET /api/quote — a random constitution principle
-707. X-Request-Id — per-request id, echoed when the client supplies one
-708. Server-Timing — per-request duration header for profiling
-709. before_request stamp — records the monotonic start used by `Server-Timing`
-710. X-MyGPT-Version — version header on every response
-711. uptime baseline — restored `_started_monotonic` used by the new endpoints
+698. GET /api/math — evaluate a maths expression, falls back to arithmetic
+699. GET /api/text — run a text transform; 404 lists every available rule
+700. GET /api/rules — machine-readable inventory of maths, text and code rules
+701. GET /api/convert — unit/temperature conversion only
+702. GET /api/roman — roman numerals both directions
+703. GET /api/echo — echo with length + server time, for client debugging
+704. GET /api/uptime — uptime seconds plus human form
+705. GET /api/endpoints — self-describing route list
+706. GET /api/metrics — Prometheus-style text metrics
+707. POST /api/chat/batch — up to 10 messages in one round-trip, `results` array
+708. GET /api/quote — a random constitution principle
+709. X-Request-Id — per-request id, echoed when the client supplies one
+710. Server-Timing — per-request duration header for profiling
+711. before_request stamp — records the monotonic start used by `Server-Timing`
+712. X-MyGPT-Version — version header on every response
+713. uptime baseline — restored `_started_monotonic` used by the new endpoints
 
 ### WebUI (56)
 
-712. 📐 density toggle switches compact ⇄ comfortable
-713. Density preference persisted in localStorage
-714. Compact CSS pack (tighter bubbles, cards and message gaps)
-715. ◐ high-contrast toggle with strengthened borders and muted text
-716. High-contrast CSS via `html[data-contrast=high]`
-717. 🎞 reduced-motion toggle that shortens all animations
-718. Reduced-motion CSS enforcement in one block
-719. `prefers-reduced-motion` media query honoured automatically
-720. `prefers-contrast: more` media query honoured automatically
-721. ◧ sidebar collapse button hides the panel and widens the chat
-722. Ctrl+B toggles the sidebar
-723. Sidebar state persisted in localStorage
-724. 🔔 sound toggle with a WebAudio chime — no audio assets
-725. 🖥 desktop-notification toggle with permission request
-726. Notification + title-badge flash when a reply lands while hidden
-727. Pinned-messages strip above the composer
-728. 📌 pin action on every message
-729. Click a pin chip to jump; right-click to unpin
-730. Pins persisted in localStorage (max 8, oldest evicted)
-731. ⧉ copy action on every message
-732. ❝ quote action drops the first line into the composer
-733. Hover/focus reveal for the message action row
-734. ✏️ edit-last button reloads the previous message
-735. ⧉ copy-all button collects the whole transcript as text
-736. ⤒ first button jumps to the top and flashes the message
-737. 🔗 share button uses the Web Share API
-738. Share falls back to the clipboard with a clear toast
-739. 🖨 print button plus print-stylesheet rules for the new chrome
-740. ⌘ help dialog listing every shortcut
-741. `?` on the keyboard opens the help dialog
-742. About dialog showing live version and endpoint count
-743. Offline queue stores messages typed with no connection
-744. Queue flushes automatically on `online`
-745. Offline styling on the composer
-746. Idle detection (5 quiet minutes) pauses polling
-747. Welcome-back toast when activity resumes
-748. Round-trip ping measured every 45 s
-749. Ping time + quality shown in the status tooltip
-750. Toggle on/off visual states for all seven prefs
-751. Modal styling with backdrop, kbd chips and focus return
-752. `.msg-actions`, `.pins-bar` and `.chat-actions` CSS
-753. Skip-to-composer link (keyboard users)
-754. `role="log"` + `aria-live` on the transcript
-755. `aria-busy` set while a reply is pending
-756. `:focus-visible` outlines on every interactive control
-757. `.sr-only` utility class added
-758. `aria-label` on the pins bar
-759. Icon-only buttons all carry `aria-label`/`title`
-760. Flash highlight on the message jumped to
-761. Composer anchor for the skip-link target
-762. v1.10 print rules hide action rows, pins and dialogs
-763. Prefs persisted as one JSON key (`mygpt.prefs`)
-764. Toast feedback for every new toggle
-765. LocalStorage guarded in try/catch (private-mode safe)
-766. Density/contrast/motion applied through `data-*` attributes
-767. Deduped prefs bootstrap (one read, one write)
+714. 📐 density toggle switches compact ⇄ comfortable
+715. Density preference persisted in localStorage
+716. Compact CSS pack (tighter bubbles, cards and message gaps)
+717. ◐ high-contrast toggle with strengthened borders and muted text
+718. High-contrast CSS via `html[data-contrast=high]`
+719. 🎞 reduced-motion toggle that shortens all animations
+720. Reduced-motion CSS enforcement in one block
+721. `prefers-reduced-motion` media query honoured automatically
+722. `prefers-contrast: more` media query honoured automatically
+723. ◧ sidebar collapse button hides the panel and widens the chat
+724. Ctrl+B toggles the sidebar
+725. Sidebar state persisted in localStorage
+726. 🔔 sound toggle with a WebAudio chime — no audio assets
+727. 🖥 desktop-notification toggle with permission request
+728. Notification + title-badge flash when a reply lands while hidden
+729. Pinned-messages strip above the composer
+730. 📌 pin action on every message
+731. Click a pin chip to jump; right-click to unpin
+732. Pins persisted in localStorage (max 8, oldest evicted)
+733. ⧉ copy action on every message
+734. ❝ quote action drops the first line into the composer
+735. Hover/focus reveal for the message action row
+736. ✏️ edit-last button reloads the previous message
+737. ⧉ copy-all button collects the whole transcript as text
+738. ⤒ first button jumps to the top and flashes the message
+739. 🔗 share button uses the Web Share API
+740. Share falls back to the clipboard with a clear toast
+741. 🖨 print button plus print-stylesheet rules for the new chrome
+742. ⌘ help dialog listing every shortcut
+743. `?` on the keyboard opens the help dialog
+744. About dialog showing live version and endpoint count
+745. Offline queue stores messages typed with no connection
+746. Queue flushes automatically on `online`
+747. Offline styling on the composer
+748. Idle detection (5 quiet minutes) pauses polling
+749. Welcome-back toast when activity resumes
+750. Round-trip ping measured every 45 s
+751. Ping time + quality shown in the status tooltip
+752. Toggle on/off visual states for all seven prefs
+753. Modal styling with backdrop, kbd chips and focus return
+754. `.msg-actions`, `.pins-bar` and `.chat-actions` CSS
+755. Skip-to-composer link (keyboard users)
+756. `role="log"` + `aria-live` on the transcript
+757. `aria-busy` set while a reply is pending
+758. `:focus-visible` outlines on every interactive control
+759. `.sr-only` utility class added
+760. `aria-label` on the pins bar
+761. Icon-only buttons all carry `aria-label`/`title`
+762. Flash highlight on the message jumped to
+763. Composer anchor for the skip-link target
+764. v1.10 print rules hide action rows, pins and dialogs
+765. Prefs persisted as one JSON key (`mygpt.prefs`)
+766. Toast feedback for every new toggle
+767. LocalStorage guarded in try/catch (private-mode safe)
+768. Density/contrast/motion applied through `data-*` attributes
+769. Deduped prefs bootstrap (one read, one write)
 
-### Tests (335)
+### Tests (336)
 
-768. Test: TemplatePackTests.test_family_001_linear_search
-769. Test: TemplatePackTests.test_family_002_selection_sort
-770. Test: TemplatePackTests.test_family_003_insertion_sort
-771. Test: TemplatePackTests.test_family_004_merge_sort
-772. Test: TemplatePackTests.test_family_005_quick_sort
-773. Test: TemplatePackTests.test_family_006_heap_sort
-774. Test: TemplatePackTests.test_family_007_counting_sort
-775. Test: TemplatePackTests.test_family_008_binary_search_recursive
-776. Test: TemplatePackTests.test_family_009_two_sum_problem
-777. Test: TemplatePackTests.test_family_010_maximum_subarray
-778. Test: TemplatePackTests.test_family_011_longest_common_prefix
-779. Test: TemplatePackTests.test_family_012_longest_common_subsequence
-780. Test: TemplatePackTests.test_family_013_edit_distance
-781. Test: TemplatePackTests.test_family_014_knapsack_0_1
-782. Test: TemplatePackTests.test_family_015_coin_change
-783. Test: TemplatePackTests.test_family_016_fibonacci_memoized
-784. Test: TemplatePackTests.test_family_017_pascal_triangle
-785. Test: TemplatePackTests.test_family_018_catalan_numbers
-786. Test: TemplatePackTests.test_family_019_prime_factorization
-787. Test: TemplatePackTests.test_family_020_sieve_of_eratosthenes
-788. Test: TemplatePackTests.test_family_021_nth_prime
-789. Test: TemplatePackTests.test_family_022_twin_primes
-790. Test: TemplatePackTests.test_family_023_perfect_numbers
-791. Test: TemplatePackTests.test_family_024_amicable_numbers
-792. Test: TemplatePackTests.test_family_025_happy_numbers
-793. Test: TemplatePackTests.test_family_026_kaprekar_number
-794. Test: TemplatePackTests.test_family_027_automorphic_number
-795. Test: TemplatePackTests.test_family_028_sum_of_divisors
-796. Test: TemplatePackTests.test_family_029_count_divisors
-797. Test: TemplatePackTests.test_family_030_euler_totient
-798. Test: TemplatePackTests.test_family_031_trailing_zeros_factorial
-799. Test: TemplatePackTests.test_family_032_binomial_coefficient
-800. Test: TemplatePackTests.test_family_033_permutations_and_combinations
-801. Test: TemplatePackTests.test_family_034_power_set
-802. Test: TemplatePackTests.test_family_035_cartesian_product
-803. Test: TemplatePackTests.test_family_036_rotate_a_list
-804. Test: TemplatePackTests.test_family_037_chunk_a_list
-805. Test: TemplatePackTests.test_family_038_partition_list
-806. Test: TemplatePackTests.test_family_039_group_by_key
-807. Test: TemplatePackTests.test_family_040_invert_a_dictionary
-808. Test: TemplatePackTests.test_family_041_sort_dict_by_value
-809. Test: TemplatePackTests.test_family_042_dict_from_two_lists
-810. Test: TemplatePackTests.test_family_043_deep_merge_dicts
-811. Test: TemplatePackTests.test_family_044_flatten_a_dict
-812. Test: TemplatePackTests.test_family_045_count_occurrences
-813. Test: TemplatePackTests.test_family_046_find_duplicates_in_list
-814. Test: TemplatePackTests.test_family_047_remove_falsy_values
-815. Test: TemplatePackTests.test_family_048_zip_longest
-816. Test: TemplatePackTests.test_family_049_pairwise_iteration
-817. Test: TemplatePackTests.test_family_050_matrix_multiplication
-818. Test: TemplatePackTests.test_family_051_matrix_addition
-819. Test: TemplatePackTests.test_family_052_identity_matrix
-820. Test: TemplatePackTests.test_family_053_determinant
-821. Test: TemplatePackTests.test_family_054_rotate_matrix
-822. Test: TemplatePackTests.test_family_055_spiral_matrix
-823. Test: TemplatePackTests.test_family_056_diagonal_sum
-824. Test: TemplatePackTests.test_family_057_string_to_int
-825. Test: TemplatePackTests.test_family_058_int_to_string
-826. Test: TemplatePackTests.test_family_059_vigenere_cipher
-827. Test: TemplatePackTests.test_family_060_morse_code
-828. Test: TemplatePackTests.test_family_061_atbash_cipher
-829. Test: TemplatePackTests.test_family_062_base64_encode_decode
-830. Test: TemplatePackTests.test_family_063_hash_a_string
-831. Test: TemplatePackTests.test_family_064_uuid_generation
-832. Test: TemplatePackTests.test_family_065_random_shuffle
-833. Test: TemplatePackTests.test_family_066_weighted_choice
-834. Test: TemplatePackTests.test_family_067_roll_dice_statistics
-835. Test: TemplatePackTests.test_family_068_deck_of_cards
-836. Test: TemplatePackTests.test_family_069_memoize_decorator
-837. Test: TemplatePackTests.test_family_070_retry_decorator
-838. Test: TemplatePackTests.test_family_071_singleton_pattern
-839. Test: TemplatePackTests.test_family_072_factory_pattern
-840. Test: TemplatePackTests.test_family_073_observer_pattern
-841. Test: TemplatePackTests.test_family_074_strategy_pattern
-842. Test: TemplatePackTests.test_family_075_namedtuple_example
-843. Test: TemplatePackTests.test_family_076_defaultdict_example
-844. Test: TemplatePackTests.test_family_077_heapq_example
-845. Test: TemplatePackTests.test_family_078_bisect_example
-846. Test: TemplatePackTests.test_family_079_itertools_example
-847. Test: TemplatePackTests.test_family_080_functools_reduce
-848. Test: TemplatePackTests.test_family_081_functools_partial
-849. Test: TemplatePackTests.test_family_082_context_manager_class
-850. Test: TemplatePackTests.test_family_083_contextmanager_decorator
-851. Test: TemplatePackTests.test_family_084_property_decorator
-852. Test: TemplatePackTests.test_family_085_classmethod_staticmethod
-853. Test: TemplatePackTests.test_family_086_frozen_dataclass
-854. Test: TemplatePackTests.test_family_087_dataclass_with_slots
-855. Test: TemplatePackTests.test_family_088_abc_abstract_class
-856. Test: TemplatePackTests.test_family_089_typeddict_example
-857. Test: TemplatePackTests.test_family_090_mro_multiple_inheritance
-858. Test: TemplatePackTests.test_family_091_counter_example
-859. Test: TemplatePackTests.test_family_092_chainmap_example
-860. Test: TemplatePackTests.test_family_093_csv_dict_reader
-861. Test: TemplatePackTests.test_family_094_csv_dict_writer
-862. Test: TemplatePackTests.test_family_095_json_pretty_print
-863. Test: TemplatePackTests.test_family_096_json_to_csv
-864. Test: TemplatePackTests.test_family_097_csv_to_json
-865. Test: TemplatePackTests.test_family_098_ini_config_parser
-866. Test: TemplatePackTests.test_family_099_xml_parse_example
-867. Test: TemplatePackTests.test_family_100_sqlite_basics
-868. Test: TemplatePackTests.test_family_101_sqlite_parameterized_query
-869. Test: TemplatePackTests.test_family_102_sqlite_context_manager
-870. Test: TemplatePackTests.test_family_103_copy_a_file
-871. Test: TemplatePackTests.test_family_104_move_or_rename_a_file
-872. Test: TemplatePackTests.test_family_105_delete_files_by_pattern
-873. Test: TemplatePackTests.test_family_106_make_directory_tree
-874. Test: TemplatePackTests.test_family_107_zip_files_into_archive
-875. Test: TemplatePackTests.test_family_108_unzip_archive
-876. Test: TemplatePackTests.test_family_109_human_readable_file_size
-877. Test: TemplatePackTests.test_family_110_check_if_file_exists
-878. Test: TemplatePackTests.test_family_111_temp_file_usage
-879. Test: TemplatePackTests.test_family_112_pathlib_tour
-880. Test: TemplatePackTests.test_family_113_read_file_in_chunks
-881. Test: TemplatePackTests.test_family_114_tail_a_file
-882. Test: TemplatePackTests.test_family_115_word_frequency_from_file
-883. Test: TemplatePackTests.test_family_116_grep_text_in_files
-884. Test: TemplatePackTests.test_family_117_bulk_rename_files
-885. Test: TemplatePackTests.test_family_118_deduplicate_files_by_hash
-886. Test: TemplatePackTests.test_family_119_download_a_file
-887. Test: TemplatePackTests.test_family_120_progress_bar
-888. Test: TemplatePackTests.test_family_121_text_spinner
-889. Test: TemplatePackTests.test_family_122_ansi_colors
-890. Test: TemplatePackTests.test_family_123_clear_the_screen
-891. Test: TemplatePackTests.test_family_124_terminal_menu
-892. Test: TemplatePackTests.test_family_125_stopwatch
-893. Test: TemplatePackTests.test_family_126_beep_sound
-894. Test: TemplatePackTests.test_family_127_rotating_log_files
-895. Test: TemplatePackTests.test_family_128_serve_a_directory
-896. Test: TemplatePackTests.test_family_129_http_client_with_retries
-897. Test: TemplatePackTests.test_family_130_url_parsing
-898. Test: TemplatePackTests.test_family_131_build_a_query_string
-899. Test: TemplatePackTests.test_family_132_json_http_post
-900. Test: TemplatePackTests.test_family_133_basic_auth_header
-901. Test: TemplatePackTests.test_family_134_rate_limiter
-902. Test: TemplatePackTests.test_family_135_trie
-903. Test: TemplatePackTests.test_family_136_bloom_filter
-904. Test: TemplatePackTests.test_family_137_dijkstra
-905. Test: TemplatePackTests.test_family_138_topological_sort
-906. Test: TemplatePackTests.test_family_139_bfs
-907. Test: TemplatePackTests.test_family_140_dfs
-908. Test: TemplatePackTests.test_family_141_heap
-909. Test: TemplatePackTests.test_family_142_queue
-910. Test: TemplatePackTests.test_family_143_deque
-911. Test: TemplatePackTests.test_family_144_state_machine
-912. Test: TemplatePackTests.test_family_145_lru_cache
-913. Test: TemplatePackTests.test_family_146_ttl_cache
-914. Test: TemplatePackTests.test_family_147_backoff
-915. Test: TemplatePackTests.test_family_148_circuit_breaker
-916. Test: TemplatePackTests.test_family_149_event_emitter
-917. Test: TemplatePackTests.test_family_150_cron
-918. Test: TemplatePackTests.test_family_151_jwt
-919. Test: TemplatePackTests.test_family_152_checksum
-920. Test: TemplatePackTests.test_family_153_sliding_window
-921. Test: TemplatePackTests.test_family_154_two_pointers
-922. Test: TemplatePackTests.test_family_155_benchmark
-923. Test: TemplatePackTests.test_family_156_memoise
-924. Test: TemplatePackTests.test_family_157_pagination
-925. Test: TemplatePackTests.test_family_158_async
-926. Test: TemplatePackTests.test_family_159_threads
-927. Test: TemplatePackTests.test_family_160_zip_files
-928. Test: TemplatePackTests.test_family_161_html_escape
-929. Test: TemplatePackTests.test_family_162_markdown_table
-930. Test: TemplatePackTests.test_family_163_validate_email
-931. Test: ApiPackTests.test_chat_batch
-932. Test: ApiPackTests.test_chat_batch_cap
-933. Test: ApiPackTests.test_chat_batch_validation
-934. Test: ApiPackTests.test_convert_endpoint
-935. Test: ApiPackTests.test_convert_endpoint_404
-936. Test: ApiPackTests.test_echo_endpoint
-937. Test: ApiPackTests.test_endpoints_listing
-938. Test: ApiPackTests.test_math_endpoint
-939. Test: ApiPackTests.test_math_endpoint_400
-940. Test: ApiPackTests.test_math_endpoint_404
-941. Test: ApiPackTests.test_metrics_endpoint
-942. Test: ApiPackTests.test_page_has_v110_controls
-943. Test: ApiPackTests.test_quote_endpoint
-944. Test: ApiPackTests.test_request_id_echoed
-945. Test: ApiPackTests.test_request_id_header
-946. Test: ApiPackTests.test_roman_endpoint_number
-947. Test: ApiPackTests.test_roman_endpoint_roman
-948. Test: ApiPackTests.test_rules_endpoint
-949. Test: ApiPackTests.test_server_timing_header
-950. Test: ApiPackTests.test_text_endpoint
-951. Test: ApiPackTests.test_text_endpoint_404_lists_rules
-952. Test: ApiPackTests.test_uptime_endpoint
-953. Test: ApiPackTests.test_version_header
-954. Test: BrainPackTests.test_code_still_wins_for_code_asks
-955. Test: BrainPackTests.test_counter_grows
-956. Test: BrainPackTests.test_maths_pack_answer
-957. Test: BrainPackTests.test_quick_answer_uses_mathx
-958. Test: BrainPackTests.test_quick_answer_uses_textfx
-959. Test: BrainPackTests.test_seed_knowledge_reachable
-960. Test: BrainPackTests.test_text_pack_answer
-961. Test: BrainPackTests.test_text_pack_skill_tag
-962. Test: MathPackTests.test_math_001_factorial
-963. Test: MathPackTests.test_math_002_fibonacci
-964. Test: MathPackTests.test_math_003_is_prime_yes
-965. Test: MathPackTests.test_math_004_is_prime_no
-966. Test: MathPackTests.test_math_005_nth_prime
-967. Test: MathPackTests.test_math_006_gcd
-968. Test: MathPackTests.test_math_007_lcm
-969. Test: MathPackTests.test_math_008_prime_factors
-970. Test: MathPackTests.test_math_009_divisors
-971. Test: MathPackTests.test_math_010_digit_sum
-972. Test: MathPackTests.test_math_011_digital_root
-973. Test: MathPackTests.test_math_012_perfect_square
-974. Test: MathPackTests.test_math_013_palindrome_number
-975. Test: MathPackTests.test_math_014_leap_year
-976. Test: MathPackTests.test_math_015_divisible
-977. Test: MathPackTests.test_math_016_even_odd
-978. Test: MathPackTests.test_math_017_cube_root
-979. Test: MathPackTests.test_math_018_log10
-980. Test: MathPackTests.test_math_019_log2
-981. Test: MathPackTests.test_math_020_natural_log
-982. Test: MathPackTests.test_math_021_trig
-983. Test: MathPackTests.test_math_022_absolute
-984. Test: MathPackTests.test_math_023_floor
-985. Test: MathPackTests.test_math_024_ceiling
-986. Test: MathPackTests.test_math_025_round_decimals
-987. Test: MathPackTests.test_math_026_remainder
-988. Test: MathPackTests.test_math_027_percent_increase
-989. Test: MathPackTests.test_math_028_percent_decrease
-990. Test: MathPackTests.test_math_029_tip
-991. Test: MathPackTests.test_math_030_simple_interest
-992. Test: MathPackTests.test_math_031_compound_interest
-993. Test: MathPackTests.test_math_032_grade
-994. Test: MathPackTests.test_math_033_circle
-995. Test: MathPackTests.test_math_034_rectangle
-996. Test: MathPackTests.test_math_035_triangle
-997. Test: MathPackTests.test_math_036_sphere
-998. Test: MathPackTests.test_math_037_cylinder
-999. Test: MathPackTests.test_math_038_pythagoras
-1000. Test: MathPackTests.test_math_039_distance
-1001. Test: MathPackTests.test_math_040_midpoint
-1002. Test: MathPackTests.test_math_041_slope
-1003. Test: MathPackTests.test_math_042_speed
-1004. Test: MathPackTests.test_math_043_travel_time
-1005. Test: MathPackTests.test_math_044_bmi
-1006. Test: MathPackTests.test_math_045_sum_range
-1007. Test: MathPackTests.test_math_046_sum_squares
-1008. Test: MathPackTests.test_math_047_triangular
-1009. Test: MathPackTests.test_math_048_median
-1010. Test: MathPackTests.test_math_049_mode
-1011. Test: MathPackTests.test_math_050_range
-1012. Test: MathPackTests.test_math_051_variance
-1013. Test: MathPackTests.test_math_052_stddev
-1014. Test: MathPackTests.test_math_053_geometric_mean
-1015. Test: MathPackTests.test_math_054_harmonic_mean
-1016. Test: MathPackTests.test_math_055_decimal_to_fraction
-1017. Test: MathPackTests.test_math_056_fraction_to_decimal
-1018. Test: MathPackTests.test_math_057_simplify_fraction
-1019. Test: MathPackTests.test_math_058_add_fractions
-1020. Test: MathPackTests.test_math_059_multiply_fractions
-1021. Test: MathPackTests.test_math_060_ratio
-1022. Test: MathPackTests.test_math_061_independent_probability
-1023. Test: MathPackTests.test_math_062_coin_run
-1024. Test: MathPackTests.test_math_063_dice_double
-1025. Test: MathPackTests.test_math_064_hex_to_rgb
-1026. Test: MathPackTests.test_math_065_rgb_to_hex
-1027. Test: MathPackTests.test_math_066_quadratic
-1028. Test: MathPackTests.test_math_067_percent_of
-1029. Test: MathPackTests.test_math_068_what_percent_of
-1030. Test: MathPackTests.test_math_069_percent_off
-1031. Test: MathPackTests.test_rule_count
-1032. Test: MathPackTests.test_rule_names_unique
-1033. Test: MathPackTests.test_unrelated_text_no_match
-1034. Test: SeedPackTests.test_answer_length_sane
-1035. Test: SeedPackTests.test_every_pair_has_content
-1036. Test: SeedPackTests.test_no_duplicate_questions
-1037. Test: SeedPackTests.test_no_markup_in_answers
-1038. Test: SeedPackTests.test_pair_count
-1039. Test: SeedPackTests.test_seed_merge_is_additive
-1040. Test: SeedPackTests.test_seed_topic_is_answerable
-1041. Test: SeedPackTests.test_texts_present
-1042. Test: TemplatePackTests.test_all_extra_snippets_distinct
-1043. Test: TemplatePackTests.test_every_snippet_compiles
-1044. Test: TemplatePackTests.test_total_family_count
-1045. Test: TextPackTests.test_questions_not_hijacked
-1046. Test: TextPackTests.test_rule_count
-1047. Test: TextPackTests.test_rule_names_unique
-1048. Test: TextPackTests.test_text_001_uppercase
-1049. Test: TextPackTests.test_text_002_lowercase
-1050. Test: TextPackTests.test_text_003_title_case
-1051. Test: TextPackTests.test_text_004_capitalize
-1052. Test: TextPackTests.test_text_005_swap_case
-1053. Test: TextPackTests.test_text_006_reverse_text
-1054. Test: TextPackTests.test_text_007_reverse_words
-1055. Test: TextPackTests.test_text_008_count_words
-1056. Test: TextPackTests.test_text_009_count_characters
-1057. Test: TextPackTests.test_text_010_count_vowels
-1058. Test: TextPackTests.test_text_011_count_consonants
-1059. Test: TextPackTests.test_text_012_count_sentences
-1060. Test: TextPackTests.test_text_013_reading_time
-1061. Test: TextPackTests.test_text_014_word_frequency
-1062. Test: TextPackTests.test_text_015_slugify
-1063. Test: TextPackTests.test_text_016_snake_case
-1064. Test: TextPackTests.test_text_017_kebab_case
-1065. Test: TextPackTests.test_text_018_camel_case
-1066. Test: TextPackTests.test_text_019_initials
-1067. Test: TextPackTests.test_text_020_acronym
-1068. Test: TextPackTests.test_text_021_base64_encode
-1069. Test: TextPackTests.test_text_022_base64_decode
-1070. Test: TextPackTests.test_text_023_rot13
-1071. Test: TextPackTests.test_text_024_url_encode
-1072. Test: TextPackTests.test_text_025_binary_of_text
-1073. Test: TextPackTests.test_text_026_hex_of_text
-1074. Test: TextPackTests.test_text_027_sha256
-1075. Test: TextPackTests.test_text_028_md5
-1076. Test: TextPackTests.test_text_029_crc32
-1077. Test: TextPackTests.test_text_030_dedupe_lines
-1078. Test: TextPackTests.test_text_031_sort_lines
-1079. Test: TextPackTests.test_text_032_number_lines
-1080. Test: TextPackTests.test_text_033_strip_empty
-1081. Test: TextPackTests.test_text_034_collapse_spaces
-1082. Test: TextPackTests.test_text_035_trim
-1083. Test: TextPackTests.test_text_036_shuffle_lines
-1084. Test: TextPackTests.test_text_037_extract_emails
-1085. Test: TextPackTests.test_text_038_extract_urls
-1086. Test: TextPackTests.test_text_039_extract_numbers
-1087. Test: TextPackTests.test_text_040_extract_hashtags
-1088. Test: TextPackTests.test_text_041_extract_mentions
-1089. Test: TextPackTests.test_text_042_json_pretty
-1090. Test: TextPackTests.test_text_043_json_minify
-1091. Test: TextPackTests.test_text_044_csv_to_markdown
-1092. Test: TextPackTests.test_text_045_markdown_to_text
-1093. Test: TextPackTests.test_text_046_pig_latin
-1094. Test: TextPackTests.test_text_047_is_palindrome
-1095. Test: TextPackTests.test_text_048_is_isogram
-1096. Test: TextPackTests.test_text_049_anagrams
-1097. Test: TextPackTests.test_text_050_repeat_text
-1098. Test: TextPackTests.test_text_051_truncate
-1099. Test: TextPackTests.test_text_052_pad_text
-1100. Test: TextPackTests.test_text_053_replace_text
-1101. Test: TextPackTests.test_text_054_split_to_list
-1102. Test: TextPackTests.test_text_055_join_list
+770. Test: TemplatePackTests.test_family_001_linear_search
+771. Test: TemplatePackTests.test_family_002_selection_sort
+772. Test: TemplatePackTests.test_family_003_insertion_sort
+773. Test: TemplatePackTests.test_family_004_merge_sort
+774. Test: TemplatePackTests.test_family_005_quick_sort
+775. Test: TemplatePackTests.test_family_006_heap_sort
+776. Test: TemplatePackTests.test_family_007_counting_sort
+777. Test: TemplatePackTests.test_family_008_binary_search_recursive
+778. Test: TemplatePackTests.test_family_009_two_sum_problem
+779. Test: TemplatePackTests.test_family_010_maximum_subarray
+780. Test: TemplatePackTests.test_family_011_longest_common_prefix
+781. Test: TemplatePackTests.test_family_012_longest_common_subsequence
+782. Test: TemplatePackTests.test_family_013_edit_distance
+783. Test: TemplatePackTests.test_family_014_knapsack_0_1
+784. Test: TemplatePackTests.test_family_015_coin_change
+785. Test: TemplatePackTests.test_family_016_fibonacci_memoized
+786. Test: TemplatePackTests.test_family_017_pascal_triangle
+787. Test: TemplatePackTests.test_family_018_catalan_numbers
+788. Test: TemplatePackTests.test_family_019_prime_factorization
+789. Test: TemplatePackTests.test_family_020_sieve_of_eratosthenes
+790. Test: TemplatePackTests.test_family_021_nth_prime
+791. Test: TemplatePackTests.test_family_022_twin_primes
+792. Test: TemplatePackTests.test_family_023_perfect_numbers
+793. Test: TemplatePackTests.test_family_024_amicable_numbers
+794. Test: TemplatePackTests.test_family_025_happy_numbers
+795. Test: TemplatePackTests.test_family_026_kaprekar_number
+796. Test: TemplatePackTests.test_family_027_automorphic_number
+797. Test: TemplatePackTests.test_family_028_sum_of_divisors
+798. Test: TemplatePackTests.test_family_029_count_divisors
+799. Test: TemplatePackTests.test_family_030_euler_totient
+800. Test: TemplatePackTests.test_family_031_trailing_zeros_factorial
+801. Test: TemplatePackTests.test_family_032_binomial_coefficient
+802. Test: TemplatePackTests.test_family_033_permutations_and_combinations
+803. Test: TemplatePackTests.test_family_034_power_set
+804. Test: TemplatePackTests.test_family_035_cartesian_product
+805. Test: TemplatePackTests.test_family_036_rotate_a_list
+806. Test: TemplatePackTests.test_family_037_chunk_a_list
+807. Test: TemplatePackTests.test_family_038_partition_list
+808. Test: TemplatePackTests.test_family_039_group_by_key
+809. Test: TemplatePackTests.test_family_040_invert_a_dictionary
+810. Test: TemplatePackTests.test_family_041_sort_dict_by_value
+811. Test: TemplatePackTests.test_family_042_dict_from_two_lists
+812. Test: TemplatePackTests.test_family_043_deep_merge_dicts
+813. Test: TemplatePackTests.test_family_044_flatten_a_dict
+814. Test: TemplatePackTests.test_family_045_count_occurrences
+815. Test: TemplatePackTests.test_family_046_find_duplicates_in_list
+816. Test: TemplatePackTests.test_family_047_remove_falsy_values
+817. Test: TemplatePackTests.test_family_048_zip_longest
+818. Test: TemplatePackTests.test_family_049_pairwise_iteration
+819. Test: TemplatePackTests.test_family_050_matrix_multiplication
+820. Test: TemplatePackTests.test_family_051_matrix_addition
+821. Test: TemplatePackTests.test_family_052_identity_matrix
+822. Test: TemplatePackTests.test_family_053_determinant
+823. Test: TemplatePackTests.test_family_054_rotate_matrix
+824. Test: TemplatePackTests.test_family_055_spiral_matrix
+825. Test: TemplatePackTests.test_family_056_diagonal_sum
+826. Test: TemplatePackTests.test_family_057_string_to_int
+827. Test: TemplatePackTests.test_family_058_int_to_string
+828. Test: TemplatePackTests.test_family_059_vigenere_cipher
+829. Test: TemplatePackTests.test_family_060_morse_code
+830. Test: TemplatePackTests.test_family_061_atbash_cipher
+831. Test: TemplatePackTests.test_family_062_base64_encode_decode
+832. Test: TemplatePackTests.test_family_063_hash_a_string
+833. Test: TemplatePackTests.test_family_064_uuid_generation
+834. Test: TemplatePackTests.test_family_065_random_shuffle
+835. Test: TemplatePackTests.test_family_066_weighted_choice
+836. Test: TemplatePackTests.test_family_067_roll_dice_statistics
+837. Test: TemplatePackTests.test_family_068_deck_of_cards
+838. Test: TemplatePackTests.test_family_069_memoize_decorator
+839. Test: TemplatePackTests.test_family_070_retry_decorator
+840. Test: TemplatePackTests.test_family_071_singleton_pattern
+841. Test: TemplatePackTests.test_family_072_factory_pattern
+842. Test: TemplatePackTests.test_family_073_observer_pattern
+843. Test: TemplatePackTests.test_family_074_strategy_pattern
+844. Test: TemplatePackTests.test_family_075_namedtuple_example
+845. Test: TemplatePackTests.test_family_076_defaultdict_example
+846. Test: TemplatePackTests.test_family_077_heapq_example
+847. Test: TemplatePackTests.test_family_078_bisect_example
+848. Test: TemplatePackTests.test_family_079_itertools_example
+849. Test: TemplatePackTests.test_family_080_functools_reduce
+850. Test: TemplatePackTests.test_family_081_functools_partial
+851. Test: TemplatePackTests.test_family_082_context_manager_class
+852. Test: TemplatePackTests.test_family_083_contextmanager_decorator
+853. Test: TemplatePackTests.test_family_084_property_decorator
+854. Test: TemplatePackTests.test_family_085_classmethod_staticmethod
+855. Test: TemplatePackTests.test_family_086_frozen_dataclass
+856. Test: TemplatePackTests.test_family_087_dataclass_with_slots
+857. Test: TemplatePackTests.test_family_088_abc_abstract_class
+858. Test: TemplatePackTests.test_family_089_typeddict_example
+859. Test: TemplatePackTests.test_family_090_mro_multiple_inheritance
+860. Test: TemplatePackTests.test_family_091_counter_example
+861. Test: TemplatePackTests.test_family_092_chainmap_example
+862. Test: TemplatePackTests.test_family_093_csv_dict_reader
+863. Test: TemplatePackTests.test_family_094_csv_dict_writer
+864. Test: TemplatePackTests.test_family_095_json_pretty_print
+865. Test: TemplatePackTests.test_family_096_json_to_csv
+866. Test: TemplatePackTests.test_family_097_csv_to_json
+867. Test: TemplatePackTests.test_family_098_ini_config_parser
+868. Test: TemplatePackTests.test_family_099_xml_parse_example
+869. Test: TemplatePackTests.test_family_100_sqlite_basics
+870. Test: TemplatePackTests.test_family_101_sqlite_parameterized_query
+871. Test: TemplatePackTests.test_family_102_sqlite_context_manager
+872. Test: TemplatePackTests.test_family_103_copy_a_file
+873. Test: TemplatePackTests.test_family_104_move_or_rename_a_file
+874. Test: TemplatePackTests.test_family_105_delete_files_by_pattern
+875. Test: TemplatePackTests.test_family_106_make_directory_tree
+876. Test: TemplatePackTests.test_family_107_zip_files_into_archive
+877. Test: TemplatePackTests.test_family_108_unzip_archive
+878. Test: TemplatePackTests.test_family_109_human_readable_file_size
+879. Test: TemplatePackTests.test_family_110_check_if_file_exists
+880. Test: TemplatePackTests.test_family_111_temp_file_usage
+881. Test: TemplatePackTests.test_family_112_pathlib_tour
+882. Test: TemplatePackTests.test_family_113_read_file_in_chunks
+883. Test: TemplatePackTests.test_family_114_tail_a_file
+884. Test: TemplatePackTests.test_family_115_word_frequency_from_file
+885. Test: TemplatePackTests.test_family_116_grep_text_in_files
+886. Test: TemplatePackTests.test_family_117_bulk_rename_files
+887. Test: TemplatePackTests.test_family_118_deduplicate_files_by_hash
+888. Test: TemplatePackTests.test_family_119_download_a_file
+889. Test: TemplatePackTests.test_family_120_progress_bar
+890. Test: TemplatePackTests.test_family_121_text_spinner
+891. Test: TemplatePackTests.test_family_122_ansi_colors
+892. Test: TemplatePackTests.test_family_123_clear_the_screen
+893. Test: TemplatePackTests.test_family_124_terminal_menu
+894. Test: TemplatePackTests.test_family_125_stopwatch
+895. Test: TemplatePackTests.test_family_126_beep_sound
+896. Test: TemplatePackTests.test_family_127_rotating_log_files
+897. Test: TemplatePackTests.test_family_128_serve_a_directory
+898. Test: TemplatePackTests.test_family_129_http_client_with_retries
+899. Test: TemplatePackTests.test_family_130_url_parsing
+900. Test: TemplatePackTests.test_family_131_build_a_query_string
+901. Test: TemplatePackTests.test_family_132_json_http_post
+902. Test: TemplatePackTests.test_family_133_basic_auth_header
+903. Test: TemplatePackTests.test_family_134_rate_limiter
+904. Test: TemplatePackTests.test_family_135_trie
+905. Test: TemplatePackTests.test_family_136_bloom_filter
+906. Test: TemplatePackTests.test_family_137_dijkstra
+907. Test: TemplatePackTests.test_family_138_topological_sort
+908. Test: TemplatePackTests.test_family_139_bfs
+909. Test: TemplatePackTests.test_family_140_dfs
+910. Test: TemplatePackTests.test_family_141_heap
+911. Test: TemplatePackTests.test_family_142_queue
+912. Test: TemplatePackTests.test_family_143_deque
+913. Test: TemplatePackTests.test_family_144_state_machine
+914. Test: TemplatePackTests.test_family_145_lru_cache
+915. Test: TemplatePackTests.test_family_146_ttl_cache
+916. Test: TemplatePackTests.test_family_147_backoff
+917. Test: TemplatePackTests.test_family_148_circuit_breaker
+918. Test: TemplatePackTests.test_family_149_event_emitter
+919. Test: TemplatePackTests.test_family_150_cron
+920. Test: TemplatePackTests.test_family_151_jwt
+921. Test: TemplatePackTests.test_family_152_checksum
+922. Test: TemplatePackTests.test_family_153_sliding_window
+923. Test: TemplatePackTests.test_family_154_two_pointers
+924. Test: TemplatePackTests.test_family_155_benchmark
+925. Test: TemplatePackTests.test_family_156_memoise
+926. Test: TemplatePackTests.test_family_157_pagination
+927. Test: TemplatePackTests.test_family_158_async
+928. Test: TemplatePackTests.test_family_159_threads
+929. Test: TemplatePackTests.test_family_160_zip_files
+930. Test: TemplatePackTests.test_family_161_html_escape
+931. Test: TemplatePackTests.test_family_162_markdown_table
+932. Test: TemplatePackTests.test_family_163_validate_email
+933. Test: ApiPackTests.test_chat_batch
+934. Test: ApiPackTests.test_chat_batch_cap
+935. Test: ApiPackTests.test_chat_batch_validation
+936. Test: ApiPackTests.test_convert_endpoint
+937. Test: ApiPackTests.test_convert_endpoint_404
+938. Test: ApiPackTests.test_echo_endpoint
+939. Test: ApiPackTests.test_endpoints_listing
+940. Test: ApiPackTests.test_math_endpoint
+941. Test: ApiPackTests.test_math_endpoint_400
+942. Test: ApiPackTests.test_math_endpoint_404
+943. Test: ApiPackTests.test_metrics_endpoint
+944. Test: ApiPackTests.test_page_has_v110_controls
+945. Test: ApiPackTests.test_quote_endpoint
+946. Test: ApiPackTests.test_request_id_echoed
+947. Test: ApiPackTests.test_request_id_header
+948. Test: ApiPackTests.test_roman_endpoint_number
+949. Test: ApiPackTests.test_roman_endpoint_roman
+950. Test: ApiPackTests.test_rules_endpoint
+951. Test: ApiPackTests.test_server_timing_header
+952. Test: ApiPackTests.test_text_endpoint
+953. Test: ApiPackTests.test_text_endpoint_404_lists_rules
+954. Test: ApiPackTests.test_uptime_endpoint
+955. Test: ApiPackTests.test_version_header
+956. Test: BrainPackTests.test_code_still_wins_for_code_asks
+957. Test: BrainPackTests.test_counter_grows
+958. Test: BrainPackTests.test_maths_pack_answer
+959. Test: BrainPackTests.test_quick_answer_uses_mathx
+960. Test: BrainPackTests.test_quick_answer_uses_textfx
+961. Test: BrainPackTests.test_seed_knowledge_reachable
+962. Test: BrainPackTests.test_text_pack_answer
+963. Test: BrainPackTests.test_text_pack_skill_tag
+964. Test: MathPackTests.test_math_001_factorial
+965. Test: MathPackTests.test_math_002_fibonacci
+966. Test: MathPackTests.test_math_003_is_prime_yes
+967. Test: MathPackTests.test_math_004_is_prime_no
+968. Test: MathPackTests.test_math_005_nth_prime
+969. Test: MathPackTests.test_math_006_gcd
+970. Test: MathPackTests.test_math_007_lcm
+971. Test: MathPackTests.test_math_008_prime_factors
+972. Test: MathPackTests.test_math_009_divisors
+973. Test: MathPackTests.test_math_010_digit_sum
+974. Test: MathPackTests.test_math_011_digital_root
+975. Test: MathPackTests.test_math_012_perfect_square
+976. Test: MathPackTests.test_math_013_palindrome_number
+977. Test: MathPackTests.test_math_014_leap_year
+978. Test: MathPackTests.test_math_015_divisible
+979. Test: MathPackTests.test_math_016_even_odd
+980. Test: MathPackTests.test_math_017_cube_root
+981. Test: MathPackTests.test_math_018_log10
+982. Test: MathPackTests.test_math_019_log2
+983. Test: MathPackTests.test_math_020_natural_log
+984. Test: MathPackTests.test_math_021_trig
+985. Test: MathPackTests.test_math_022_absolute
+986. Test: MathPackTests.test_math_023_floor
+987. Test: MathPackTests.test_math_024_ceiling
+988. Test: MathPackTests.test_math_025_round_decimals
+989. Test: MathPackTests.test_math_026_remainder
+990. Test: MathPackTests.test_math_027_percent_increase
+991. Test: MathPackTests.test_math_028_percent_decrease
+992. Test: MathPackTests.test_math_029_tip
+993. Test: MathPackTests.test_math_030_simple_interest
+994. Test: MathPackTests.test_math_031_compound_interest
+995. Test: MathPackTests.test_math_032_grade
+996. Test: MathPackTests.test_math_033_circle
+997. Test: MathPackTests.test_math_034_rectangle
+998. Test: MathPackTests.test_math_035_triangle
+999. Test: MathPackTests.test_math_036_sphere
+1000. Test: MathPackTests.test_math_037_cylinder
+1001. Test: MathPackTests.test_math_038_pythagoras
+1002. Test: MathPackTests.test_math_039_distance
+1003. Test: MathPackTests.test_math_040_midpoint
+1004. Test: MathPackTests.test_math_041_slope
+1005. Test: MathPackTests.test_math_042_speed
+1006. Test: MathPackTests.test_math_043_travel_time
+1007. Test: MathPackTests.test_math_044_bmi
+1008. Test: MathPackTests.test_math_045_sum_range
+1009. Test: MathPackTests.test_math_046_sum_squares
+1010. Test: MathPackTests.test_math_047_triangular
+1011. Test: MathPackTests.test_math_048_median
+1012. Test: MathPackTests.test_math_049_mode
+1013. Test: MathPackTests.test_math_050_range
+1014. Test: MathPackTests.test_math_051_variance
+1015. Test: MathPackTests.test_math_052_stddev
+1016. Test: MathPackTests.test_math_053_geometric_mean
+1017. Test: MathPackTests.test_math_054_harmonic_mean
+1018. Test: MathPackTests.test_math_055_decimal_to_fraction
+1019. Test: MathPackTests.test_math_056_fraction_to_decimal
+1020. Test: MathPackTests.test_math_057_simplify_fraction
+1021. Test: MathPackTests.test_math_058_add_fractions
+1022. Test: MathPackTests.test_math_059_multiply_fractions
+1023. Test: MathPackTests.test_math_060_ratio
+1024. Test: MathPackTests.test_math_061_independent_probability
+1025. Test: MathPackTests.test_math_062_coin_run
+1026. Test: MathPackTests.test_math_063_dice_double
+1027. Test: MathPackTests.test_math_064_hex_to_rgb
+1028. Test: MathPackTests.test_math_065_rgb_to_hex
+1029. Test: MathPackTests.test_math_066_quadratic
+1030. Test: MathPackTests.test_math_067_percent_of
+1031. Test: MathPackTests.test_math_068_what_percent_of
+1032. Test: MathPackTests.test_math_069_percent_off
+1033. Test: MathPackTests.test_rule_count
+1034. Test: MathPackTests.test_rule_names_unique
+1035. Test: MathPackTests.test_unrelated_text_no_match
+1036. Test: SeedPackTests.test_answer_length_sane
+1037. Test: SeedPackTests.test_every_pair_has_content
+1038. Test: SeedPackTests.test_no_duplicate_questions
+1039. Test: SeedPackTests.test_no_markup_in_answers
+1040. Test: SeedPackTests.test_pair_count
+1041. Test: SeedPackTests.test_seed_merge_is_additive
+1042. Test: SeedPackTests.test_seed_topic_is_answerable
+1043. Test: SeedPackTests.test_texts_present
+1044. Test: TemplatePackTests.test_all_extra_snippets_distinct
+1045. Test: TemplatePackTests.test_all_extra_snippets_distinct — now asserts every canonical ask routes to its own family and that no two families share an ask
+1046. Test: TemplatePackTests.test_every_snippet_compiles
+1047. Test: TemplatePackTests.test_total_family_count
+1048. Test: TextPackTests.test_questions_not_hijacked
+1049. Test: TextPackTests.test_rule_count
+1050. Test: TextPackTests.test_rule_names_unique
+1051. Test: TextPackTests.test_text_001_uppercase
+1052. Test: TextPackTests.test_text_002_lowercase
+1053. Test: TextPackTests.test_text_003_title_case
+1054. Test: TextPackTests.test_text_004_capitalize
+1055. Test: TextPackTests.test_text_005_swap_case
+1056. Test: TextPackTests.test_text_006_reverse_text
+1057. Test: TextPackTests.test_text_007_reverse_words
+1058. Test: TextPackTests.test_text_008_count_words
+1059. Test: TextPackTests.test_text_009_count_characters
+1060. Test: TextPackTests.test_text_010_count_vowels
+1061. Test: TextPackTests.test_text_011_count_consonants
+1062. Test: TextPackTests.test_text_012_count_sentences
+1063. Test: TextPackTests.test_text_013_reading_time
+1064. Test: TextPackTests.test_text_014_word_frequency
+1065. Test: TextPackTests.test_text_015_slugify
+1066. Test: TextPackTests.test_text_016_snake_case
+1067. Test: TextPackTests.test_text_017_kebab_case
+1068. Test: TextPackTests.test_text_018_camel_case
+1069. Test: TextPackTests.test_text_019_initials
+1070. Test: TextPackTests.test_text_020_acronym
+1071. Test: TextPackTests.test_text_021_base64_encode
+1072. Test: TextPackTests.test_text_022_base64_decode
+1073. Test: TextPackTests.test_text_023_rot13
+1074. Test: TextPackTests.test_text_024_url_encode
+1075. Test: TextPackTests.test_text_025_binary_of_text
+1076. Test: TextPackTests.test_text_026_hex_of_text
+1077. Test: TextPackTests.test_text_027_sha256
+1078. Test: TextPackTests.test_text_028_md5
+1079. Test: TextPackTests.test_text_029_crc32
+1080. Test: TextPackTests.test_text_030_dedupe_lines
+1081. Test: TextPackTests.test_text_031_sort_lines
+1082. Test: TextPackTests.test_text_032_number_lines
+1083. Test: TextPackTests.test_text_033_strip_empty
+1084. Test: TextPackTests.test_text_034_collapse_spaces
+1085. Test: TextPackTests.test_text_035_trim
+1086. Test: TextPackTests.test_text_036_shuffle_lines
+1087. Test: TextPackTests.test_text_037_extract_emails
+1088. Test: TextPackTests.test_text_038_extract_urls
+1089. Test: TextPackTests.test_text_039_extract_numbers
+1090. Test: TextPackTests.test_text_040_extract_hashtags
+1091. Test: TextPackTests.test_text_041_extract_mentions
+1092. Test: TextPackTests.test_text_042_json_pretty
+1093. Test: TextPackTests.test_text_043_json_minify
+1094. Test: TextPackTests.test_text_044_csv_to_markdown
+1095. Test: TextPackTests.test_text_045_markdown_to_text
+1096. Test: TextPackTests.test_text_046_pig_latin
+1097. Test: TextPackTests.test_text_047_is_palindrome
+1098. Test: TextPackTests.test_text_048_is_isogram
+1099. Test: TextPackTests.test_text_049_anagrams
+1100. Test: TextPackTests.test_text_050_repeat_text
+1101. Test: TextPackTests.test_text_051_truncate
+1102. Test: TextPackTests.test_text_052_pad_text
+1103. Test: TextPackTests.test_text_053_replace_text
+1104. Test: TextPackTests.test_text_054_split_to_list
+1105. Test: TextPackTests.test_text_055_join_list
 
 ### Efficiency (5)
 
-1103. `codegen.has_template` memoised with lru_cache (hot path, pure)
-1104. `mathx.solve` memoised with lru_cache
-1105. `textfx.solve` memoised with lru_cache
-1106. Seed texts deduplicated on load (`dict.fromkeys`)
-1107. Seed merge hashes normalised questions once per boot (`O(n)` set lookups, not a nested scan) and re-trains briefly (4 epochs) only when it actually added something
+1106. `codegen.has_template` memoised with lru_cache (hot path, pure)
+1107. `mathx.solve` memoised with lru_cache
+1108. `textfx.solve` memoised with lru_cache
+1109. Seed texts deduplicated on load (`dict.fromkeys`)
+1110. Seed merge hashes normalised questions once per boot (`O(n)` set lookups, not a nested scan) and re-trains briefly (4 epochs) only when it actually added something
 
-### Bugs fixed (10)
+### Bugs fixed (12)
 
-1108. `/api/uptime` and `/api/metrics` referenced `_started_monotonic`, which v1.9 had removed — restored
-1109. `rgb_to_hex` never matched: the pattern demanded a separator that callers omit
-1110. `reverse words:` was swallowed by the reverse-text rule — rule tightened
-1111. `json pretty:` was swallowed by the pretty-print-json rule — pattern extended
-1112. 28 new template asks did not match their own regex — `_broaden()` now guarantees it
-1113. 28 generated per-family tests assumed first-match identity — made match-aware, exposing real overlaps
-1114. "what is 17% of 250" fell through to the curiosity fallback — percent-of/off/what-percent rules added
-1115. `Brain._find_math` understood "20 percent of 150" but not "17% of 250" — `% of` now normalised
-1116. Docstring counts drifted from reality (130→134 families, 48→62 maths rules, 45→55 text rules) — corrected
-1117. New seed knowledge never reached an existing `data/` folder — the `not self.memory.pairs` guard meant updates shipped knowledge that returned "curious" forever (found live: *what is a trie*)
+1111. `/api/uptime` and `/api/metrics` referenced `_started_monotonic`, which v1.9 had removed — restored
+1112. `rgb_to_hex` never matched: the pattern demanded a separator that callers omit
+1113. `reverse words:` was swallowed by the reverse-text rule — rule tightened
+1114. `json pretty:` was swallowed by the pretty-print-json rule — pattern extended
+1115. 28 new template asks did not match their own regex — `_broaden()` now guarantees it
+1116. 28 generated per-family tests assumed first-match identity — made match-aware, exposing real overlaps
+1117. "what is 17% of 250" fell through to the curiosity fallback — percent-of/off/what-percent rules added
+1118. `Brain._find_math` understood "20 percent of 150" but not "17% of 250" — `% of` now normalised
+1119. Docstring counts drifted from reality (130→134 families, 48→62 maths rules, 45→55 text rules) — corrected
+1120. New seed knowledge never reached an existing `data/` folder — the `not self.memory.pairs` guard meant updates shipped knowledge that returned "curious" forever (found live: *what is a trie*)
+1121. **24 of the 163 new asks were answered by the wrong family** — "twin primes" returned the generic primes snippet, "property decorator" returned a bare decorator, "read a file in chunks" returned "read a file". First-match-wins on registration order; now scored by specificity. Every ask routes to its own family (163/163)
+1122. The `merge dictionaries` pattern swallowed "deep merge dictionaries" (negative lookbehind added)
 
 ### Docs (4)
 
-1118. Version bumped to 1.10.0
-1119. README: 218 template families, both new packs, 11 endpoints, 420 tests, new WebUI blocks
-1120. CHANGELOG: this release, numbered end to end
-1121. Both pack docstrings reconciled with the real rule counts
+1123. Version bumped to 1.10.0
+1124. README: 218 template families, both new packs, 11 endpoints, 420 tests, new WebUI blocks
+1125. CHANGELOG: this release, numbered end to end
+1126. Both pack docstrings reconciled with the real rule counts
 
-**Total: 1121 numbered items.** Counting convention matches v1.8/v1.9:
-one item per template family, seed pair or text, maths/text rule,
-endpoint, UI behaviour, test method and fix — so the same underlying
-capability is counted at each layer where it ships (code, brain, API,
-UI, tests).
+**Total: 1126 numbered items.** Counting convention: one item per template
+family, seed pair or text, maths/text rule, endpoint, UI behaviour, test
+method and fix — the same capability is counted at each layer where it
+ships (code, brain, API, UI, tests), so this is an itemisation of the
+release, not 1,121 independent features.
 ## v1.9.0 — "another 200+ improvements" (231 items)
 
 ### Code templates in chat (33)

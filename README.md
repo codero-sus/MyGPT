@@ -156,7 +156,10 @@ hangman and rock-paper-scissors, small apps like todo and contacts, and Python
 idioms such as decorators, generators, dataclasses, enums, comprehensions,
 argparse CLIs and unittest skeletons) and returns it in a
 **fenced code block inside the chat reply** — nothing is ever run and nothing
-is ever written to files. The library is split in two: **84 families** authored
+is ever written to files. Families are matched by specificity — the pattern that
+explains the most of your request wins — so a narrow ask ("twin primes",
+"property decorator") never falls back to a broader snippet. The library is
+split in two: **84 families** authored
 in `mygpt/codegen.py` and a **163-family data pack** in
 `mygpt/snippets_more.py` (algorithms, data structures, string/date/JSON
 tooling, maths, files, classes, testing, CLI, security helpers) that registers

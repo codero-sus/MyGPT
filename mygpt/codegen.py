@@ -550,7 +550,7 @@ def _flatten(m, goal):
     )
 
 
-@family("merge dictionaries", r"merge (?:two )?dict(?:ionaries)?|combine dicts")
+@family("merge dictionaries", r"(?<!deep )merge (?:two )?dict(?:ionaries)?|combine dicts")
 def _dict_merge(m, goal):
     return (
         "a = {'x': 1, 'y': 2}\n"
@@ -1067,10 +1067,49 @@ def register_family(name: str, pattern: str, code: str) -> None:
                      "compose": compose})
 
 
+def _ranked(text: str) -> list[dict]:
+    """Every matching family, most specific first."""
+    scored = []
+    for order, fam in enumerate(FAMILIES):
+        m = fam["re"].search(text)
+        if not m:
+            continue
+        literals = sum(len(part) for part in
+                       re.split(r"[^\w\s]+", fam["re"].pattern) if part)
+        scored.append(((m.end() - m.start(), literals, order), fam))
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [fam for _key, fam in scored]
+
+
+def match_family(text: str):
+    """Pick the *most specific* family for a request.
+
+    First-match-wins was wrong: a broad early pattern ("primes (first N)",
+    "decorator example") swallowed later, narrower asks ("twin primes",
+    "property decorator") and answered them with the wrong snippet. Score
+    every match on how much of the request it explains and how literal its
+    pattern is, then let the newest registration win ties — the v1.10 pack
+    is authored later and more specifically than the originals.
+    """
+    best, best_key = None, None
+    for order, fam in enumerate(FAMILIES):
+        m = fam["re"].search(text)
+        if not m:
+            continue
+        span = m.end() - m.start()
+        pattern = fam["re"].pattern
+        literals = sum(len(part) for part in re.split(r"[^\w\s]+", pattern) if part)
+        # a family that carries its own canonical ask is authoritative for it
+        key = (span, literals, order)
+        if best_key is None or key > best_key:
+            best, best_key, best_m = fam, key, m
+    return (best, best_m) if best else (None, None)
+
+
 @lru_cache(maxsize=1024)
 def has_template(text: str) -> bool:
     """True when any family regex matches (memoised — pure and hot)."""
-    return any(fam["re"].search(text) for fam in FAMILIES)
+    return match_family(text)[0] is not None
 
 
 # ---- v1.10: register the extra snippets pack (130 more families) ---------
@@ -1095,7 +1134,8 @@ def wants_code(text: str) -> bool:
 
 def code_reply(text: str) -> tuple[str, bool]:
     """Return (chat reply with fenced code block, found_template?)."""
-    for fam in FAMILIES:
+    # walk the families best-first, so a specific match always beats a broad one
+    for fam in _ranked(text):
         m = fam["re"].search(text)
         if not m:
             continue
