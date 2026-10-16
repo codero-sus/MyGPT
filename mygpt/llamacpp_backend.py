@@ -68,6 +68,14 @@ class LlamaCppClient:
         self.load_seconds: float | None = None
         self.effective_n_ctx: int | None = None
         self.models_dir = models_dir
+        # Optional override of the default search roots. ``MYGPT_LLAMACPP_MODELS``
+        # is an os.pathsep-separated list of directories; setting it to an empty
+        # string disables the implicit ./models and data/models scan entirely,
+        # which is what the test suite uses so a model sitting in the repo's
+        # models/ folder can't make the "no model here" cases pass by accident.
+        raw_roots = env.get("MYGPT_LLAMACPP_MODELS")
+        self.model_roots = (None if raw_roots is None
+                            else [p for p in raw_roots.split(os.pathsep) if p])
         self._llm = None                      # the Llama instance, if loaded
         self._lock = threading.RLock()
         self._cache: tuple[float, dict] | None = None
@@ -125,14 +133,27 @@ class LlamaCppClient:
 
     # -------------------------------------------------------------- discovery
     def discover(self) -> list[str]:
-        """Every .gguf file we can see: configured path, ./models, data/models."""
+        """Every .gguf file we can see.
+
+        When the caller passed an explicit ``models_dir`` we search *only*
+        that directory — scoping must be exclusive, otherwise a test (or an
+        app that keeps its models elsewhere) would silently pick up whatever
+        sits in the current working directory's ``models/``.  With no
+        explicit directory we fall back to ``./models`` and ``data/models``
+        so dropping a file in is still enough to enable the engine.
+        """
         found: list[str] = []
         if self.model_path:
             if os.path.isdir(self.model_path):
                 found += sorted(glob.glob(os.path.join(self.model_path, "*.gguf")))
             elif os.path.exists(self.model_path):
                 found.append(self.model_path)
-        roots = [self.models_dir, "models", os.path.join("data", "models")]
+        if self.models_dir:
+            roots = [self.models_dir]
+        elif self.model_roots is not None:
+            roots = list(self.model_roots)
+        else:
+            roots = ["models", os.path.join("data", "models")]
         for root in roots:
             if not root:
                 continue

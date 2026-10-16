@@ -242,6 +242,8 @@ class BrainTests(unittest.TestCase):
             json.dump(data, f)
         os.environ["MYGPT_CORTEX_ENABLED"] = "0"
         os.environ["MYGPT_OLLAMA_ENABLED"] = "0"
+        os.environ["MYGPT_LLAMACPP_MODELS"] = ""   # ignore repo ./models/*.gguf
+        os.environ["MYGPT_MODELS_DIR"] = os.path.join(cls._td.name, "models")
         os.environ["MYGPT_CORTEX_URL"] = "http://127.0.0.1:1"
         os.environ["MYGPT_OLLAMA_URL"] = "http://127.0.0.1:1"
         # keep checkpoints inside the temp dir — never touch the repo copy
@@ -319,6 +321,8 @@ class ApiTests(unittest.TestCase):
         os.environ["MYGPT_DATA"] = cls._td.name
         os.environ["MYGPT_CORTEX_ENABLED"] = "0"
         os.environ["MYGPT_OLLAMA_ENABLED"] = "0"
+        os.environ["MYGPT_LLAMACPP_MODELS"] = ""   # ignore repo ./models/*.gguf
+        os.environ["MYGPT_MODELS_DIR"] = os.path.join(cls._td.name, "models")
         os.environ["MYGPT_CORTEX_URL"] = "http://127.0.0.1:1"
         os.environ["MYGPT_OLLAMA_URL"] = "http://127.0.0.1:1"
         import importlib
@@ -567,6 +571,8 @@ class SpecialMathTests(unittest.TestCase):
         cls._td = tempfile.TemporaryDirectory()
         os.environ["MYGPT_CORTEX_ENABLED"] = "0"
         os.environ["MYGPT_OLLAMA_ENABLED"] = "0"
+        os.environ["MYGPT_LLAMACPP_MODELS"] = ""   # ignore repo ./models/*.gguf
+        os.environ["MYGPT_MODELS_DIR"] = os.path.join(cls._td.name, "models")
         os.environ["MYGPT_CORTEX_URL"] = "http://127.0.0.1:1"
         os.environ["MYGPT_OLLAMA_URL"] = "http://127.0.0.1:1"
         os.environ["MYGPT_CHECKPOINTS"] = os.path.join(cls._td.name, "ckpts")
@@ -747,6 +753,8 @@ class BrainV19Tests(unittest.TestCase):
         cls._td = tempfile.TemporaryDirectory()
         os.environ["MYGPT_CORTEX_ENABLED"] = "0"
         os.environ["MYGPT_OLLAMA_ENABLED"] = "0"
+        os.environ["MYGPT_LLAMACPP_MODELS"] = ""   # ignore repo ./models/*.gguf
+        os.environ["MYGPT_MODELS_DIR"] = os.path.join(cls._td.name, "models")
         os.environ["MYGPT_CORTEX_URL"] = "http://127.0.0.1:1"
         os.environ["MYGPT_OLLAMA_URL"] = "http://127.0.0.1:1"
         os.environ["MYGPT_CHECKPOINTS"] = os.path.join(cls._td.name, "ckpts")

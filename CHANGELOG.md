@@ -3,7 +3,7 @@
 All credits: **codero-sus** — [github.com/codero-sus](https://github.com/codero-sus) ·
 [the-codero.web.app](https://the-codero.web.app/)
 
-## v1.11.0 — the transformer brain (92 items)
+## v1.11.0 — the transformer brain (107 items)
 
 MyGPT's own model is now a real decoder-only transformer, and it can hand
 hard questions to full-size local models through llama.cpp or 🤗 transformers.
@@ -114,25 +114,51 @@ backward pass is verified numerically rather than asserted.
 82. CSS for the model card, engine list, badges, sliders, generation output and probability bars
 83. Reduced-motion respected by the new transitions
 
-### Bugs fixed (6)
+### Bugs fixed (8)
 
-84. **The transformer was trained against the wrong logits** — the loss read position 0 of each window instead of the last position. Found by the gradient check, not by watching the loss go down
-85. **The gradient corresponded to a different objective than the reported loss** — `dlogits` was initialised from the softmax, leaving gradient at every position. Also found by the gradient check
-86. The corpus was read *after* the model loaded, so the architecture-change warmup never ran and the brain silently booted knowing only `<pad>`/`<unk>`
-87. `perplexity()` scored the first position of each window rather than the last
-88. `NeuralLM.load()` raised `KeyError` on a transformer checkpoint
-89. Two test-harness bugs found while writing the checks (3-blocks at 0.05 tolerance in float32; a hardcoded nucleus size) — noted because the checks matter more than the assertions
+84. **`.gguf` discovery ignored an explicitly-scoped `models_dir`** — it also scanned the current working directory's `models/`, so a demo model sitting in the repo quietly changed the meaning of the test suite and of any app that keeps its models elsewhere. Found by putting a real model in `models/` and watching two clean test runs turn into two failures
+85. `MYGPT_MODELS_DIR` (which folder MyGPT scans for models, default `<project root>/models`) and `MYGPT_LLAMACPP_MODELS` (override the search roots entirely; an empty value means "look nowhere") — the knob the tests needed to stay honest while a real model sits in `models/`
+86. **The transformer was trained against the wrong logits** — the loss read position 0 of each window instead of the last position. Found by the gradient check, not by watching the loss go down
+87. **The gradient corresponded to a different objective than the reported loss** — `dlogits` was initialised from the softmax, leaving gradient at every position. Also found by the gradient check
+88. The corpus was read *after* the model loaded, so the architecture-change warmup never ran and the brain silently booted knowing only `<pad>`/`<unk>`
+89. `perplexity()` scored the first position of each window rather than the last
+90. `NeuralLM.load()` raised `KeyError` on a transformer checkpoint
+91. Two test-harness bugs found while writing the checks (3-blocks at 0.05 tolerance in float32; a hardcoded nucleus size) — noted because the checks matter more than the assertions
+
+### Measurement (13)
+
+92. `tools/benchmark.py` — every number in this release is reproducible with one command (`--json`, `--live`, `--epochs N`)
+93. Trains the transformer and the old MLP on the same corpus, the same context length (6 tokens), the same epochs and batch, so what is compared is the architecture rather than the configuration
+94. Held-out perplexity: the last 10% of the corpus's texts are never trained on, and both models are scored on them
+95. A scrambled-target control — shuffle the answers and perplexity must rise to at least the uniform baseline, or the metric isn't measuring prediction
+96. The uniform baseline (perplexity = vocabulary size) is printed so that small numbers can be read in context
+97. The script asserts the vocabulary is non-empty before printing anything: its first version trained both models on a four-token vocabulary because the corpus was never fed to them, and printed entirely plausible nonsense
+98. Central-difference gradient check over all 24 parameter tensors of the shipped configuration, in float64 (at float32 a 1e-4 difference is round-off and the check would be meaningless)
+99. llama.cpp load time, decode speed, file size and requested-vs-trained context window
+100. Measured: at 20 epochs both models have memorised the corpus (train perplexity ≈ 2, so training loss alone tells you nothing) yet the transformer's held-out perplexity is 7,459 against the MLP's 212,977 — **28× lower** — for 3.96 s against 0.56 s
+101. Measured: at a 5-epoch budget the gap is far smaller (770 vs 1,170), so the advantage is a scaling effect rather than something visible in one step
+102. The llama.cpp speed figure names the 114 KB test GGUF it came from, because decode speed scales with model size and the number would otherwise read as a claim about real multi-billion-parameter checkpoints
+103. `tests/test_benchmark.py` (6 tests) runs the benchmark's own code paths, including the vocabulary assertion and a real gradient check, so a broken benchmark fails the suite instead of printing numbers nobody can trust
+104. README gains a "Measure it yourself" section: the measured table, the reproduction commands and the two honesty notes
 
 ### Docs (3)
 
-90. README: new "The brain is a transformer" section, the local-model engine table, the Model tab, the new endpoints and the honest caveat about small-model prose
-91. `requirements-optional.txt` — llama-cpp-python, gguf, transformers, torch (with the CPU-only torch advice), none of which MyGPT itself requires
-92. Version bumped to 1.11.0
+105. README: new "The brain is a transformer" section, the local-model engine table, the Model tab, the new endpoints and the honest caveat about small-model prose
+106. `requirements-optional.txt` — llama-cpp-python, gguf, transformers, torch (with the CPU-only torch advice), none of which MyGPT itself requires
+107. Version bumped to 1.11.0
 
-**Total: 92 numbered items.** The previous release held the *count* up as
-the headline; this one is deliberately smaller and each item is a real
-change, because two of these items are bugs that a bigger feature list
-would not have caught.
+**Total: 107 numbered items.** Note what this list *is*: an itemisation of
+changes, not 107 features. Most of it is one transformer, one benchmark and one
+bug fix described in parts. The release was written the other way round from
+v1.10.0 — the numbers came first (a gradient check, a held-out perplexity
+comparison, a profiler trace) and the items describe what those measurements
+forced us to change. Six of the eight bugs were found by measuring rather than
+by reading the code, which a longer feature list would not have caught.
+
+One more disclosure, because the habit of counting is worth breaking: the
+"13 measurement items" above are 13 sentences about a 300-line script, and the
+"10 WebUI items" are 10 edits to one tab. Neither number means what a reader
+might assume.
 ## v1.10.0 — the 777+ release (1057 items)
 
 Every item below is verifiable in the repository: templates in

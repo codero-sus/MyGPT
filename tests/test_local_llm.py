@@ -46,6 +46,10 @@ def _clean_env(**overrides):
             if k.startswith("MYGPT_") or k in ("OLLAMA_HOST",)]
     saved = {k: os.environ.pop(k) for k in keys}
     os.environ.update({k: str(v) for k, v in overrides.items()})
+    # Never let a .gguf in the repo's models/ folder decide these tests: an
+    # empty MYGPT_LLAMACPP_MODELS switches the implicit scan off.
+    os.environ.setdefault("MYGPT_LLAMACPP_MODELS", "")
+    os.environ.setdefault("MYGPT_MODELS_DIR", "")
     return saved
 
 
@@ -149,6 +153,37 @@ class LlamaCppClientTests(unittest.TestCase):
         self.assertIn(os.path.realpath(target),
                       [os.path.realpath(p) for p in client.discover()])
         self.assertEqual(client.resolved_model(), target)
+
+    def test_discovery_is_scoped_to_the_given_folder(self):
+        """An explicit models_dir must not also pick up ./models from the cwd.
+
+        The suite runs from the repo root, where a real model may well exist
+        (the live demo uses models/mygpt-tiny-test.gguf), so scoping has to be
+        exclusive or "no model here" cases would pass or fail by accident.
+        """
+        scoped = os.path.join(self.tmp, "scoped")
+        os.makedirs(scoped, exist_ok=True)
+        wanted = os.path.join(scoped, "only.gguf")
+        with open(wanted, "wb") as handle:
+            handle.write(b"GGUF")
+        client = LlamaCppClient(models_dir=scoped)
+        client.model_path = ""
+        found = [os.path.realpath(p) for p in client.discover()]
+        self.assertEqual(found, [os.path.realpath(wanted)])
+
+    def test_model_roots_env_var_can_switch_the_scan_off(self):
+        """MYGPT_LLAMACPP_MODELS="" means "look nowhere" — used by the tests."""
+        client = LlamaCppClient()
+        client.model_path = ""
+        client.models_dir = None
+        os.environ["MYGPT_LLAMACPP_MODELS"] = ""
+        try:
+            empty = LlamaCppClient()
+            empty.model_path = ""
+            self.assertEqual(empty.discover(), [])
+            self.assertFalse(empty.available())
+        finally:
+            os.environ.pop("MYGPT_LLAMACPP_MODELS", None)
 
     def test_configure_persists_settings(self):
         path = os.path.join(self.tmp, "cfg.json")
@@ -300,6 +335,33 @@ class BrainArchitectureTests(unittest.TestCase):
             os.environ[key] = str(value)
         from mygpt.brain import Brain
         return Brain(tempfile.mkdtemp(), os.path.join(ROOT, "seed_corpus.json"))
+
+    def test_models_dir_env_overrides_the_repo_folder(self):
+        """MYGPT_MODELS_DIR relocates where Brain looks for .gguf files.
+
+        Brain normally reads <project root>/models, which the suite must not
+        depend on: with the folder pointed somewhere empty the llama.cpp
+        engine has to stay off, and pointing it at a folder holding a .gguf is
+        what turns it on.
+        """
+        empty_dir = os.path.join(self.tmp, "no-models")
+        os.makedirs(empty_dir, exist_ok=True)
+        brain = self._brain(MYGPT_MODELS_DIR=empty_dir,
+                            MYGPT_LLAMACPP_MODEL="",
+                            MYGPT_CORTEX_ENABLED="0", MYGPT_OLLAMA_ENABLED="0",
+                            MYGPT_CORTEX_URL="http://127.0.0.1:1",
+                            MYGPT_OLLAMA_URL="http://127.0.0.1:1")
+        self.assertEqual(brain.llamacpp.discover(), [])
+        self.assertFalse(brain.llamacpp.available())
+
+        with_models = os.path.join(self.tmp, "with-models")
+        os.makedirs(with_models, exist_ok=True)
+        with open(os.path.join(with_models, "there.gguf"), "wb") as handle:
+            handle.write(b"GGUF")
+        brain2 = self._brain(MYGPT_MODELS_DIR=with_models,
+                            MYGPT_LLAMACPP_MODEL="")
+        self.assertTrue(brain2.llamacpp.available())
+        self.assertTrue(brain2.llamacpp.resolved_model().endswith("there.gguf"))
 
     def test_default_brain_is_a_transformer(self):
         brain = self._brain(MYGPT_BLOCKS=1, MYGPT_DIM=32, MYGPT_HEADS=2)
