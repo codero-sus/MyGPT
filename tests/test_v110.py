@@ -61,10 +61,12 @@ for _i, (_name, _pat, _ask, _code) in enumerate(EXTRA, 1):
         reply, found = codegen.code_reply(ask)
         self.assertTrue(found, f"{name!r} matched no template for {ask!r}")
         self.assertIn("```python", reply)
-        # whichever family matches first must be the code echoed in the reply
-        fam = next((f for f in codegen.FAMILIES if f["re"].search(ask)), None)
+        # the family's own ask must resolve to the family's own code
+        fam, m = codegen.match_family(ask)
         self.assertIsNotNone(fam, f"no family matches {ask!r}")
-        emitted = fam["compose"](fam["re"].search(ask), ask)
+        self.assertEqual(fam["name"], name,
+                         f"{ask!r} answered by {fam['name']!r}, expected {name!r}")
+        emitted = fam["compose"](m, ask)
         self.assertIn(emitted.splitlines()[0][:24], reply)
         compile(emitted, f"<emitted {name}>", "exec")
         compile(code, f"<snippet {name}>", "exec")     # syntax-check the snippet
@@ -83,12 +85,13 @@ def _template_unique_code(self):
     # exactly one family's code (overlaps resolve to the first match)
     bodies = {code for _n, _p, _a, code in EXTRA}
     self.assertEqual(len(bodies), len(EXTRA))
-    matched = set()
+    routed = {}
     for _n, _p, ask, _code in EXTRA:
-        fam = next((f for f in codegen.FAMILIES if f["re"].search(ask)), None)
-        self.assertIsNotNone(fam)
-        matched.add(fam["name"])
-    self.assertGreaterEqual(len(matched), 120)   # near-one-to-one in practice
+        fam, _m = codegen.match_family(ask)
+        self.assertIsNotNone(fam, f"no family matches {ask!r}")
+        self.assertEqual(fam["name"], _n, f"{ask!r} routed to {fam['name']!r}")
+        routed[ask] = fam["name"]
+    self.assertEqual(len(routed), len(EXTRA), "two families share one canonical ask")
 _bind(TemplatePackTests, "test_all_extra_snippets_distinct", _template_unique_code)
 
 
