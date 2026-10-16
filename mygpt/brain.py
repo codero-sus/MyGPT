@@ -106,11 +106,20 @@ class Brain:
         self.cortex = CortexClient(os.path.join(data_dir, "cortex.json"))
         self.ollama = OllamaClient(os.path.join(data_dir, "ollama.json"))
         # v1.11 in-process backends: llama.cpp (GGUF) and 🤗 transformers
-        self.llamacpp = LlamaCppClient(
-            os.path.join(data_dir, "llamacpp.json"),
-            models_dir=os.path.join(
+        # Drop a .gguf into <project root>/models/ and the engine turns on.
+        # MYGPT_MODELS_DIR relocates that folder, and setting it to an empty
+        # string (or a folder with no .gguf in it) keeps the engine off — the
+        # test suite relies on that so a demo model in the repo can't make
+        # "no local LLM installed" cases pass by accident.
+        models_env = os.environ.get("MYGPT_MODELS_DIR")
+        if models_env is None:
+            models_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "models"))
+                "models")
+        else:
+            models_dir = models_env or None
+        self.llamacpp = LlamaCppClient(
+            os.path.join(data_dir, "llamacpp.json"), models_dir=models_dir)
         self.hf = HFClient(os.path.join(data_dir, "hf.json"))
         # checkpoints live in <project root>/_model_trained (next to data/)
         # checkpoints default to <project root>/_model_trained; the

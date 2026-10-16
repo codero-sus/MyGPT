@@ -396,15 +396,76 @@ reports *why* it is unavailable and MyGPT's own brain keeps answering.
   double-weight a fact
 * The transformer head scores only each window's **last** position instead of
   all `ctx` positions — the same predictions for a fraction of the cost
+* `MYGPT_MODELS_DIR` relocates the folder MyGPT scans for `.gguf` files
+  (default `<project root>/models`), and `MYGPT_LLAMACPP_MODELS` overrides the
+  search roots entirely — an empty value means "look nowhere", which is how the
+  test suite stays honest when a demo model is sitting in `models/`
 * GELU uses `x * x * x`, never `x ** 3`: numpy's float32 power operator takes a
   slow generic path (measured 145× slower on the hot array size), and GELU runs
   twice per training step. Fixing that one expression cut seed-training time
   from 9.7 s to 4.1 s with an identical loss curve
 
+## Measure it yourself
+
+Numbers in a README are worthless if you can't reproduce them, so there is a
+benchmark script — and a test that runs it, which is why the numbers below are
+harder to fake than to measure:
+
+```bash
+.venv/bin/python tools/benchmark.py                 # table
+.venv/bin/python tools/benchmark.py --json          # machine-readable
+.venv/bin/python tools/benchmark.py --live          # data/corpus.json (what your chats taught it)
+.venv/bin/python tools/benchmark.py --epochs 20     # train longer
+```
+
+Both models get the **same corpus, same context length (6 tokens), same
+epochs, same batch**. Held-out = the last 10% of the corpus's texts, never
+trained on. Perplexity is on one scale for both; the scrambled-target control
+shuffles the answers to show the metric actually measures prediction.
+
+Seed corpus (86 texts / 885 windows / vocab 459), measured on one CPU core:
+
+| model | params | train 5 ep | train 20 ep | loss (20 ep) | ppl train | ppl held-out | ppl scrambled |
+|---|---|---|---|---|---|---|---|
+| **transformer** | 78,096 | 1.01 s | 3.96 s | 6.11 → 1.39 | 2.1 | **7,459** | 8,289 |
+| MLP (v1.10 brain) | 87,515 | 0.14 s | 0.56 s | 6.13 → 2.16 | 4.4 | **212,977** | 408,374 |
+
+At 20 epochs both have memorised the training lines (perplexity ≈ 2), so
+training loss tells you nothing — but on the 9 held-out texts the transformer
+scores **28× lower perplexity** (7,459 vs 212,977). That is the point of
+attention: same width, same context, same parameters, different ability to use
+the context it is given. It costs ~7× the training time on a corpus this small.
+
+Two honesty notes: 86 texts is a toy corpus, so the absolute held-out numbers
+are terrible and only the *ratio* is worth reading; and at a 5-epoch budget the
+gap is much smaller (770 vs 1,170) — the advantage is a scaling effect, not a
+per-step one.
+
+The same script also verifies the backwards pass by central differences and
+measures llama.cpp when a `.gguf` is present:
+
+```
+gradient check: worst relative error 3.80e-07 over 24 tensors (eps=0.0001, float64) -> PASS
+llama.cpp: mygpt-tiny-test.gguf (114816 bytes) — load 0.038s, 7431.3 tok/s,
+           n_ctx 512 (requested 2048, trained window 512)
+```
+
+That llama.cpp line is measured on the **114 KB test GGUF** the test fixture
+builds (259 tokens, 1 block) — decode speed scales with model size, so it says
+"the real engine runs and is wired in correctly", not "a 7B model runs at 7,400
+tok/s". Loading a real GGUF is the same code path; the file just needs to be in
+`models/`.
+
+The test suite's own gradient check (`tests/test_transformer.py`, denser
+sampling, 2 blocks) reports a worst relative error of **6.03e-06** — the
+hand-written backward pass agrees with numerical differentiation to five
+decimal places.
+
 ## Tests
 
-**520 tests** — the original 116 smoke tests, 336 for the v1.10 packs/API, and
-39 + 33 for the transformer and the local-model backends. A generator
+**532 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
+33 + 42 + 6 for the transformer, the local-model backends and the benchmark
+tool. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11
