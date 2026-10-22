@@ -47,8 +47,10 @@ class StubLM:
         self.steps += 1
         return float(a.sum() % 1.0)
 
-    def all_windows(self, texts):
-        return [(np.zeros(4, dtype=np.int64), 1) for _ in texts[:20]]
+    def all_windows(self, texts, max_windows: int = 20000):
+        # Mirrors NeuralLM.all_windows: honour the window budget, cap at 20.
+        windows = [(np.zeros(4, dtype=np.int64), 1) for _ in texts[:20]]
+        return windows[:max(1, int(max_windows))]
 
     def step_batch(self, windows):
         time.sleep(self.step_seconds)

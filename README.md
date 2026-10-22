@@ -451,12 +451,46 @@ harder to fake than to measure:
 .venv/bin/python tools/benchmark.py --json          # machine-readable
 .venv/bin/python tools/benchmark.py --live          # data/corpus.json (what your chats taught it)
 .venv/bin/python tools/benchmark.py --epochs 20     # train longer
+.venv/bin/python tools/benchmark.py --ctx 12        # longer context (both models)
+.venv/bin/python tools/benchmark.py --arch transformer
+.venv/bin/python tools/benchmark.py --corpus my_texts.json
 ```
 
-Both models get the **same corpus, same context length (6 tokens), same
-epochs, same batch**. Held-out = the last 10% of the corpus's texts, never
-trained on. Perplexity is on one scale for both; the scrambled-target control
-shuffles the answers to show the metric actually measures prediction.
+Both models get the **same corpus, same context length, same epochs, same
+batch**. Held-out = the last 10% of the corpus's texts, never trained on.
+Perplexity is on one scale for both; the scrambled-target control shuffles the
+answers to show the metric actually measures prediction.
+
+### Growing the brain's corpus
+
+The seed corpus is 86 curated lines — enough to verify that the model learns,
+far too little to learn *language* from (measured: 7,459 held-out perplexity
+against a 459 uniform baseline, i.e. **16x worse than uniform guessing** — it
+memorised). A real corpus is one command:
+
+```bash
+.venv/bin/python tools/fetch_corpus.py    # tiny-shakespeare (202k words) from GitHub
+.venv/bin/python tools/benchmark.py --live --epochs 20
+```
+
+With the grown corpus (1,212 texts, 4,000-word vocab) the same transformer
+scores **652 held-out perplexity against a 4,000 uniform baseline — 6x better
+than uniform**, with held-out ≈ train (652 vs 659) and the scrambled control
+2.3x worse (1,522). That is the difference between memorising and predicting.
+The corpus is *data*: it downloads into `data/` and is never committed.
+
+### Recovery from a reset
+
+Sandboxes and disks reset. When they do:
+
+```bash
+bash tools/restore_stack.sh          # rebuild venv, engines, demo model, Cortex
+bash tools/restore_stack.sh --serve  # ...and start app:8000 + cortex:8625 + proxy:8624
+```
+
+It also puts a reset git HEAD back on the pushed commit (`--mixed`, working
+files untouched). Python resolution follows the launcher convention
+(python.env -> 2PY2 -> python3).
 
 Seed corpus (86 texts / 885 windows / vocab 459), measured on one CPU core:
 
@@ -498,9 +532,10 @@ decimal places.
 
 ## Tests
 
-**552 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
-33 + 42 + 6 + 20 for the transformer, the local-model backends, the benchmark
-tool and the background trainer. A generator
+**562 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
+34 + 42 + 6 + 20 + 9 for the transformer (including a gradient check that runs
+with dropout on), the local-model backends, the benchmark tool, the background
+trainer and the corpus tool. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11

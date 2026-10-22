@@ -76,15 +76,33 @@ def loss_and_dlogits(lm, ctx, tgt):
 class GradientCheckTests(unittest.TestCase):
     """The hand-written backward pass must match numerical differentiation."""
 
-    def _check(self, blocks, eps=1e-4, tol=1e-4, samples=6):
-        lm = make_model(blocks=blocks)
+    def _check(self, blocks, eps=1e-4, tol=1e-4, samples=6, dropout=0.0):
+        lm = make_model(blocks=blocks, dropout=dropout)
         rng = np.random.default_rng(3)
         ctx, tgt = batch(lm)
-        _loss, dlogits, caches, rows = loss_and_dlogits(lm, ctx, tgt)
+        # With dropout on, every evaluation must draw the *same* mask or the
+        # finite difference compares two different functions. Pin the RNG
+        # state around each forward and train-time dropout is exercised
+        # exactly like a single training step would see it.
+        state = lm.rng.bit_generator.state
+
+        def fwd():
+            if dropout > 0:
+                lm.rng.bit_generator.state = state
+                return lm._forward(ctx, training=True)
+            return lm._forward(ctx)
+
+        logits, caches = fwd()
+        probs = softmax_last(logits)
+        B = ctx.shape[0]
+        rows = np.arange(B)
+        dlogits = probs.copy()
+        dlogits[rows, tgt] -= 1.0
+        dlogits /= B
         analytic = lm._backward(dlogits, caches)
 
         def loss():
-            lg, _ = lm._forward(ctx)
+            lg, _ = fwd()
             pr = softmax_last(lg)
             return float(-np.log(pr[rows, tgt] + 1e-12).mean())
 
@@ -107,6 +125,18 @@ class GradientCheckTests(unittest.TestCase):
         self.assertLess(worst, tol,
                         f"{blocks}-block gradient mismatch on {worst_name}: "
                         f"relative error {worst:.2e}")
+
+    def test_gradient_with_dropout(self):
+        """Dropout masks the *branch*, never the residual path.
+
+        Regression check for the latent-dropout bug: ``_backward`` used to do
+        ``dx = dx * dmask`` on the gradient that also carries the residual, so
+        with dropout on, every parameter's gradient was silently wrong while
+        the dropout=0 checks stayed perfectly happy. The old harness never
+        passed ``training=True``, so it could not see it either.
+        """
+        self._check(1, dropout=0.3)
+        self._check(2, dropout=0.3)
 
     def test_gradient_1_block(self):
         self._check(1)

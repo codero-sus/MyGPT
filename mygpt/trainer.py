@@ -167,15 +167,19 @@ class BackgroundTrainer:
             return False
 
     def submit_round(self, texts: list[str], epochs: int = 6,
-                     reason: str = "auto") -> bool:
-        """Ask for a full training round. Coalesced: one round is ever queued."""
+                     reason: str = "auto", max_windows: int = 20000) -> bool:
+        """Ask for a full training round. Coalesced: one round is ever queued.
+
+        ``max_windows`` bounds the round's window sample — upkeep rounds on a
+        grown corpus stay cheap, while an explicit train may ask for more.
+        """
         if not texts:
             return False
         if self._round_pending:
             return False
         try:
             self.jobs.put_nowait(("round", list(texts), max(1, int(epochs)),
-                                  reason))
+                                  reason, max(1, int(max_windows))))
             self._round_pending = True
             return True
         except queue.Full:
@@ -278,14 +282,15 @@ class BackgroundTrainer:
         if n:
             self.last_loss = loss_acc / n
 
-    def _run_round(self, texts: list[str], epochs: int, reason: str) -> None:
+    def _run_round(self, texts: list[str], epochs: int, reason: str,
+                   max_windows: int = 20000) -> None:
         """A full round, one batch at a time, yielding and duty-cycling as it goes."""
         started, cpu_start = time.time(), self.cpu_now()
         result: dict = {"reason": reason, "epochs": epochs, "windows": 0,
                         "loss_first": None, "loss_last": None,
                         "steps": 0, "stopped": False}
         try:
-            windows = self.lm.all_windows(list(texts))
+            windows = self.lm.all_windows(list(texts), max_windows=max_windows)
             result["windows"] = len(windows)
             if windows:
                 first, last, steps = None, None, 0

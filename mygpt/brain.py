@@ -67,6 +67,9 @@ TRAIN_RE = re.compile(r"\btrain\b", re.I)
 
 
 class Brain:
+    # Window budget for automatic upkeep rounds (see _submit_background_round).
+    BACKGROUND_WINDOWS = 4096
+
     def __init__(self, data_dir: str, seed_path: str, skills_dir: str | None = None):
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
@@ -536,8 +539,13 @@ class Brain:
         """Queue a full round for the background trainer; return immediately."""
         if not self.corpus:
             return {"ok": False, "error": "corpus is empty"}
-        queued = self.trainer.submit_round(self.corpus, epochs=epochs,
-                                           reason=reason)
+        queued = self.trainer.submit_round(
+            self.corpus, epochs=epochs, reason=reason,
+            # Upkeep rounds sample the corpus instead of consuming all of it:
+            # with a grown corpus a full 20k-window round would spend minutes
+            # of CPU behind every fifth learning event. An explicit
+            # /api/train still gets the full window budget (train() above).
+            max_windows=self.BACKGROUND_WINDOWS)
         if not queued:
             return {"ok": True, "deferred": False, "queued": False,
                     "reason": reason,

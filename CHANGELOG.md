@@ -3,6 +3,42 @@
 All credits: **codero-sus** — [github.com/codero-sus](https://github.com/codero-sus) ·
 [the-codero.web.app](https://the-codero.web.app/)
 
+## v1.12.0 — the grown brain (17 items)
+
+Three things were left after v1.11.1, and this release does all three: a real
+bug that had been open since the transformer was written, a brain that finally
+has enough text to generalise from, and a one-command way back from a sandbox
+reset (this session alone wiped the stack twice — the recovery is now a script
+instead of a ritual).
+
+### The latent-dropout bug, fixed (5)
+
+1. `TransformerLM._backward` masked the *residual-carrying* gradient (`dx = dx * dmask`, `dx = dx * fmask`) — the dropout mask belongs on the sublayer branch only. With dropout > 0 every parameter's gradient was silently wrong; at the default `dropout=0` nothing was wrong and nothing could see it
+2. Both sites now use a masked branch copy (`d_ff`, `d_att`) and add the unmasked residual through, matching the forward pass exactly
+3. `tests/test_transformer.py::test_gradient_with_dropout` — a central-difference check with `dropout=0.3` where the RNG state is pinned so every evaluation draws the same masks (a grad-check across two different masks compares two different functions)
+4. The old harness never passed `training=True`, so dropout was never exercised by any test — the new check runs the real training-mode forward and fails on the old code with **relative error 1.00** on `tok_emb`
+5. Default (`dropout=0`) runs are unchanged: the v1.11.0 benchmark reproduces to the digit (held-out ppl 7,459.4, grad-check 3.80e-07 over 24 tensors)
+
+### A brain with a real corpus (7)
+
+6. `tools/fetch_corpus.py` — pulls tiny-shakespeare (karpathy/char-rnn, public domain) from GitHub into `data/corpus.json`: word-chunked (default 180 words), deduplicated on merge, `--offline-file` / `--dry-run` / `--limit`, and it refuses to write past Brain's 5,000-line save cap (the tail would silently vanish on the next save)
+7. The live corpus grew from 86 seed lines to **1,212 texts / 202,651 words** (seeds kept first so the held-out split stays the tail of the text); the corpus is data — downloaded to `data/`, never committed
+8. Upkeep rounds are bounded to `Brain.BACKGROUND_WINDOWS = 4096` windows — on a grown corpus an auto-round would otherwise chew through a 20,000-window budget behind every fifth learning event; explicit `/api/train` keeps the full budget
+9. `tools/benchmark.py --corpus FILE`, `--ctx N`, `--arch both|transformer|mlp`, and window-perplexity now evaluates in batches of 512 (per-window forwards would take minutes on 184k windows)
+10. Measured, 20 epochs, same architecture and protocol as v1.11.0 (train on a 20k-window sample of the corpus, perplexity over every window): transformer held-out ppl **651.8** on the grown corpus vs a 4,000 uniform baseline — **6.1x better than uniform guessing**, with held-out ≈ train-text ppl (652 vs 659) and the scrambled-target control 2.3x worse (1,522). On the 86-line seed corpus the same model scored 7,459 held-out against a 459 uniform baseline — **16x worse than uniform**: memorisation, not language
+11. The MLP does not scale with the vocabulary (held-out ppl 869,850 at 4k words vs the transformer's 652) — attention is what makes the grown corpus usable
+12. `tests/test_corpus_tool.py` (9 tests): chunk sizes, merge/dedupe, idempotence, dry-run, cap refusal, `--limit`
+
+### One command back from a wipe (5)
+
+13. `tools/restore_stack.sh` — rebuilds the whole stack after a sandbox/disk reset: git HEAD restore (`fetch` + `reset --mixed` to the pushed commit, working files untouched), venv + requirements + engine packages, the demo GGUF, the Cortex clone + its upstream updater, then verifies; `--serve` starts app:8000, cortex:8625 and the proxy:8624
+14. `tools/cortex_proxy.py` — the dashboard proxy now lives in the repo (it used to live in a home directory that the same wipes deleted)
+15. Python resolution follows the launcher convention (python.env -> 2PY2 -> python3)
+16. Dogfooded the same day: a wipe reset HEAD mid-session; the script's restore step is exactly what put it back
+17. Version 1.12.0; 562 tests (10 new)
+
+**Counting note:** 17 items, three changes — one bug fixed and proven, one corpus grown and measured, one recovery script. Items 3-5 are one test; items 9-11 are one measurement.
+
 ## v1.11.1 — background training that stays out of the way (18 items)
 
 The complaint that started this round was "make it train in the background with
