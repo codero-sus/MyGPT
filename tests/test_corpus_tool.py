@@ -52,6 +52,77 @@ class MergeTests(unittest.TestCase):
         self.assertEqual(merged, ["ok", "fine"])
 
 
+class RestoredCorpusBootTests(unittest.TestCase):
+    """The wipe-recovery path: data/corpus.json exists, nothing else does.
+
+    Brain loads the corpus, then queues its initial training round. If the LM
+    has not *observed* that corpus yet, the round trains a 4-token vocabulary
+    (<pad>/<unk>/<bos>/<eos>) and records a suspiciously good loss of ~0.005
+    while learning nothing at all — this happened live during a restore and
+    the tell was `vocab: 4` in loss_history. The check spies on the moment the
+    round is submitted: that is the only race-free place to see what the round
+    will actually train on.
+    """
+
+    def test_initial_round_is_submitted_with_a_real_vocabulary(self):
+        import time  # noqa: F401  (kept local: only this test needs it)
+        from mygpt import trainer as trainer_mod
+        from mygpt.brain import Brain
+
+        seed = os.path.join(ROOT, "seed_corpus.json")
+        with tempfile.TemporaryDirectory() as tmp:
+            # exactly what tools/fetch_corpus.py leaves behind: seed texts
+            # first, imported chunks after — so the seed loader's "fresh"
+            # list is empty and nothing observes the corpus on its way in
+            with open(seed, encoding="utf-8") as fh:
+                texts = json.load(fh)["texts"]
+            extra = [f"restored corpus line {i} with several words in it"
+                     for i in range(20)]
+            merged = fetch.merge_corpus(texts, extra)
+            with open(os.path.join(tmp, "corpus.json"), "w",
+                      encoding="utf-8") as fh:
+                json.dump(merged, fh)
+
+            calls = []
+            orig = trainer_mod.BackgroundTrainer.submit_round
+
+            def spy(self, texts, epochs=6, reason="auto", max_windows=20000):
+                calls.append({"reason": reason, "vocab": self.lm.vocab_size})
+                return orig(self, texts, epochs=epochs, reason=reason,
+                            max_windows=max_windows)
+
+            trainer_mod.BackgroundTrainer.submit_round = spy
+            brain = None
+            try:
+                brain = Brain(tmp, seed)
+            finally:
+                trainer_mod.BackgroundTrainer.submit_round = orig
+                if brain is not None:
+                    brain.trainer.stop()
+                    # join, or the trainer's final save races the temp-dir
+                    # cleanup below (flaky: it won the race about half the time)
+                    thread = getattr(brain.trainer, "_thread", None)
+                    if thread is not None:
+                        thread.join(timeout=5)
+
+            initial = [c for c in calls if "initial" in str(c["reason"])]
+            self.assertTrue(initial,
+                            "first boot must queue an initial training round")
+            self.assertGreater(
+                initial[0]["vocab"], len(merged) // 2,
+                "the initial round was submitted before the corpus was "
+                "observed — it would train a 4-token vocabulary")
+
+            # and the LM really can encode the corpus as words, not <unk>
+            unk = brain.lm.word2idx["<unk>"]
+            ids = brain.lm.encode(brain.lm.tokenize(merged[0]))                 if hasattr(brain.lm, "tokenize") else None
+            if ids is None:
+                from mygpt.tokenizer import tokenize
+                ids = brain.lm.encode(tokenize(merged[0]))
+            self.assertGreater(len([i for i in ids if i != unk]), 0,
+                               "corpus text must encode to real words")
+
+
 class OfflineEndToEndTests(unittest.TestCase):
     def test_offline_file_feeds_the_live_corpus_and_is_idempotent(self):
         with tempfile.TemporaryDirectory() as tmp:

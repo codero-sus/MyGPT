@@ -142,19 +142,22 @@ if [ "$SERVE" = "1" ]; then
   say "starting services"
   # cortex (loopback only) -> proxy on 0.0.0.0:8624 (frames + headers) ->
   # mygpt on 0.0.0.0:8000
-  ( cd "$CORTEX_DIR" && PYTHONPATH=src setsid nohup \
+  # setsid --fork, not plain setsid: without the fork, setsid execs in place
+  # and the "detached" service stays this script's child — bash then blocks in
+  # wait4 at exit for a service that runs forever (found the hard way).
+  ( cd "$CORTEX_DIR" && PYTHONPATH=src setsid -f nohup \
       "$ROOT/.venv/bin/python" -m cortex_llmhoster \
-      --host 127.0.0.1 --port 8625 >/tmp/cortex.log 2>&1 & )
-  ( setsid nohup "$ROOT/.venv/bin/python" "$ROOT/tools/cortex_proxy.py" \
-      >/tmp/cortex_proxy.log 2>&1 & )
-  ( MYGPT_CORTEX_URL=http://127.0.0.1:8624 PORT=8000 setsid nohup \
-      "$ROOT/.venv/bin/python" "$ROOT/app.py" >/tmp/mygpt.log 2>&1 & )
+      --host 127.0.0.1 --port 8625 >/tmp/cortex.log 2>&1 </dev/null & )
+  ( setsid -f nohup "$ROOT/.venv/bin/python" "$ROOT/tools/cortex_proxy.py" \
+      >/tmp/cortex_proxy.log 2>&1 </dev/null & )
+  ( MYGPT_CORTEX_URL=http://127.0.0.1:8624 PORT=8000 setsid -f nohup \
+      "$ROOT/.venv/bin/python" "$ROOT/app.py" >/tmp/mygpt.log 2>&1 </dev/null & )
   # Poll, don't guess: a cold first boot observes the whole corpus before it
   # answers, so three seconds was a coin flip on slower machines.
   probe() {  # $1 = url, $2 = label
     code=000
     for _ in $(seq 1 45); do
-      code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$1" || echo 000)
+      code=$(timeout 3 curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$1" || echo 000)
       [ "$code" = "200" ] && break
       sleep 1
     done
