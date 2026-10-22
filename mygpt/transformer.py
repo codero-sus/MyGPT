@@ -303,12 +303,16 @@ class TransformerLM(NeuralLM):
 
         for i in reversed(range(self.blocks)):
             c = caches["caches"][i]
-            if c["fmask"] is not None:
-                dx = dx * c["fmask"]
+            # Dropout masks the sublayer *branch* only: the residual carries
+            # the gradient through untouched. Masking `dx` itself (as this
+            # once did) corrupts every parameter's gradient as soon as
+            # dropout > 0 — caught by test_gradient_with_dropout.
+            #
             # ---- feed-forward
+            d_ff = dx * c["fmask"] if c["fmask"] is not None else dx
             grads[f"b{i}_W2"] += c["z"].reshape(-1, c["z"].shape[-1]).T @ \
-                dx.reshape(-1, d)
-            dz = dx @ p[f"b{i}_W2"].T
+                d_ff.reshape(-1, d)
+            dz = d_ff @ p[f"b{i}_W2"].T
             dpre = gelu_backward(c["pre"]) * dz           # ffn width
             grads[f"b{i}_W1"] += c["h2"].reshape(-1, d).T @ \
                 dpre.reshape(-1, dpre.shape[-1])
@@ -319,11 +323,10 @@ class TransformerLM(NeuralLM):
             dx = dx + dh2_ln                       # residual branch
 
             # ---- attention
-            if c["dmask"] is not None:
-                dx = dx * c["dmask"]
+            d_att = dx * c["dmask"] if c["dmask"] is not None else dx
             grads[f"b{i}_Wo"] += c["ctx_f"].reshape(-1, d).T @ \
-                dx.reshape(-1, d)
-            dctx_f = dx @ p[f"b{i}_Wo"].T
+                d_att.reshape(-1, d)
+            dctx_f = d_att @ p[f"b{i}_Wo"].T
             dh = c["h"]
             dctx = dctx_f.reshape(B, C, self.heads, -1).transpose(0, 2, 1, 3)
             dattn = dctx @ c["vh"].transpose(0, 1, 3, 2)

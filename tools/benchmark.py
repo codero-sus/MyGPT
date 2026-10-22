@@ -111,30 +111,44 @@ def _window_perplexity(model, texts, shuffle_targets: bool = False,
     if shuffle_targets:
         targets = list(rng.permutation(targets))
     total = 0.0
-    for (context, _), target in zip(windows, targets):
-        logits, _ = model._forward(np.asarray(context)[None, :])
-        row = logits[0]
-        probs = np.exp(row - row.max())
-        probs /= probs.sum()
-        total += -np.log(float(probs[target]) + 1e-12)
+    # Bounded batches: one forward per window is 20k forwards on a grown
+    # corpus, and an all-at-once forward would allocate (20k, V) logits.
+    batch = 512
+    contexts = [np.asarray(w[0]) for w in windows]
+    for start in range(0, len(windows), batch):
+        block = np.stack(contexts[start:start + batch])
+        logits, _ = model._forward(block)
+        row_max = logits.max(axis=1, keepdims=True)
+        probs = np.exp(logits - row_max)
+        probs /= probs.sum(axis=1, keepdims=True)
+        for row, target in enumerate(targets[start:start + batch]):
+            total += -np.log(float(probs[row, target]) + 1e-12)
     return float(np.exp(total / len(windows)))
 
 
-def benchmark_architectures(epochs: int, batch: int, live: bool = False) -> dict:
-    texts = _corpus(live=live)
+def benchmark_architectures(epochs: int, batch: int, live: bool = False,
+                            texts: list[str] | None = None, ctx: int = 6,
+                            arch: str = "both") -> dict:
+    if texts is None:
+        texts = _corpus(live=live)
     train_texts, held_out = _split(texts)
     out: dict = {
         "corpus": {"texts": len(texts), "train_texts": len(train_texts),
                    "held_out_texts": len(held_out)},
-        "config": {"epochs": epochs, "batch_size": batch},
+        "config": {"epochs": epochs, "batch_size": batch,
+                   "ctx": ctx, "arch": arch},
         "models": {},
     }
     # Same width and the *same context length*, so the comparison is about the
     # architecture (attention vs mean-pooled bag of words), not about one model
     # simply being shown more history.
     specs = [("transformer", TransformerLM,
-              dict(dim=48, heads=4, blocks=2, ctx=6)),
-             ("mlp", NeuralLM, dict(dim=48, hidden=128, ctx=6))]
+              dict(dim=48, heads=4, blocks=2, ctx=ctx)),
+             ("mlp", NeuralLM, dict(dim=48, hidden=128, ctx=ctx))]
+    if arch != "both":
+        specs = [sp for sp in specs if sp[0] == arch]
+        if not specs:
+            raise ValueError(f"unknown arch {arch!r}: transformer, mlp, both")
     for name, cls, kwargs in specs:
         model = cls(**kwargs)
         for text in train_texts:                  # vocabulary comes from the data
@@ -557,7 +571,25 @@ def main() -> int:
     ap.add_argument("--live", action="store_true",
                     help="benchmark data/corpus.json (what a running MyGPT "
                          "has learned from chats) instead of the seed corpus")
+    ap.add_argument("--corpus", metavar="FILE",
+                    help="benchmark a corpus file (JSON array of strings, or "
+                         "plain text with one text per line)")
+    ap.add_argument("--ctx", type=int, default=6,
+                    help="context length for both architectures (default 6)")
+    ap.add_argument("--arch", choices=("both", "transformer", "mlp"),
+                    default="both",
+                    help="which architecture(s) to train (default both)")
     args = ap.parse_args()
+
+    corpus_texts = None
+    if args.corpus:
+        with open(args.corpus, encoding="utf-8") as fh:
+            raw = fh.read()
+        if args.corpus.endswith(".json"):
+            data = json.loads(raw)
+            corpus_texts = [t for t in data if isinstance(t, str) and t.strip()]
+        else:
+            corpus_texts = [ln.strip() for ln in raw.splitlines() if ln.strip()]
 
     if args.trainer_impact:
         impact = benchmark_trainer_impact()
@@ -568,7 +600,8 @@ def main() -> int:
         return 0
 
     result = benchmark_architectures(args.epochs, args.batch,
-                                     live=args.live)
+                                     live=args.live, texts=corpus_texts,
+                                     ctx=args.ctx, arch=args.arch)
     if not args.skip_grad_check:
         result["gradient_check"] = grad_check()
     llama = benchmark_llamacpp()
@@ -582,7 +615,7 @@ def main() -> int:
     corpus = result["corpus"]
     print(f"MyGPT brain benchmark — {corpus['texts']} texts "
           f"({corpus['train_texts']} train / {corpus['held_out_texts']} held "
-          f"out), epochs={args.epochs}, batch={args.batch}")
+          f"out), epochs={args.epochs}, batch={args.batch}, ctx={args.ctx}")
     print()
     head = f"{'model':12} {'params':>8} {'windows':>8} {'train s':>8} " \
            f"{'loss':>13} {'ppl train':>10} {'ppl held':>9} {'tok/s':>7} " \
