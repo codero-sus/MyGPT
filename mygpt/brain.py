@@ -219,6 +219,17 @@ class Brain:
             if added or fresh:
                 self._log(f"seeded with starter knowledge "
                           f"(+{added} pairs, +{len(fresh)} texts)")
+            # A restored corpus (data/corpus.json from an import or a wipe
+            # recovery) is loaded before this point but never observed — and
+            # training an unobserved LM runs on a 4-token vocabulary
+            # (<pad>/<unk>/<bos>/<eos>), which scores a suspiciously good
+            # loss of ~0 while learning nothing. Observe first, always.
+            if self.corpus and not self.lm.word_counts:
+                for line in self.corpus[:20000]:
+                    self.lm.observe(line)
+                self.lm.rebuild_vocab()
+                self._log(f"observed {min(len(self.corpus), 20000)} corpus "
+                          f"lines before training")
             if first_boot:
                 # Upkeep nobody is waiting for: queue it. On a grown corpus a
                 # blocking 12-epoch round here would keep the web UI from even
