@@ -122,9 +122,15 @@ if [ ! -d "$CORTEX_DIR/.git" ]; then
 else
   echo "clone already present ($(git -C "$CORTEX_DIR" log --oneline -1))"
 fi
-# The upstream updater handles branch pinning, JSON backup and the install.
+# The upstream updater handles branch pinning and JSON backup. Its install
+# path is git-only now, so the runtime dependencies go in here — installing
+# the package from its unmodified source, exactly what its own updater did.
 env 2PY2="$ROOT/.venv/bin/python" bash "$CORTEX_DIR/updater.sh" \
   || echo "warning: cortex updater returned non-zero — clone may be current"
+.venv/bin/pip install -q --editable "$CORTEX_DIR" \
+  || echo "warning: could not install cortex dependencies"
+.venv/bin/python -c "import dotenv, uvicorn, starlette  # cortex runtime" \
+  && echo "cortex runtime dependencies ok"
 
 # ---------------------------------------------------------------- 5. verify
 say "verify"
@@ -143,10 +149,20 @@ if [ "$SERVE" = "1" ]; then
       >/tmp/cortex_proxy.log 2>&1 & )
   ( MYGPT_CORTEX_URL=http://127.0.0.1:8624 PORT=8000 setsid nohup \
       "$ROOT/.venv/bin/python" "$ROOT/app.py" >/tmp/mygpt.log 2>&1 & )
-  sleep 3
-  echo "app    http://0.0.0.0:8000   ($(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/ping || echo fail))"
-  echo "cortex http://127.0.0.1:8625 ($(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8625/health || echo fail))"
-  echo "proxy  http://0.0.0.0:8624   ($(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8624/health || echo fail))"
+  # Poll, don't guess: a cold first boot observes the whole corpus before it
+  # answers, so three seconds was a coin flip on slower machines.
+  probe() {  # $1 = url, $2 = label
+    code=000
+    for _ in $(seq 1 45); do
+      code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$1" || echo 000)
+      [ "$code" = "200" ] && break
+      sleep 1
+    done
+    printf '%-7s %-26s (%s)\n' "$2" "$1" "$code"
+  }
+  probe http://127.0.0.1:8000/api/ping app
+  probe http://127.0.0.1:8625/health cortex
+  probe http://127.0.0.1:8624/health proxy
   echo "logs: /tmp/mygpt.log /tmp/cortex.log /tmp/cortex_proxy.log"
 else
   say "next: start the stack"

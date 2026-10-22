@@ -220,9 +220,14 @@ class Brain:
                 self._log(f"seeded with starter knowledge "
                           f"(+{added} pairs, +{len(fresh)} texts)")
             if first_boot:
-                self.train(epochs=12, reason="initial training")
+                # Upkeep nobody is waiting for: queue it. On a grown corpus a
+                # blocking 12-epoch round here would keep the web UI from even
+                # binding for minutes (measured: 20k-window budget x 12).
+                self.train(epochs=12, reason="initial training",
+                           requirement="background")
             elif added:
-                self.train(epochs=4, reason="seed update training")
+                self.train(epochs=4, reason="seed update training",
+                           requirement="background")
         if not first_boot and self.corpus:
             for line in self.corpus:
                 self.lm.observe(line)
