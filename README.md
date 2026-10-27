@@ -454,12 +454,31 @@ harder to fake than to measure:
 .venv/bin/python tools/benchmark.py --ctx 12        # longer context (both models)
 .venv/bin/python tools/benchmark.py --arch transformer
 .venv/bin/python tools/benchmark.py --corpus my_texts.json
+.venv/bin/python tools/benchmark.py --max-windows 60000   # window budget per run
 ```
 
 Both models get the **same corpus, same context length, same epochs, same
 batch**. Held-out = the last 10% of the corpus's texts, never trained on.
 Perplexity is on one scale for both; the scrambled-target control shuffles the
-answers to show the metric actually measures prediction.
+answers to show the metric actually measures prediction, and a count-based
+**bigram reference** prints for context — if the model cannot beat the bigram
+it has learned no more than adjacent-word counts.
+
+### How much to train (measured)
+
+The learning-rate schedule spans each run's real step count (it used to decay
+over a fixed 800 steps whatever the run did), which makes the window budget
+and the epoch count a matched pair. On the grown corpus, held-out perplexity:
+
+| regime | held-out | time |
+|---|---|---|
+| 20k windows x 20 epochs | 4,950 | 131 s |
+| 20k x 5 | 431 | 30 s |
+| **60k x 7** | **297** | **130 s** |
+| 60k x 20 | 614 | 358 s |
+
+More epochs hurt at either budget — train on more windows instead of training
+longer on the same ones.
 
 ### Growing the brain's corpus
 
@@ -532,10 +551,10 @@ decimal places.
 
 ## Tests
 
-**562 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
-34 + 42 + 6 + 20 + 9 for the transformer (including a gradient check that runs
-with dropout on), the local-model backends, the benchmark tool, the background
-trainer and the corpus tool. A generator
+**567 tests** — the original 116 smoke tests, 335 for the v1.10 packs/API, and
+38 + 42 + 6 + 20 + 9 for the transformer (a gradient check that runs with
+dropout on, and the per-run LR schedule), the local-model backends, the
+benchmark tool, the background trainer and the corpus tool. A generator
 emits one test *per template family* (every canonical ask must match its own
 regex and return the family's own code, syntax-checked), one per maths rule and
 one per text rule, plus seed-knowledge, Brain-wiring and API tests for the 11

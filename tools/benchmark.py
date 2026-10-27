@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 import time
@@ -73,9 +74,10 @@ def _split(texts: list[str], holdout: float = 0.1):
     return texts[:cut], texts[cut:]
 
 
-def _train(model, texts, epochs: int, batch: int):
+def _train(model, texts, epochs: int, batch: int, max_windows: int = 20000):
     start = time.perf_counter()
-    stats = model.train(texts, epochs=epochs, batch_size=batch)
+    stats = model.train(texts, epochs=epochs, batch_size=batch,
+                        max_windows=max_windows)
     return time.perf_counter() - start, stats
 
 
@@ -126,9 +128,46 @@ def _window_perplexity(model, texts, shuffle_targets: bool = False,
     return float(np.exp(total / len(windows)))
 
 
+def bigram_perplexity(train_texts: list[str], eval_texts: list[str],
+                      smoothing: float = 0.1) -> float | None:
+    """Reference point: a count-based bigram over the same texts.
+
+    Not an architecture — the classic "what does memorising adjacent words
+    achieve" baseline. Interpolated with the unigram distribution so unseen
+    pairs and unseen words cost something finite. If the transformer cannot
+    beat this on held-out texts, it has learned no more than bigram tables.
+    """
+    from mygpt.tokenizer import tokenize
+    uni: dict[str, int] = {}
+    bi: dict[tuple[str, str], int] = {}
+    for text in train_texts:
+        words = ["<s>"] + tokenize(text) + ["</s>"]
+        for w in words[1:]:
+            uni[w] = uni.get(w, 0) + 1
+        for a, b in zip(words, words[1:]):
+            bi[(a, b)] = bi.get((a, b), 0) + 1
+    if not uni:
+        return None
+    total = sum(uni.values())
+    vocab = len(uni) + 2
+    uni_p = lambda w: (uni.get(w, 0) + smoothing) / (total + smoothing * vocab)  # noqa: E731
+
+    nll, n = 0.0, 0
+    for text in eval_texts:
+        words = ["<s>"] + tokenize(text) + ["</s>"]
+        for a, b in zip(words, words[1:]):
+            seen = uni.get(a, 0)
+            pair_p = ((bi.get((a, b), 0) + smoothing * uni_p(b))
+                      / (seen + smoothing))
+            nll += -math.log(pair_p + 1e-12)
+            n += 1
+    return float(math.exp(nll / n)) if n else None
+
+
 def benchmark_architectures(epochs: int, batch: int, live: bool = False,
                             texts: list[str] | None = None, ctx: int = 6,
-                            arch: str = "both") -> dict:
+                            arch: str = "both",
+                            max_windows: int = 20000) -> dict:
     if texts is None:
         texts = _corpus(live=live)
     train_texts, held_out = _split(texts)
@@ -136,8 +175,14 @@ def benchmark_architectures(epochs: int, batch: int, live: bool = False,
         "corpus": {"texts": len(texts), "train_texts": len(train_texts),
                    "held_out_texts": len(held_out)},
         "config": {"epochs": epochs, "batch_size": batch,
-                   "ctx": ctx, "arch": arch},
+                   "ctx": ctx, "arch": arch, "max_windows": max_windows},
         "models": {},
+        "reference": {
+            "bigram_perplexity_train": bigram_perplexity(train_texts,
+                                                         train_texts),
+            "bigram_perplexity_held_out": bigram_perplexity(train_texts,
+                                                            held_out),
+        },
     }
     # Same width and the *same context length*, so the comparison is about the
     # architecture (attention vs mean-pooled bag of words), not about one model
@@ -164,7 +209,8 @@ def benchmark_architectures(epochs: int, batch: int, live: bool = False,
         windows = len(list(model._windows(train_texts)))
         if windows == 0:
             continue
-        seconds, stats = _train(model, train_texts, epochs, batch)
+        seconds, stats = _train(model, train_texts, epochs, batch,
+                                max_windows=max_windows)
         out["models"][name] = {
             "params": int(model.param_count()),
             "vocab": int(model.vocab_size),
@@ -579,6 +625,8 @@ def main() -> int:
     ap.add_argument("--arch", choices=("both", "transformer", "mlp"),
                     default="both",
                     help="which architecture(s) to train (default both)")
+    ap.add_argument("--max-windows", type=int, default=20000,
+                    help="training window budget per run (default 20000)")
     args = ap.parse_args()
 
     corpus_texts = None
@@ -601,7 +649,8 @@ def main() -> int:
 
     result = benchmark_architectures(args.epochs, args.batch,
                                      live=args.live, texts=corpus_texts,
-                                     ctx=args.ctx, arch=args.arch)
+                                     ctx=args.ctx, arch=args.arch,
+                                     max_windows=args.max_windows)
     if not args.skip_grad_check:
         result["gradient_check"] = grad_check()
     llama = benchmark_llamacpp()
@@ -632,6 +681,13 @@ def main() -> int:
         print(f"{name:12} {m['params']:>8,} {m['windows']:>8} "
               f"{m['train_seconds']:>8.2f} {loss:>13} {ppl_t:>10} {ppl_h:>9} "
               f"{m['generation_tokens_per_sec']:>7.1f} {ctrl_s:>11}")
+    ref = result.get("reference") or {}
+    if ref.get("bigram_perplexity_held_out"):
+        print()
+        print(f"reference: a count-based bigram over the same texts scores "
+              f"ppl train {ref['bigram_perplexity_train']:.1f} / held "
+              f"{ref['bigram_perplexity_held_out']:.1f} — the bar for "
+              f"'did the neural model learn more than adjacent-word counts'.")
     vocab = next(iter(result["models"].values()), {}).get(
         "perplexity_uniform_baseline")
     if vocab:

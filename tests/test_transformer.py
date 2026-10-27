@@ -185,6 +185,60 @@ class GradientCheckTests(unittest.TestCase):
                                        atol=1e-12, err_msg=name)
 
 
+class LRScheduleTests(unittest.TestCase):
+    """The warmup+cosine schedule must span the run, not a fixed 800 steps.
+
+    Regression check: the horizon was once a hardcoded ``total_steps=800``
+    measured against a global step counter, so any run longer than 800 steps
+    — every benchmark run at 20 epochs, every background round — collapsed its
+    whole cosine into the first 6% and trained the rest at the 0.1x floor.
+    """
+
+    def test_mid_run_step_is_not_stuck_at_the_floor(self):
+        lm = make_model(blocks=1, warmup=40, total_steps=800, lr=1.0)
+        lm._set_schedule(12500)               # a real 20-epoch grown-corpus run
+        lm.step_count = 900                   # 7% into the run
+        lr = lm._lr_now()
+        self.assertGreater(lr, 0.5,
+                           "mid-run LR collapsed to the floor — the schedule "
+                           "is not spanning the run")
+        lm.step_count = 6300                  # half way
+        self.assertGreater(lm._lr_now(), 0.2)
+        lm.step_count = 12500                 # the very end
+        self.assertAlmostEqual(lm._lr_now(), 0.1 * lm.lr, places=6)
+
+    def test_schedule_is_relative_to_the_run_not_the_model(self):
+        lm = make_model(blocks=1, warmup=40, total_steps=800, lr=1.0)
+        lm.step_count = 5000                  # a long history of dream steps
+        lm._set_schedule(200)                 # ...then a fresh round
+        self.assertAlmostEqual(lm._lr_now(), lm.lr * 1 / lm.warmup, places=6,
+                               msg="a new run must warm up again")
+
+    def test_train_points_the_schedule_at_the_run(self):
+        lm = make_model(blocks=1, warmup=4, total_steps=800, lr=1e-2)
+        texts = ["the cat sat on the mat", "the dog ate the bone"]
+        windows = lm.all_windows(texts)
+        epochs, batch = 3, 2
+        planned = ((len(windows) + batch - 1) // batch) * epochs
+        lm.train(texts, epochs=epochs, batch_size=batch)
+        self.assertEqual(lm.total_steps, max(planned, lm.warmup + 1))
+
+    def test_resume_restarts_the_schedule(self):
+        """A reloaded model must not sit at the LR floor until the next run."""
+        import os
+        import tempfile
+        lm = make_model(blocks=1, warmup=40, total_steps=800, lr=1.0)
+        lm.step_count = 3000
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "m.npz")
+            lm.save(path)
+            fresh = make_model(blocks=1, warmup=40, total_steps=800, lr=1.0)
+            self.assertTrue(fresh.load(path))
+        self.assertEqual(fresh.step_count, 3000)
+        self.assertAlmostEqual(fresh._lr_now(), fresh.lr / fresh.warmup,
+                               places=6)
+
+
 class CausalityTests(unittest.TestCase):
     """A causal model must not let a token see the future."""
 

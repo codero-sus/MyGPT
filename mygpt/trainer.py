@@ -293,6 +293,10 @@ class BackgroundTrainer:
             windows = self.lm.all_windows(list(texts), max_windows=max_windows)
             result["windows"] = len(windows)
             if windows:
+                setter = getattr(self.lm, "_set_schedule", None)
+                if setter is not None:
+                    per_epoch = (len(windows) + ROUND_BATCH - 1) // ROUND_BATCH
+                    setter(per_epoch * max(1, int(epochs)))
                 first, last, steps = None, None, 0
                 for _ in range(max(1, int(epochs))):
                     if self._stop.is_set():

@@ -175,6 +175,12 @@ class NeuralLM:
 
         first_loss, last_loss = None, None
         with self.lock:
+            # The LR schedule belongs to this run, not to the model's lifetime:
+            # tell it how many steps are actually coming (transformer only).
+            setter = getattr(self, "_set_schedule", None)
+            if setter is not None and windows:
+                per_epoch = (len(windows) + batch_size - 1) // batch_size
+                setter(per_epoch * max(1, int(epochs)))
             for _ in range(epochs):
                 self.rng.shuffle(windows)
                 for b in range(0, len(windows), batch_size):

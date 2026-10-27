@@ -3,6 +3,70 @@
 All credits: **codero-sus** — [github.com/codero-sus](https://github.com/codero-sus) ·
 [the-codero.web.app](https://the-codero.web.app/)
 
+## v1.13.0 — the schedule bug that was hiding a training regime (12 items)
+
+A round of "improve it" that turned into a small research note, because the
+first fix made one benchmark dramatically better and the other dramatically
+worse — and the second measurement explained both.
+
+### The learning-rate schedule was lying (6)
+
+1. `_lr_now()`'s warmup+cosine horizon was a fixed `total_steps=800`, counted
+   against the model's global step counter. Any run longer than 800 steps —
+   every 20-epoch benchmark, every background round on a grown corpus — spent
+   its entire cosine in the first 6% of training and trained the rest at the
+   0.1x floor
+2. The schedule is now **per-run**: `TransformerLM._set_schedule(steps)` points
+   warmup + cosine at the run's own planned length, counted from the run's
+   start (`NeuralLM.train()` and the background trainer's `_run_round` both
+   call it with the real step count)
+3. A vocab rebuild restarts the schedule (fresh optimiser, fresh warmup), and
+   a reloaded checkpoint resumes with a fresh schedule instead of sitting at
+   the floor until the next explicit run
+4. `tests/test_transformer.py::LRScheduleTests` (4 tests) pins all of it,
+   including the exact old failure mode: mid-run step 900 of a 12,500-step run
+   must not be at the floor
+5. Measured on the seed corpus (full data per run): held-out perplexity
+   **7,459 -> 2,133 (-71%)** at the same 20 epochs — the schedule was costing
+   real generalisation whenever training saw all of its data
+6. Measured on the grown corpus (a 20k-window sample of 184k): held-out
+   **652 -> 4,950** — *worse*. The old floor was accidental regularisation; a
+   properly hot schedule overfits the sample. Which is what item 7 is about
+
+### The training regime that matches the fix (4)
+
+7. New `tools/benchmark.py --max-windows` — the window budget is now a
+   measured knob, not a constant
+8. Regime matrix on the grown corpus (transformer, ctx 6, held-out ppl; the
+   old-schedule run took 208.8 s):
+
+   | regime | held-out | train | time |
+   |---|---|---|---|
+   | old schedule, 20k windows x 20 epochs | 651.8 | 658.5 | 208.8 s |
+   | fixed, 20k x 20 | 4,950.3 | 3,233.9 | 131.4 s |
+   | fixed, 20k x 5 | 431.3 | 489.7 | 29.5 s |
+   | **fixed, 60k x 7** | **296.7** | 262.2 | 129.5 s |
+   | fixed, 60k x 20 | 613.8 | 309.7 | 357.8 s |
+
+9. The winner beats the old schedule's 651.8 by **2.2x at 1.6x less compute**
+   — and more epochs hurt at either budget (4,950 and 613.8), so the answer
+   to "train longer" was "train on more windows instead"
+10. A count-based **bigram reference** now prints with every benchmark run
+    (grown corpus: held-out 8,752.6) — the bar for "did the neural model learn
+    more than adjacent-word counts". It also exposed that the bigram memorises
+    as hard as anything (train 54.7 vs held 8,752.6)
+
+### Housekeeping (2)
+
+11. 567 tests (4 new), version 1.13.0
+12. **First pull request**: this branch (v1.5.0 through v1.13.0) is proposed
+    to `main` — the transformer brain, background self-training that yields to
+    requests, the real-corpus tooling, the restore script, and every measured
+    claim in the changelogs
+
+**Counting note:** 12 items — really one bug, one experiment it forced, and
+the PR. The tables are the deliverable.
+
 ## v1.12.0 — the grown brain (17 items)
 
 Three things were left after v1.11.1, and this release does all three: a real

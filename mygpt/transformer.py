@@ -113,6 +113,7 @@ class TransformerLM(NeuralLM):
         self.warmup = warmup
         self.total_steps = total_steps
         self.step_count = 0
+        self._schedule_start = 0
         self.dtype = dtype
         self.arch = "transformer"
         self._prev_vocab_index: dict[str, int] = {}
@@ -178,6 +179,8 @@ class TransformerLM(NeuralLM):
             self._build_weights(keep_known=grown)
         self._adam, self._adam_t = {}, 0
         self._enc_cache.clear()
+        # a fresh optimiser deserves a fresh LR schedule (warmup restarts)
+        self._schedule_start = self.step_count
 
     # ----------------------------------------------------------- architecture
     def describe(self) -> dict:
@@ -388,9 +391,25 @@ class TransformerLM(NeuralLM):
         self._adam_update(grads, lr=self._lr_now())
         return loss
 
+    def _set_schedule(self, steps: int) -> None:
+        """Point the warmup+cosine schedule at *this run's* planned length.
+
+        The horizon used to be a fixed ``total_steps=800`` whatever the run
+        actually did, measured against a global step counter: a 12,500-step
+        round spent its entire cosine in the first 6% of the training and the
+        other 11,700 steps sat at the 0.1x floor. Every run now warms up and
+        decays across its own steps.
+        """
+        self.total_steps = max(int(steps), self.warmup + 1)
+        self._schedule_start = self.step_count
+
     def _lr_now(self) -> float:
-        """Warmup then cosine decay — the schedule transformers are trained with."""
-        step = max(1, self.step_count)
+        """Warmup then cosine decay — the schedule transformers are trained with.
+
+        Steps are counted from the start of the current run (see
+        ``_set_schedule``), not from the model's first-ever step.
+        """
+        step = max(1, self.step_count - getattr(self, "_schedule_start", 0))
         if step <= self.warmup:
             return self.lr * step / self.warmup
         span = max(1, self.total_steps - self.warmup)
@@ -543,6 +562,9 @@ class TransformerLM(NeuralLM):
             from collections import Counter
             self.word_counts = Counter(json.loads(str(d["counts"])))
             self.step_count = int(meta.get("steps", 0))
+            # resume with a fresh schedule from this step — otherwise the
+            # first dream steps after a restart land at the LR floor
+            self._schedule_start = self.step_count
             if self.params["tok_emb"].shape[0] != len(self.idx2word):
                 self._build_weights(keep_known=True)
         self._adam, self._adam_t = {}, 0
