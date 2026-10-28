@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# MyGPT runtime state (memory, corpus, weights, metrics)
+data/
+
+# Skills auto-written at runtime by the self-learning loop (handle_<intent>)
+skills/handle_*.py
+
+# trained-model checkpoints (created on demand)
+_model_trained/
+
+# local model files (large; users drop their own in)
+models/*.gguf
+models/**/*.gguf

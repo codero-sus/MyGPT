@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MyGPT — a self-training chatbot in pure Python + NumPy with a Flask WebUI. Made with ❤️ by codero-sus." />
+  <meta name="theme-color" content="#0b0e14" />
+  <meta name="author" content="codero-sus — https://github.com/codero-sus" />
+  <title>MyGPT — self-training chatbot by codero-sus</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', filename='icon.svg') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon.svg') }}" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="MyGPT" />
+  <meta property="og:title" content="MyGPT — self-training chatbot by codero-sus" />
+  <meta property="og:description" content="A self-learning chatbot in pure Python + NumPy. Made with ❤️ by codero-sus." />
+  <meta property="og:type" content="website" />
+</head>
+<body>
+  <a class="skip-link" href="#composer-input-anchor">Skip to the composer</a>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="orb"></div>
+        <div>
+          <h1>MyGPT</h1>
+          <p class="tagline">self-training chatbot · pure Python + NumPy · by
+            <a href="https://github.com/codero-sus" target="_blank" rel="noopener">codero-sus</a></p>
+        </div>
+      </div>
+      <div class="tools">
+        <button type="button" class="icon-btn" id="theme-btn" title="Toggle light / dark theme"
+                aria-label="Toggle theme">🌓</button>
+        <button type="button" class="icon-btn" id="font-dec" title="Smaller text"
+                aria-label="Decrease font size">A−</button>
+        <button type="button" class="icon-btn" id="font-inc" title="Larger text"
+                aria-label="Increase font size">A+</button>
+        <button type="button" class="icon-btn" id="density-btn"
+                title="Compact / comfortable spacing" aria-label="Toggle density">📐</button>
+        <button type="button" class="icon-btn" id="contrast-btn"
+                title="High-contrast mode" aria-label="Toggle contrast">◐</button>
+        <button type="button" class="icon-btn" id="motion-btn"
+                title="Reduce animations" aria-label="Toggle reduced motion">🎞</button>
+        <button type="button" class="icon-btn" id="sidebar-btn"
+                title="Collapse the sidebar (Ctrl+B)" aria-label="Toggle sidebar">◧</button>
+        <button type="button" class="icon-btn" id="sound-btn"
+                title="Chime when a reply arrives" aria-label="Toggle sound">🔔</button>
+        <button type="button" class="icon-btn" id="notify-btn"
+                title="Desktop notification when a reply arrives while hidden"
+                aria-label="Toggle desktop notifications">🖥</button>
+        <button type="button" class="icon-btn" id="share-btn"
+                title="Share or copy this conversation" aria-label="Share">🔗</button>
+        <button type="button" class="icon-btn" id="print-btn"
+                title="Print the transcript (Ctrl+P)" aria-label="Print">🖨</button>
+        <button type="button" class="icon-btn" id="help-btn"
+                title="Keyboard shortcuts (?)" aria-label="Shortcuts">⌘</button>
+        <div class="status"><span class="dot" id="status-dot"></span>
+          <span id="status-text">online &amp; learning</span></div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <!-- ================= CHAT ================= -->
+      <section class="chat-panel">
+        <div class="modelbar">
+          <span class="mb-label">🤖 answering with</span>
+          <span class="mb-pill" id="backend-pill"></span>
+          <span class="mb-probe" id="probe-pill" title="MyGPT auto-probes local LLM hosts every 20 s"></span>
+          <button type="button" class="mb-export" id="export-btn"
+                  title="Download the conversation as Markdown">⬇️ export</button>
+          <button type="button" class="mb-export" id="clear-btn"
+                  title="Clear the chat transcript (Ctrl+Shift+L)">🗑 clear</button>
+          <input type="search" class="chat-search" id="chat-search"
+                 placeholder="🔎 search  (Ctrl+K)" aria-label="Search the chat"
+                 autocomplete="off" />
+        </div>
+        <div class="install-hint hidden" id="install-hint">
+          <div class="ih-text" id="install-hint-text"></div>
+          <button id="install-hint-x" title="dismiss">✕</button>
+        </div>
+        <div class="chat-scroll" id="chat" role="log" aria-live="polite"
+             aria-label="Conversation transcript"></div>
+        <div class="pins-bar hidden" id="pins-bar" aria-label="Pinned messages"></div>
+        <button type="button" class="scroll-bottom hidden" id="scroll-bottom"
+                title="Jump to latest message" aria-label="Jump to latest message">⌄</button>
+        <div class="chat-actions">
+          <button type="button" class="mini ghost-mini" id="first-btn"
+                  title="Jump to the first message">⤒ first</button>
+          <button type="button" class="mini ghost-mini" id="copy-all-btn"
+                  title="Copy the whole transcript as text">⧉ copy all</button>
+          <button type="button" class="mini ghost-mini" id="edit-last-btn"
+                  title="Re-edit your last message">✏️ edit last</button>
+        </div>
+        <form class="composer" id="composer">
+          <span id="composer-input-anchor"></span>
+          <textarea id="input" rows="1" autocomplete="off" maxlength="4000"
+                    aria-label="Message MyGPT"
+                    placeholder="Message MyGPT…  (Enter to send · Shift+Enter for a new line)"></textarea>
+          <span class="char-count hidden" id="char-count" aria-live="polite"></span>
+          <select id="backend-select" aria-label="Choose the answering model"
+                  title="Choose which model answers open questions">
+            <option value="auto">⚡ Auto</option>
+            <option value="brain">🧠 Brain</option>
+          </select>
+          <button type="submit" id="send" title="Send" aria-label="Send message">➤</button>
+        </form>
+      </section>
+
+      <!-- ================= SIDEBAR ================= -->
+      <aside class="sidebar">
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-tab="learn" role="tab" title="Learn (Alt+1)">📚 Learn</button>
+          <button class="tab" data-tab="growth" role="tab" title="Growth (Alt+2)">📈 Growth</button>
+          <button class="tab" data-tab="mind" role="tab" title="Mind (Alt+3)">🧬 Mind</button>
+          <button class="tab" data-tab="model" role="tab" title="Model (Alt+4)">🧠 Model</button>
+        </nav>
+
+        <!-- Learn tab -->
+        <div class="panel" id="panel-learn">
+          <div class="card">
+            <h2>Teach MyGPT</h2>
+            <p class="hint">Anything you add here becomes permanent knowledge and training data.</p>
+            <label for="teach-q">Question</label>
+            <input id="teach-q" type="text" placeholder="e.g. what is the capital of france" />
+            <label for="teach-a">Answer</label>
+            <textarea id="teach-a" rows="3" placeholder="e.g. The capital of France is Paris."></textarea>
+            <button class="primary" id="teach-btn">Teach it</button>
+          </div>
+          <div class="card">
+            <h2>Bulk teach</h2>
+            <p class="hint">Paste many pairs — one per line as
+              <code>question :: answer</code> (up to 100 at a time).</p>
+            <textarea id="bulk-text" rows="5"
+                      placeholder="what is rust :: A systems language by Mozilla.&#10;who made python :: Guido van Rossum."></textarea>
+            <button class="primary" id="bulk-btn">Teach all</button>
+            <div class="hint" id="bulk-note"></div>
+          </div>
+          <div class="card">
+            <h2>Search memories</h2>
+            <input id="mem-search" type="search" placeholder="e.g. checkpoints"
+                   aria-label="Search memories" autocomplete="off" />
+            <ul class="memory-list" id="mem-search-results"></ul>
+          </div>
+          <div class="card">
+            <h2>What I know <span class="pill" id="pair-count">0</span></h2>
+            <ul class="memory-list" id="memory-list"></ul>
+          </div>
+        </div>
+
+        <!-- Growth tab -->
+        <div class="panel hidden" id="panel-growth">
+          <div class="card">
+            <h2>Learning curve</h2>
+            <p class="hint">Language-model loss after each training round — lower is smarter.</p>
+            <canvas id="loss-chart" width="560" height="190"></canvas>
+            <div class="chart-caption" id="chart-caption"></div>
+          </div>
+          <div class="card">
+            <h2>Vitals</h2>
+            <div class="stats-grid">
+              <div class="stat"><b id="st-pairs">0</b><span>memories</span></div>
+              <div class="stat"><b id="st-msgs">0</b><span>messages</span></div>
+              <div class="stat"><b id="st-up">0</b><span>👍 feedback</span></div>
+              <div class="stat"><b id="st-corr">0</b><span>corrections</span></div>
+              <div class="stat"><b id="st-vocab">0</b><span>vocab size</span></div>
+              <div class="stat"><b id="st-rounds">0</b><span>train rounds</span></div>
+            </div>
+            <div class="row actions">
+              <select id="epochs">
+                <option value="5">5 epochs</option>
+                <option value="10" selected>10 epochs</option>
+                <option value="25">25 epochs</option>
+                <option value="50">50 epochs</option>
+              </select>
+              <button class="primary" id="train-btn">🏋️ Train now</button>
+              <button class="ghost" id="dream-btn">💭 Dream</button>
+            </div>
+            <div class="dream-box hidden" id="dream-box"></div>
+          </div>
+          <div class="card">
+            <h2>Recent activity</h2>
+            <ul class="events" id="events"></ul>
+          </div>
+          <div class="card">
+            <h2>Software updates <span class="pill" id="up-version">v–</span></h2>
+            <p class="hint">
+              MyGPT updates itself from the official
+              <a href="https://github.com/codero-sus/MyGPT" target="_blank" rel="noopener">codero-sus/MyGPT</a>
+              branch. Checks are manual; installing needs you to confirm the exact
+              commit. Your learned memory, weights and settings in <code>data/</code>
+              are never touched. Restart the server to finish an install.
+            </p>
+            <div class="row actions">
+              <button class="primary" id="up-check">🔎 Check for updates</button>
+              <button class="ghost" id="up-install" disabled>⬇️ Install update</button>
+            </div>
+            <div class="up-status" id="up-status"></div>
+          </div>
+        </div>
+
+        <!-- Model tab: architecture, engines, generation -->
+        <div class="panel hidden" id="panel-model">
+          <div class="card">
+            <h2>Brain architecture <span class="pill" id="md-arch">–</span></h2>
+            <p class="hint">
+              v1.11 ships a real decoder-only <b>transformer</b>: multi-head causal
+              self-attention, pre-layer-norm blocks, GELU feed-forward, learned
+              positional embeddings and tied input/output embeddings — trained
+              with Adam, warmup + cosine learning-rate decay and gradient clipping.
+              Its gradients are verified against numerical differentiation.
+            </p>
+            <div class="stats-grid">
+              <div class="stat"><b id="md-params">0</b><span>parameters</span></div>
+              <div class="stat"><b id="md-blocks">0</b><span>attention blocks</span></div>
+              <div class="stat"><b id="md-heads">0</b><span>heads / block</span></div>
+              <div class="stat"><b id="md-dim">0</b><span>model dim</span></div>
+              <div class="stat"><b id="md-ctx">0</b><span>context window</span></div>
+              <div class="stat"><b id="md-steps">0</b><span>optimiser steps</span></div>
+              <div class="stat"><b id="md-vocab">0</b><span>vocab</span></div>
+              <div class="stat"><b id="md-loss">–</b><span>last loss</span></div>
+            </div>
+            <div class="arch-vision" id="md-vision"></div>
+            <div class="arch-meta" id="md-meta"></div>
+          </div>
+
+          <div class="card">
+            <h2>Self-training <span class="pill" id="tr-pill">checking…</span></h2>
+            <p class="hint">
+              The brain keeps learning in a background thread — but only while
+              you are <b>not</b> waiting on it. Each request tells the trainer to
+              stand down, it waits a moment after your last reply, and it
+              duty-cycles so its own CPU time stays under the share below. A
+              training round triggered by a learning event is <b>queued</b>, never
+              run on the request thread.
+            </p>
+            <div class="stats-grid">
+              <div class="stat"><b id="tr-duty">–</b><span>duty (of one core)</span></div>
+              <div class="stat"><b id="tr-target">–</b><span>duty target</span></div>
+              <div class="stat"><b id="tr-cpu">0</b><span>cpu used</span></div>
+              <div class="stat"><b id="tr-steps">0</b><span>bg steps</span></div>
+              <div class="stat"><b id="tr-rounds">0</b><span>bg rounds</span></div>
+              <div class="stat"><b id="tr-loss">–</b><span>bg loss</span></div>
+              <div class="stat"><b id="tr-waiting">–</b><span>yielding</span></div>
+              <div class="stat"><b id="tr-queue">0</b><span>queued</span></div>
+            </div>
+            <div class="row-actions">
+              <label class="slider-label" for="tr-duty-range">
+                Duty cycle <span id="tr-duty-label">35%</span>
+              </label>
+              <input type="range" id="tr-duty-range" min="5" max="100" step="5"
+                     value="35" class="slider">
+              <button class="btn ghost" id="tr-pause">Pause</button>
+            </div>
+            <div class="arch-meta" id="tr-meta"></div>
+          </div>
+
+          <div class="card">
+            <h2>Answer engines <span class="pill" id="md-engine-pill">auto</span></h2>
+            <p class="hint">
+              MyGPT answers from its own brain first. Point it at a real local
+              model and the open questions it can't answer go there instead —
+              everything below degrades gracefully when a package or file is
+              missing.
+            </p>
+            <ul class="engine-list" id="engine-list"></ul>
+            <div class="row actions">
+              <button class="ghost" id="engine-refresh">↻ Re-probe engines</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Generation studio</h2>
+            <p class="hint">
+              Sample straight from the model. Type a prompt to continue it, or
+              leave it empty and let the brain start a sentence on its own.
+            </p>
+            <label for="gen-prompt">Prompt</label>
+            <input id="gen-prompt" type="text" placeholder="e.g. the cat sat on" />
+            <div class="gen-controls">
+              <label>tokens <input type="range" id="gen-tokens" min="8" max="200" value="40" /><span id="gen-tokens-v">40</span></label>
+              <label>temperature <input type="range" id="gen-temp" min="5" max="200" value="90" /><span id="gen-temp-v">0.90</span></label>
+              <label>top-k <input type="range" id="gen-topk" min="1" max="100" value="12" /><span id="gen-topk-v">12</span></label>
+              <label>top-p <input type="range" id="gen-topp" min="10" max="100" value="95" /><span id="gen-topp-v">0.95</span></label>
+              <label>repeat&nbsp;penalty <input type="range" id="gen-pen" min="100" max="220" value="110" /><span id="gen-pen-v">1.10</span></label>
+            </div>
+            <div class="row actions">
+              <button class="primary" id="gen-btn">✨ Generate</button>
+              <select id="gen-engine">
+                <option value="brain" selected>MyGPT brain</option>
+                <option value="llamacpp">llama.cpp</option>
+                <option value="hf">transformers</option>
+              </select>
+            </div>
+            <div class="gen-out hidden" id="gen-out"></div>
+          </div>
+
+          <div class="card">
+            <h2>Next-token predictions</h2>
+            <p class="hint">What the transformer expects to see after your text —
+              its raw probabilities, straight from the softmax.</p>
+            <input id="next-q" type="text" placeholder="e.g. the cat sat" />
+            <button class="ghost" id="next-btn">🔮 Predict</button>
+            <div class="next-bars" id="next-bars"></div>
+          </div>
+        </div>
+
+        <!-- Mind tab (CORTEX self-learning loop) -->
+        <div class="panel hidden" id="panel-mind">
+          <div class="card">
+            <h2>Self-learning loop</h2>
+            <p class="hint">
+              Light pass after every turn (facts · critique · background gradients),
+              medium pass every 5 turns, System-2 chains on hard questions. Ported from
+              <a href="https://github.com/codero-sus/agi" target="_blank" rel="noopener">CORTEX</a>.
+            </p>
+            <div class="stats-grid cols4">
+              <div class="stat"><b id="mn-status">idle</b><span>trainer</span></div>
+              <div class="stat"><b id="mn-steps">0</b><span>bg steps</span></div>
+              <div class="stat"><b id="mn-loss">–</b><span>bg loss</span></div>
+              <div class="stat"><b id="mn-eval">–</b><span>self-eval</span></div>
+              <div class="stat"><b id="mn-cycles">0</b><span>cycles</span></div>
+              <div class="stat"><b id="mn-constit">v1</b><span>constitution</span></div>
+              <div class="stat"><b id="mn-episodes">0</b><span>episodes</span></div>
+              <div class="stat"><b id="mn-imports">0</b><span>imports</span></div>
+            </div>
+            <div class="row actions">
+              <button class="primary" id="improve-btn">🔁 Run improvement cycle</button>
+              <button class="ghost" id="eval-btn" title="Math, identity, knowledge, principles">🧪 Self-eval</button>
+            </div>
+            <div class="eval-box hidden" id="eval-box"></div>
+            <ul class="events" id="improve-events" style="margin-top:10px"></ul>
+          </div>
+          <div class="card">
+            <h2>Local LLM · Cortex LLMHoster <span class="pill" id="cx-pill">…</span></h2>
+            <p class="hint">
+              Open questions MyGPT can't answer itself can be routed to a model
+              hosted locally by
+              <a href="https://github.com/codero-sus/Cortex_LLMHoster" target="_blank" rel="noopener">Cortex LLMHoster</a>
+              (OpenAI-compatible API — no cloud, prompts never leave this machine).
+              Answers are learned back into MyGPT's own memory. When Cortex is
+              off or unreachable, the self-trained brain keeps answering.
+            </p>
+            <div class="cx-form">
+              <label class="cx-row"><span>Server URL</span>
+                <input type="text" id="cx-url" placeholder="http://127.0.0.1:8624" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>API base</span>
+                <input type="text" id="cx-apibase" placeholder="/v1" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>Model <em>(blank = Cortex default)</em></span>
+                <input type="text" id="cx-model" placeholder="" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>API key <em>(optional bearer secret)</em></span>
+                <input type="password" id="cx-key" placeholder="" autocomplete="off" />
+              </label>
+              <div class="row cx-checks">
+                <label class="checkline"><input type="checkbox" id="cx-enabled" /> Use Cortex for open questions</label>
+                <label class="checkline"><input type="checkbox" id="cx-learn" /> Learn Cortex answers into MyGPT</label>
+              </div>
+              <div class="row actions">
+                <button class="primary" id="cx-save">💾 Save &amp; test connection</button>
+              </div>
+              <div class="cx-status" id="cx-status"></div>
+              <ul class="cx-models" id="cx-models"></ul>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Local LLM · Ollama <span class="pill" id="ol-pill">…</span></h2>
+            <p class="hint">
+              MyGPT can also route open questions to models running on
+              <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a>
+              (native JSON API). Pull a model (<code>ollama pull llama3.2</code>)
+              and it appears here. Like Cortex, Ollama <em>serves</em> models —
+              MyGPT's own NumPy brain is what trains.
+            </p>
+            <div class="cx-form">
+              <label class="cx-row"><span>Server URL</span>
+                <input type="text" id="ol-url" placeholder="http://127.0.0.1:11434" spellcheck="false" />
+              </label>
+              <label class="cx-row"><span>Model <em>(blank = first installed model)</em></span>
+                <input type="text" id="ol-model" placeholder="" spellcheck="false" />
+              </label>
+              <div class="row cx-checks">
+                <label class="checkline"><input type="checkbox" id="ol-enabled" /> Use Ollama for open questions</label>
+                <label class="checkline"><input type="checkbox" id="ol-learn" /> Learn Ollama answers into MyGPT</label>
+              </div>
+              <div class="row actions">
+                <button class="primary" id="ol-save">💾 Save &amp; test connection</button>
+              </div>
+              <div class="cx-status" id="ol-status"></div>
+              <ul class="cx-models" id="ol-models"></ul>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Model checkpoints <span class="pill" id="ckpt-pill">0</span></h2>
+            <p class="hint">
+              Snapshots of MyGPT's <b>trained weights</b>, saved under
+              <code>_model_trained/</code>. Save one any time — or just ask in
+              chat: <em>“checkpoint the model”</em> (or <em>“train and save the
+              model”</em>). Load a checkpoint back to make it the active brain.
+            </p>
+            <div class="cx-form">
+              <label class="cx-row"><span>Label <em>(optional)</em></span>
+                <input type="text" id="ckpt-label" placeholder="e.g. after-teaching-french" spellcheck="false" />
+              </label>
+              <div class="row cx-checks">
+                <label class="checkline"><input type="checkbox" id="ckpt-train" checked /> Quick training round before saving</label>
+              </div>
+              <div class="row actions">
+                <button class="primary" id="ckpt-save">📸 Checkpoint model</button>
+              </div>
+              <div class="cx-status" id="ckpt-status"></div>
+              <ul class="ckpt-list" id="ckpt-list"></ul>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Constitution <span class="pill" id="mn-constit-pill">v1</span></h2>
+            <ul class="principles" id="principles"></ul>
+          </div>
+          <div class="card">
+            <h2>Semantic facts <span class="pill" id="mn-facts-pill">0</span></h2>
+            <ul class="facts-list" id="facts-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Lessons <span class="pill" id="mn-lessons-pill">0</span></h2>
+            <ul class="lessons-list" id="lessons-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Skills <span class="pill" id="mn-skills-pill">0</span></h2>
+            <p class="hint">Procedural memory: Python files in <code>skills/</code>.
+              New ones are auto-written when an intent keeps repeating.</p>
+            <ul class="skills-list" id="skills-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Goals</h2>
+            <p class="hint">Intrinsic drives, nudged forward by the improvement loop.</p>
+            <ul class="goals-list" id="goals-list"></ul>
+          </div>
+          <div class="card">
+            <h2>Import your other lives</h2>
+            <p class="hint">Drop a WhatsApp <code>.txt/.zip</code>, ChatGPT
+              <code>conversations.json</code>, Claude JSON, Telegram
+              <code>result.json</code>, or messages JSONL/CSV. The turns become
+              episodic memories and train the neural core in the background.</p>
+            <div class="row actions import-row">
+              <input type="file" id="import-file" />
+              <button class="primary" id="import-btn">📥 Import</button>
+            </div>
+            <div class="import-result" id="import-result"></div>
+          </div>
+        </div>
+
+        <div class="credit-block">
+          <a class="credit" href="https://github.com/codero-sus" target="_blank" rel="noopener">
+            Made with ❤️ by <b>codero-sus</b> — all credits &amp; source on GitHub
+          </a>
+          <a class="credit" href="https://the-codero.web.app/" target="_blank" rel="noopener">
+            🌐 Author website — the-codero.web.app
+          </a>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript>
+    <div style="padding:20px;text-align:center;color:#e7ecf5">
+      MyGPT's WebUI needs JavaScript. The JSON API still works without it —
+      see the README. Made with ❤️ by codero-sus (github.com/codero-sus).
+    </div>
+  </noscript>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+  <dialog class="modal" id="help-modal" aria-labelledby="help-title">
+    <h3 id="help-title">⌨️ Keyboard shortcuts</h3>
+    <ul class="shortcut-list">
+      <li><kbd>Enter</kbd> send · <kbd>Shift</kbd>+<kbd>Enter</kbd> newline</li>
+      <li><kbd>Esc</kbd> clear composer / search · <kbd>/</kbd> focus composer</li>
+      <li><kbd>Ctrl</kbd>+<kbd>K</kbd> search the chat</li>
+      <li><kbd>Alt</kbd>+<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> sidebar tabs</li>
+      <li><kbd>Ctrl</kbd>+<kbd>B</kbd> collapse the sidebar</li>
+      <li><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> export ·
+          <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> clear</li>
+      <li><kbd>↑</kbd> recall your last message · <kbd>?</kbd> this dialog</li>
+      <li>Double-click any message to copy it</li>
+    </ul>
+    <form method="dialog"><button class="primary">Got it</button></form>
+  </dialog>
+
+  <dialog class="modal" id="about-modal" aria-labelledby="about-title">
+    <h3 id="about-title">About MyGPT</h3>
+    <p>Self-training chatbot in pure Python + NumPy with a Flask WebUI.
+       Knowledge lives on your machine; nothing is sent anywhere.</p>
+    <p>Made with ❤️ by <a href="https://github.com/codero-sus" target="_blank"
+       rel="noopener">codero-sus</a> ·
+       <a href="https://the-codero.web.app/" target="_blank" rel="noopener">the-codero.web.app</a></p>
+    <p class="hint" id="about-version"></p>
+    <form method="dialog"><button class="primary">Close</button></form>
+  </dialog>
+</body>
+</html>
